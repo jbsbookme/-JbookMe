@@ -6,9 +6,6 @@ import {
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createS3Client, getBucketConfig } from './aws-config';
 
-const s3Client = createS3Client();
-const { bucketName, folderPrefix } = getBucketConfig();
-
 // Get AWS region from bucket name or environment or use default
 const extractRegionFromBucket = (name: string): string => {
   // Try to extract region from bucket name (e.g., "bucket-name-us-west-2")
@@ -16,7 +13,25 @@ const extractRegionFromBucket = (name: string): string => {
   return regionMatch ? regionMatch[0] : 'us-east-1';
 };
 
-const region = process.env.AWS_REGION || extractRegionFromBucket(bucketName);
+type S3Context = {
+  s3Client: ReturnType<typeof createS3Client>;
+  bucketName: string;
+  folderPrefix: string;
+  region: string;
+};
+
+let cachedContext: S3Context | null = null;
+
+function getS3Context(): S3Context {
+  if (cachedContext) return cachedContext;
+
+  const { bucketName, folderPrefix } = getBucketConfig();
+  const region = process.env.AWS_REGION || extractRegionFromBucket(bucketName);
+  const s3Client = createS3Client();
+
+  cachedContext = { s3Client, bucketName, folderPrefix, region };
+  return cachedContext;
+}
 
 /**
  * Upload a file to S3
@@ -30,6 +45,7 @@ export async function uploadFile(
   fileName: string,
   isPublic = false
 ): Promise<string> {
+  const { s3Client, bucketName, folderPrefix } = getS3Context();
   const timestamp = Date.now();
   const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
   
@@ -58,6 +74,7 @@ export async function getFileUrl(
   cloud_storage_path: string,
   isPublic: boolean
 ): Promise<string> {
+  const { s3Client, bucketName, region } = getS3Context();
   if (isPublic) {
     // Return public URL
     return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
@@ -76,6 +93,7 @@ export async function getFileUrl(
  * @param key - S3 key to delete
  */
 export async function deleteFile(key: string): Promise<void> {
+  const { s3Client, bucketName } = getS3Context();
   const command = new DeleteObjectCommand({
     Bucket: bucketName,
     Key: key,
