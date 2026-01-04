@@ -12,6 +12,7 @@ import {
   Scissors, 
   Star, 
   Sparkles,
+  Calendar,
   Clock,
   ArrowRight,
   User,
@@ -541,6 +542,10 @@ export default function FeedPage() {
               whileTap={{ scale: 0.95 }}
             >
               <Card className="glass-cyan hover:glow-cyan smooth-transition overflow-hidden relative">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#00f0ff]/25 via-transparent to-[#ffd700]/20" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-[#00f0ff]/30 to-[#ffd700]/20 blur-2xl opacity-70" />
+                </div>
                 <CardContent className="p-6 text-center relative z-10">
                   <motion.div
                     animate={{ y: [0, -5, 0] }}
@@ -557,7 +562,16 @@ export default function FeedPage() {
                       })}
                     </div>
                   </motion.div>
-                  <p className="text-white font-bold text-lg mt-3">BOOK NOW</p>
+
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#00f0ff]/25 to-[#ffd700]/20 border border-[#00f0ff]/30 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-[#00f0ff]" />
+                    </div>
+                    <p className="text-white font-extrabold text-xl tracking-wide">BOOK NOW</p>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-300">
+                    {language === 'es' ? 'Reserva en segundos' : 'Book in seconds'}
+                  </p>
                 </CardContent>
                 <div className="absolute inset-0 shimmer opacity-50" />
               </Card>
