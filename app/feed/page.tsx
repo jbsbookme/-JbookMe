@@ -15,7 +15,6 @@ import {
   Clock,
   ArrowRight,
   User,
-  Image as ImageIcon,
   MessageCircle,
   Send,
   Trash2
@@ -531,8 +530,8 @@ export default function FeedPage() {
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Quick Actions with Premium Animation */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Quick Action (Primary CTA) */}
+        <div>
           <Link href="/reservar" className="block">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -559,31 +558,6 @@ export default function FeedPage() {
                     </div>
                   </motion.div>
                   <p className="text-white font-bold text-lg mt-3">BOOK NOW</p>
-                </CardContent>
-                <div className="absolute inset-0 shimmer opacity-50" />
-              </Card>
-            </motion.div>
-          </Link>
-
-          <Link href="/reservar" className="block">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              whileHover={{ scale: 1.05, rotate: -1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Card className="glass-gold hover:glow-gold smooth-transition overflow-hidden relative">
-                <CardContent className="p-6 text-center relative z-10">
-                  <motion.div
-                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                    className="mb-2"
-                  >
-                    <ImageIcon className="w-12 h-12 text-[#ffd700] mx-auto drop-shadow-[0_0_10px_rgba(255,215,0,0.5)]" />
-                  </motion.div>
-                  <p className="text-white font-bold text-lg">AVAILABLE TODAY</p>
-                  <p className="text-[#ffd700]/70 text-xs mt-1 uppercase">Book Last Spots</p>
                 </CardContent>
                 <div className="absolute inset-0 shimmer opacity-50" />
               </Card>
@@ -628,13 +602,13 @@ export default function FeedPage() {
           </motion.div>
         )}
 
-        {/* Male Barbers Section */}
-        {barbers.length > 0 && (
+        {/* Featured Professionals (IG-like Stories) */}
+        {(barbers.length > 0 || stylists.length > 0) && (
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Scissors className="w-5 h-5 text-[#00f0ff]" />
-                {t('feed.featuredBarbers')}
+                <Sparkles className="w-5 h-5 text-[#00f0ff]" />
+                {language === 'es' ? 'Profesionales Destacados' : 'Featured Professionals'}
               </h2>
               <Link href="/barberos">
                 <Button variant="ghost" size="sm" className="text-[#00f0ff] hover:text-[#00f0ff]">
@@ -644,138 +618,48 @@ export default function FeedPage() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {barbers.map((barber, index) => (
-                <Link key={barber.id} href={`/barberos/${barber.id}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ scale: 1.08, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Card className="glass-cyan hover:glow-cyan smooth-transition overflow-hidden relative group">
-                      <CardContent className="p-4 text-center">
-                        <motion.div 
-                          className="relative w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-2 border-[#00f0ff]/50"
-                          whileHover={{ rotate: 360 }}
-                          transition={{ duration: 0.6 }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-[#00f0ff]/20 to-[#0099cc]/20" />
-                          {(barber.profileImage || barber.user.image) ? (
-                            <Image
-                              src={barber.profileImage || barber.user.image || ''}
-                              alt={barber.user.name || 'Barber'}
-                              fill
-                              className="object-cover relative z-10"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center relative z-10">
-                              <Scissors className="w-10 h-10 text-[#00f0ff]/50" />
-                            </div>
-                          )}
-                        </motion.div>
-                        <p className="text-white font-semibold text-sm truncate">
-                          {barber.user.name || 'Barber'}
-                        </p>
-                        {barber.specialties && (
-                          <p className="text-gray-400 text-xs truncate mt-1">
-                            {barber.specialties}
-                          </p>
-                        )}
-                        {barber.rating && barber.rating > 0 && (
-                          <motion.div 
-                            className="flex items-center justify-center gap-1 mt-2"
-                            whileHover={{ scale: 1.1 }}
-                          >
-                            <Star className="w-3 h-3 text-[#ffd700] fill-current" />
-                            <span className="text-[#ffd700] text-xs font-semibold">
-                              {barber.rating.toFixed(1)}
-                            </span>
-                          </motion.div>
-                        )}
-                      </CardContent>
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#00f0ff]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </Card>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+              {[...barbers, ...stylists].map((pro) => {
+                const isFemale = pro.gender === 'FEMALE';
+                const ringClass = isFemale ? 'border-pink-400/60' : 'border-[#00f0ff]/60';
+                const glowClass = isFemale ? 'shadow-[0_0_18px_rgba(236,72,153,0.25)]' : 'shadow-[0_0_18px_rgba(0,240,255,0.25)]';
+                const name = pro.user?.name || (isFemale ? 'Stylist' : 'Barber');
 
-        {/* Female Stylists Section */}
-        {stylists.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-pink-400" />
-                {t('feed.featuredStylists')}
-              </h2>
-              <Link href="/barberos">
-                <Button variant="ghost" size="sm" className="text-pink-400 hover:text-pink-400">
-                  View All
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {stylists.map((stylist, index) => (
-                <Link key={stylist.id} href={`/barberos/${stylist.id}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ scale: 1.08, y: -5 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Card className="glass-pink hover:glow-pink smooth-transition overflow-hidden relative group">
-                      <CardContent className="p-4 text-center">
-                        <motion.div 
-                          className="relative w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden border-2 border-pink-400/50"
-                          whileHover={{ rotate: -360 }}
-                          transition={{ duration: 0.6 }}
-                        >
-                          <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-500/20" />
-                          {(stylist.profileImage || stylist.user.image) ? (
-                            <Image
-                              src={stylist.profileImage || stylist.user.image || ''}
-                              alt={stylist.user.name || 'Stylist'}
-                              fill
-                              className="object-cover relative z-10"
-                            />
+                return (
+                  <Link key={pro.id} href={`/barberos/${pro.id}`} className="flex-shrink-0 w-20">
+                    <div className={`relative w-16 h-16 mx-auto rounded-full overflow-hidden border-2 ${ringClass} ${glowClass}`}>
+                      {(pro.profileImage || pro.user?.image) ? (
+                        <Image
+                          src={pro.profileImage || pro.user?.image || ''}
+                          alt={name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                          {isFemale ? (
+                            <Sparkles className="w-7 h-7 text-pink-400/60" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center relative z-10">
-                              <Sparkles className="w-10 h-10 text-pink-400/50" />
-                            </div>
+                            <Scissors className="w-7 h-7 text-[#00f0ff]/60" />
                           )}
-                        </motion.div>
-                        <p className="text-white font-semibold text-sm truncate">
-                          {stylist.user.name || 'Stylist'}
-                        </p>
-                        {stylist.specialties && (
-                          <p className="text-gray-400 text-xs truncate mt-1">
-                            {stylist.specialties}
-                          </p>
-                        )}
-                        {stylist.rating && stylist.rating > 0 && (
-                          <motion.div 
-                            className="flex items-center justify-center gap-1 mt-2"
-                            whileHover={{ scale: 1.1 }}
-                          >
-                            <Star className="w-3 h-3 text-[#ffd700] fill-current" />
-                            <span className="text-[#ffd700] text-xs font-semibold">
-                              {stylist.rating.toFixed(1)}
-                            </span>
-                          </motion.div>
-                        )}
-                      </CardContent>
-                      <div className="absolute inset-0 bg-gradient-to-t from-pink-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </Card>
-                  </motion.div>
-                </Link>
-              ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="mt-2 text-xs text-white text-center truncate">{name}</p>
+                    {pro.rating && pro.rating > 0 ? (
+                      <div className="mt-1 flex items-center justify-center gap-1">
+                        <Star className="w-3 h-3 text-[#ffd700] fill-current" />
+                        <span className="text-[#ffd700] text-[11px] font-semibold">
+                          {pro.rating.toFixed(1)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="h-[14px]" />
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
