@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Sparkles, Plus, MessageCircle, User, Lock } from 'lucide-react';
+import { Home, Sparkles, Plus, MessageCircle, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -48,7 +48,6 @@ export default function BottomNav() {
       href: isSessionLoading ? '#' : (isAuthenticated ? '/galeria-genero' : authHrefFor('/galeria-genero')),
       active: pathname === '/galeria-genero' || pathname === '/galeria',
       isCreate: false,
-      locked: !isAuthenticated || isSessionLoading,
       disabled: isSessionLoading
     },
     {
@@ -121,20 +120,13 @@ export default function BottomNav() {
                 <div className={`flex flex-col items-center justify-center transition-all duration-300 active:scale-95 ${
                   isActive ? 'scale-125' : 'scale-100'
                 }`}>
-                  <div className="relative">
-                    <Icon
-                      className={`w-7 h-7 mb-1 transition-all duration-300 ${
-                        isActive 
-                          ? colors.active
-                          : colors.normal
-                      }`}
-                    />
-                    {(item as any).locked ? (
-                      <span className="absolute -right-1 -bottom-1 rounded-full bg-black/80 border border-gray-700 p-[2px]">
-                        <Lock className={`w-3 h-3 ${isActive ? colors.active : colors.normal}`} />
-                      </span>
-                    ) : null}
-                  </div>
+                  <Icon
+                    className={`w-7 h-7 mb-1 transition-all duration-300 ${
+                      isActive 
+                        ? colors.active
+                        : colors.normal
+                    }`}
+                  />
                   <span className={`text-xs font-bold transition-all duration-300 ${
                     isActive 
                       ? colors.active
