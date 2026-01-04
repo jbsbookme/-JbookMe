@@ -52,6 +52,11 @@ export async function POST(request: NextRequest) {
     const ext = file.name.split('.').pop();
     const fileName = `barber-${timestamp}.${ext}`;
 
+    const allowLocalFallback =
+      process.env.NODE_ENV !== 'production' &&
+      process.env.VERCEL !== '1' &&
+      process.env.VERCEL !== 'true';
+
     // Prefer S3 when available
     try {
       console.log('[UPLOAD] Attempting S3 upload...');
@@ -67,7 +72,22 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     } catch (s3Error) {
-      console.log('[UPLOAD] S3 failed, saving locally:', s3Error);
+      console.log('[UPLOAD] S3 upload failed:', s3Error);
+
+      if (!allowLocalFallback) {
+        const hint =
+          'S3 upload is required in production. Check AWS_BUCKET_NAME, AWS_REGION (optional), and AWS credentials (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) in your hosting environment.';
+
+        return NextResponse.json(
+          {
+            error: 'Failed to upload image (S3).',
+            hint,
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log('[UPLOAD] Falling back to local upload (dev only).');
     }
 
     // Create uploads directory if it doesn't exist

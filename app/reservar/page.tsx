@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -134,8 +134,98 @@ export default function ReservarPage() {
   const [acceptCancellationPolicy, setAcceptCancellationPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [barbersLoading, setBarbersLoading] = useState(false);
+  const [now, setNow] = useState<Date>(() => new Date());
   const [maleGenderImage, setMaleGenderImage] = useState<string | null>(null);
   const [femaleGenderImage, setFemaleGenderImage] = useState<string | null>(null);
+
+  const isSameDay = useCallback(
+    (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(),
+    []
+  );
+
+  const parseTimeToMinutes = useCallback((value: string): number | null => {
+    const raw = (value || '').trim();
+    if (!raw) return null;
+
+    const upper = raw.toUpperCase();
+
+    // 12-hour format: "9:30 AM", "11 AM"
+    const ampmMatch = upper.match(/^\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*$/);
+    if (ampmMatch) {
+      let hour = Number(ampmMatch[1]);
+      const minute = Number(ampmMatch[2] || '0');
+      const meridiem = ampmMatch[3];
+
+      if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+      if (hour < 1 || hour > 12 || minute < 0 || minute > 59) return null;
+
+      if (meridiem === 'AM') {
+        if (hour === 12) hour = 0;
+      } else {
+        if (hour !== 12) hour += 12;
+      }
+
+      return hour * 60 + minute;
+    }
+
+    // 24-hour format: "09:30", "9:30"
+    const hmMatch = raw.match(/^\s*(\d{1,2}):(\d{2})\s*$/);
+    if (hmMatch) {
+      const hour = Number(hmMatch[1]);
+      const minute = Number(hmMatch[2]);
+      if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
+      if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+      return hour * 60 + minute;
+    }
+
+    return null;
+  }, []);
+
+  // Tick every minute so "today" time slots update in real time.
+  useEffect(() => {
+    if (currentStep !== 'datetime' || !selectedDate) return;
+
+    const rightNow = new Date();
+    if (!isSameDay(selectedDate, rightNow)) return;
+
+    setNow(rightNow);
+
+    const id = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(id);
+  }, [currentStep, isSameDay, selectedDate]);
+
+  const filteredAvailableTimes = useMemo(() => {
+    if (!selectedDate) return availableTimes;
+
+    const today = now;
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const selectedStart = new Date(selectedDate);
+    selectedStart.setHours(0, 0, 0, 0);
+
+    // Past date (should be blocked by calendar, but safe-guard anyway)
+    if (selectedStart < todayStart) return [];
+
+    // Future date: show all slots
+    if (selectedStart > todayStart) return availableTimes;
+
+    // Today: hide past slots
+    const nowMinutes = today.getHours() * 60 + today.getMinutes();
+    return availableTimes.filter((t) => {
+      const minutes = parseTimeToMinutes(t);
+      if (minutes == null) return true;
+      return minutes > nowMinutes;
+    });
+  }, [availableTimes, now, parseTimeToMinutes, selectedDate]);
+
+  useEffect(() => {
+    if (!selectedTime) return;
+    if (!filteredAvailableTimes.includes(selectedTime)) {
+      setSelectedTime('');
+    }
+  }, [filteredAvailableTimes, selectedTime]);
 
   // Load gender images from settings
   useEffect(() => {
@@ -1089,7 +1179,7 @@ export default function ReservarPage() {
                   👈 First, select a day in the calendar
                 </p>
               </div>
-            ) : availableTimes.length === 0 ? (
+            ) : filteredAvailableTimes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12">
                 <Clock className="w-16 h-16 text-gray-600 mb-4" />
                 <p className="text-gray-400 text-center">
@@ -1101,7 +1191,7 @@ export default function ReservarPage() {
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-3">
-                {availableTimes.map((time) => (
+                {filteredAvailableTimes.map((time) => (
                   <button
                     key={time}
                     onClick={() => setSelectedTime(time)}

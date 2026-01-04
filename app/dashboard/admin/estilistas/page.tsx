@@ -224,7 +224,8 @@ export default function AdminEstilistasPage() {
         toast.success('Image uploaded successfully');
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error uploading image');
+        const message = error?.hint ? `${error.error || 'Error uploading image'} ${error.hint}` : (error.error || 'Error uploading image');
+        toast.error(message);
       }
     } catch (error) {
       console.error('Error uploading image:', error);
