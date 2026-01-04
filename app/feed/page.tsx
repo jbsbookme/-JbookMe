@@ -514,7 +514,7 @@ export default function FeedPage() {
       <DashboardNavbar />
       
       {/* Mensaje de bienvenida */}
-      <div className="bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800">
+      <div className="hidden sm:block bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800">
         <div className="container mx-auto px-4 py-6">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
