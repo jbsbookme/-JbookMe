@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Sparkles, Plus, MessageCircle, User } from 'lucide-react';
+import { Home, Sparkles, Plus, MessageCircle, User, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -29,10 +29,12 @@ export default function BottomNav() {
   if (!mounted) return null;
 
   const isAuthenticated = status === 'authenticated' && !!session;
+  const isSessionLoading = status === 'loading';
   const authHrefFor = (callbackUrl: string) => `/auth?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 
   const navItems = [
     {
+      id: 'home',
       name: t('nav.home'),
       icon: Home,
       href: isAuthenticated ? '/feed' : authHrefFor('/feed'),
@@ -40,13 +42,17 @@ export default function BottomNav() {
       isCreate: false
     },
     {
+      id: 'explore',
       name: t('nav.explore'),
       icon: Sparkles,
-      href: '/galeria-genero',
+      href: isSessionLoading ? '#' : (isAuthenticated ? '/galeria-genero' : authHrefFor('/galeria-genero')),
       active: pathname === '/galeria-genero' || pathname === '/galeria',
-      isCreate: false
+      isCreate: false,
+      locked: !isAuthenticated || isSessionLoading,
+      disabled: isSessionLoading
     },
     {
+      id: 'post',
       name: t('nav.post'),
       icon: Plus,
       href: isAuthenticated ? '/dashboard/cliente/publicar' : authHrefFor('/dashboard/cliente/publicar'),
@@ -54,6 +60,7 @@ export default function BottomNav() {
       isCreate: true
     },
     {
+      id: 'chat',
       name: t('nav.chat'),
       icon: MessageCircle,
       href: isAuthenticated ? '/inbox' : authHrefFor('/inbox'),
@@ -61,6 +68,7 @@ export default function BottomNav() {
       isCreate: false
     },
     {
+      id: 'profile',
       name: t('nav.profile'),
       icon: User,
       href: isAuthenticated ? '/perfil' : authHrefFor('/perfil'),
@@ -100,20 +108,33 @@ export default function BottomNav() {
             
             return (
               <Link
-                key={item.name}
+                key={item.id}
                 href={item.href}
-                className="flex flex-col items-center justify-center flex-1 h-full min-w-[60px] min-h-[60px]"
+                onClick={(e) => {
+                  if ((item as any).disabled) {
+                    e.preventDefault();
+                  }
+                }}
+                aria-disabled={(item as any).disabled ? true : undefined}
+                className={`flex flex-col items-center justify-center flex-1 h-full min-w-[60px] min-h-[60px] ${(item as any).disabled ? 'opacity-60 pointer-events-none' : ''}`}
               >
                 <div className={`flex flex-col items-center justify-center transition-all duration-300 active:scale-95 ${
                   isActive ? 'scale-125' : 'scale-100'
                 }`}>
-                  <Icon
-                    className={`w-7 h-7 mb-1 transition-all duration-300 ${
-                      isActive 
-                        ? colors.active
-                        : colors.normal
-                    }`}
-                  />
+                  <div className="relative">
+                    <Icon
+                      className={`w-7 h-7 mb-1 transition-all duration-300 ${
+                        isActive 
+                          ? colors.active
+                          : colors.normal
+                      }`}
+                    />
+                    {(item as any).locked ? (
+                      <span className="absolute -right-1 -bottom-1 rounded-full bg-black/80 border border-gray-700 p-[2px]">
+                        <Lock className={`w-3 h-3 ${isActive ? colors.active : colors.normal}`} />
+                      </span>
+                    ) : null}
+                  </div>
                   <span className={`text-xs font-bold transition-all duration-300 ${
                     isActive 
                       ? colors.active
