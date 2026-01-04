@@ -602,13 +602,13 @@ export default function FeedPage() {
           </motion.div>
         )}
 
-        {/* Featured Professionals (IG-like Stories) */}
-        {(barbers.length > 0 || stylists.length > 0) && (
+        {/* Featured Barbers (IG-like Stories) */}
+        {barbers.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[#00f0ff]" />
-                {language === 'es' ? 'Profesionales Destacados' : 'Featured Professionals'}
+                <Scissors className="w-5 h-5 text-[#00f0ff]" />
+                {t('feed.featuredBarbers')}
               </h2>
               <Link href="/barberos">
                 <Button variant="ghost" size="sm" className="text-[#00f0ff] hover:text-[#00f0ff]">
@@ -619,11 +619,10 @@ export default function FeedPage() {
             </div>
 
             <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
-              {[...barbers, ...stylists].map((pro) => {
-                const isFemale = pro.gender === 'FEMALE';
-                const ringClass = isFemale ? 'border-pink-400/60' : 'border-[#00f0ff]/60';
-                const glowClass = isFemale ? 'shadow-[0_0_18px_rgba(236,72,153,0.25)]' : 'shadow-[0_0_18px_rgba(0,240,255,0.25)]';
-                const name = pro.user?.name || (isFemale ? 'Stylist' : 'Barber');
+              {barbers.map((pro) => {
+                const ringClass = 'border-[#00f0ff]/60';
+                const glowClass = 'shadow-[0_0_18px_rgba(0,240,255,0.25)]';
+                const name = pro.user?.name || 'Barber';
 
                 return (
                   <Link key={pro.id} href={`/barberos/${pro.id}`} className="flex-shrink-0 w-20">
@@ -637,26 +636,75 @@ export default function FeedPage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                          {isFemale ? (
-                            <Sparkles className="w-7 h-7 text-pink-400/60" />
-                          ) : (
-                            <Scissors className="w-7 h-7 text-[#00f0ff]/60" />
-                          )}
+                          <Scissors className="w-7 h-7 text-[#00f0ff]/60" />
                         </div>
                       )}
                     </div>
 
                     <p className="mt-2 text-xs text-white text-center truncate">{name}</p>
                     {pro.rating && pro.rating > 0 ? (
-                      <div className="mt-1 flex items-center justify-center gap-1">
+                      <div className="mt-1 hidden sm:flex items-center justify-center gap-1">
                         <Star className="w-3 h-3 text-[#ffd700] fill-current" />
                         <span className="text-[#ffd700] text-[11px] font-semibold">
                           {pro.rating.toFixed(1)}
                         </span>
                       </div>
-                    ) : (
-                      <div className="h-[14px]" />
-                    )}
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Featured Stylists (IG-like Stories) */}
+        {stylists.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-pink-400" />
+                {t('feed.featuredStylists')}
+              </h2>
+              <Link href="/barberos">
+                <Button variant="ghost" size="sm" className="text-pink-400 hover:text-pink-400">
+                  View All
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+              {stylists.map((pro) => {
+                const ringClass = 'border-pink-400/60';
+                const glowClass = 'shadow-[0_0_18px_rgba(236,72,153,0.25)]';
+                const name = pro.user?.name || 'Stylist';
+
+                return (
+                  <Link key={pro.id} href={`/barberos/${pro.id}`} className="flex-shrink-0 w-20">
+                    <div className={`relative w-16 h-16 mx-auto rounded-full overflow-hidden border-2 ${ringClass} ${glowClass}`}>
+                      {(pro.profileImage || pro.user?.image) ? (
+                        <Image
+                          src={pro.profileImage || pro.user?.image || ''}
+                          alt={name}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                          <Sparkles className="w-7 h-7 text-pink-400/60" />
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="mt-2 text-xs text-white text-center truncate">{name}</p>
+                    {pro.rating && pro.rating > 0 ? (
+                      <div className="mt-1 hidden sm:flex items-center justify-center gap-1">
+                        <Star className="w-3 h-3 text-[#ffd700] fill-current" />
+                        <span className="text-[#ffd700] text-[11px] font-semibold">
+                          {pro.rating.toFixed(1)}
+                        </span>
+                      </div>
+                    ) : null}
                   </Link>
                 );
               })}
