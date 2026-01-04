@@ -531,91 +531,6 @@ export default function FeedPage() {
       </div>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Quick Action (Primary CTA) */}
-        <div>
-          <Link href="/reservar" className="block">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              whileHover={{ scale: 1.05, rotate: 1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Card className="glass-cyan hover:glow-cyan smooth-transition overflow-hidden relative">
-                <div className="pointer-events-none absolute inset-0">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#00f0ff]/25 via-transparent to-[#ffd700]/20" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-[#00f0ff]/30 to-[#ffd700]/20 blur-2xl opacity-70" />
-                </div>
-                <CardContent className="p-6 text-center relative z-10">
-                  <motion.div
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="mb-2"
-                  >
-                    <div className="text-[#00f0ff] font-bold text-4xl leading-none">
-                      {new Date().getDate()}
-                    </div>
-                    <div className="text-[#00f0ff]/70 text-sm mt-1 uppercase">
-                      {new Date().toLocaleDateString(language === 'es' ? 'es' : 'en', { 
-                        month: 'short', 
-                        year: 'numeric' 
-                      })}
-                    </div>
-                  </motion.div>
-
-                  <div className="mt-3 flex items-center justify-center gap-2">
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#00f0ff]/25 to-[#ffd700]/20 border border-[#00f0ff]/30 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-[#00f0ff]" />
-                    </div>
-                    <p className="text-white font-extrabold text-xl tracking-wide">BOOK NOW</p>
-                  </div>
-                  <p className="mt-2 text-xs text-gray-300">
-                    {language === 'es' ? 'Reserva en segundos' : 'Book in seconds'}
-                  </p>
-                </CardContent>
-                <div className="absolute inset-0 shimmer opacity-50" />
-              </Card>
-            </motion.div>
-          </Link>
-        </div>
-
-        {/* Promotions Carousel */}
-        <PromotionsCarousel />
-
-        {/* Next Appointment */}
-        {nextAppointment && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border-purple-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-semibold">Next Appointment</p>
-                      <p className="text-gray-400 text-sm">
-                        {nextAppointment.service?.name} - {nextAppointment.barber?.user?.name}
-                      </p>
-                      <p className="text-[#00f0ff] text-xs mt-1">
-                        {new Date(nextAppointment.date).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })} at {nextAppointment.time}
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-500" />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
         {/* Featured Barbers (IG-like Stories) */}
         {barbers.length > 0 && (
           <div>
@@ -724,6 +639,91 @@ export default function FeedPage() {
               })}
             </div>
           </div>
+        )}
+
+        {/* Quick Action (Primary CTA) */}
+        <div>
+          <Link href="/reservar" className="block">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              whileHover={{ scale: 1.05, rotate: 1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Card className="glass-cyan hover:glow-cyan smooth-transition overflow-hidden relative">
+                <div className="pointer-events-none absolute inset-0">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#00f0ff]/25 via-transparent to-[#ffd700]/20" />
+                  <div className="absolute -inset-1 bg-gradient-to-r from-[#00f0ff]/30 to-[#ffd700]/20 blur-2xl opacity-70" />
+                </div>
+                <CardContent className="p-6 text-center relative z-10">
+                  <motion.div
+                    animate={{ y: [0, -5, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="mb-2"
+                  >
+                    <div className="text-[#00f0ff] font-bold text-4xl leading-none">
+                      {new Date().getDate()}
+                    </div>
+                    <div className="text-[#00f0ff]/70 text-sm mt-1 uppercase">
+                      {new Date().toLocaleDateString(language === 'es' ? 'es' : 'en', { 
+                        month: 'short', 
+                        year: 'numeric' 
+                      })}
+                    </div>
+                  </motion.div>
+
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#00f0ff]/25 to-[#ffd700]/20 border border-[#00f0ff]/30 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-[#00f0ff]" />
+                    </div>
+                    <p className="text-white font-extrabold text-xl tracking-wide">BOOK NOW</p>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-300">
+                    {language === 'es' ? 'Reserva en segundos' : 'Book in seconds'}
+                  </p>
+                </CardContent>
+                <div className="absolute inset-0 shimmer opacity-50" />
+              </Card>
+            </motion.div>
+          </Link>
+        </div>
+
+        {/* Promotions Carousel */}
+        <PromotionsCarousel />
+
+        {/* Next Appointment */}
+        {nextAppointment && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border-purple-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                      <Clock className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold">Next Appointment</p>
+                      <p className="text-gray-400 text-sm">
+                        {nextAppointment.service?.name} - {nextAppointment.barber?.user?.name}
+                      </p>
+                      <p className="text-[#00f0ff] text-xs mt-1">
+                        {new Date(nextAppointment.date).toLocaleDateString('en-US', { 
+                          weekday: 'short', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })} at {nextAppointment.time}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-gray-500" />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Posts Feed */}
@@ -1158,6 +1158,16 @@ export default function FeedPage() {
           )}
         </motion.div>
       )}
+
+      {/* Persistent mobile booking button (stays visible while scrolling) */}
+      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 sm:hidden">
+        <Link href="/reservar">
+          <Button className="h-12 px-6 rounded-full bg-[#00f0ff] text-black font-extrabold hover:bg-[#00f0ff]/90">
+            <Calendar className="w-5 h-5 mr-2" />
+            {language === 'es' ? 'RESERVAR' : 'BOOK'}
+          </Button>
+        </Link>
+      </div>
 
       {/* FAB Buttons */}
       <ShareFAB />
