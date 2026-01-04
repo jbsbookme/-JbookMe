@@ -1,0 +1,271 @@
+import Link from 'next/link';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { prisma } from '@/lib/db';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Calendar, Clock, User } from 'lucide-react';
+import { PublicProfileRating } from '@/components/public-profile-rating';
+import { PublicProfileReviews } from '@/components/public-profile-reviews';
+import { BarberPublicGallery } from '@/components/barber-public-gallery';
+
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function BarberProfilePage({ params }: Params) {
+  const { id } = await params;
+
+  const barber = await prisma.barber.findUnique({
+    where: { id },
+    include: {
+      user: true,
+      reviews: {
+        include: {
+          client: {
+            select: {
+              name: true,
+              image: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 10,
+      },
+    },
+  });
+
+  if (!barber) {
+    notFound();
+  }
+
+  // Get active services filtered by barber's gender
+  // MALE barbers → ONLY MALE services (no UNISEX)
+  // FEMALE stylists → ONLY FEMALE services (no UNISEX)
+  // Include both: general services (barberId: null) AND services assigned to this specific barber
+  const services = await prisma.service.findMany({
+    where: {
+      isActive: true,
+      gender: barber.gender, // STRICT: Only exact gender match (no UNISEX)
+      OR: [
+        { barberId: null }, // General services for all barbers
+        { barberId: barber.id }, // Services assigned specifically to this barber
+      ],
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  const totalRating = barber.reviews.reduce((sum, review) => sum + review.rating, 0);
+  const avgRating = barber.reviews.length > 0 ? totalRating / barber.reviews.length : 0;
+
+  const galleryImages = await prisma.galleryImage.findMany({
+    where: {
+      isActive: true,
+      barberId: barber.id,
+    },
+    select: {
+      id: true,
+      title: true,
+      cloud_storage_path: true,
+      likes: true,
+    },
+    orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+  });
+
+  const galleryImagesWithUrls = galleryImages.map((img) => ({
+    id: img.id,
+    title: img.title,
+    imageUrl: img.cloud_storage_path,
+    likes: img.likes,
+  }));
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a] pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-7xl">
+          <Link href="/" className="flex items-center space-x-3">
+            <div className="relative w-10 h-10 rounded-lg overflow-hidden">
+              <Image 
+                src="/logo.png" 
+                alt="JBookMe Logo" 
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <span className="text-xl font-bold">
+              <span className="text-[#00f0ff]">JBook</span>
+              <span className="text-[#ffd700]">Me</span>
+            </span>
+          </Link>
+          <div className="flex items-center space-x-4">
+            <Link href="/barberos">
+              <Button variant="ghost" className="text-gray-300 hover:text-[#00f0ff]">
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                View Barbers
+              </Button>
+            </Link>
+            <Link href="/auth">
+              <Button variant="outline" className="border-gray-700 text-white hover:bg-[#0a0a0a] hover:text-[#00f0ff]">
+                Login
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-12 max-w-6xl">
+        {/* Profile Header */}
+        <div className="mb-12">
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-8">
+              <div className="flex flex-col md:flex-row gap-8">
+                {/* Profile Image */}
+                <div className="flex-shrink-0">
+                  <div className="relative w-48 h-48 rounded-lg overflow-hidden bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                    {barber.profileImage || barber.user?.image ? (
+                      <Image
+                        src={barber.profileImage || barber.user?.image || ''}
+                        alt={barber.user?.name || 'Barber'}
+                        fill
+                        sizes="192px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#00f0ff]/10 to-[#ffd700]/10">
+                        <User className="w-24 h-24 text-[#00f0ff]/40" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Profile Info */}
+                <div className="flex-1">
+                  <h1 className="text-4xl font-bold text-white mb-2">
+                    {barber.user?.name || 'Barber'}
+                  </h1>
+                  {barber.specialties && (
+                    <p className="text-[#00f0ff] text-lg mb-4">{barber.specialties}</p>
+                  )}
+
+                  {/* Rating */}
+                  <PublicProfileRating
+                    barberId={barber.id}
+                    initialAvgRating={avgRating}
+                    initialReviewCount={barber.reviews.length}
+                    hourlyRate={barber.hourlyRate}
+                  />
+
+                  {/* Bio */}
+                  {barber.bio && (
+                    <p className="text-gray-400 mb-6">{barber.bio}</p>
+                  )}
+
+                  {/* CTA Button */}
+                  <Link href={`/reservar?barberId=${barber.id}`}>
+                    <Button className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 neon-glow text-lg px-8">
+                      <Calendar className="w-5 h-5 mr-2" />
+                      Appointment
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Services */}
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold text-white mb-6">Services</h2>
+          {services.length === 0 ? (
+            <p className="text-gray-400">No services available</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {services.map((service) => (
+                <Card key={service.id} className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff] transition-colors overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="flex flex-col sm:flex-row">
+                      {/* Service Image */}
+                      <div className="relative w-full sm:w-48 h-48 flex-shrink-0 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                        {service.image ? (
+                          <Image
+                            src={service.image}
+                            alt={service.name}
+                            fill
+                            sizes="(max-width: 640px) 100vw, 192px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Clock className="w-16 h-16 text-[#00f0ff]/30" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Service Info */}
+                      <div className="flex-1 p-6">
+                        <div className="flex flex-col h-full justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-2">
+                              <h3 className="text-2xl font-bold text-white uppercase tracking-wide" style={{ color: '#00ff00' }}>
+                                {service.name}
+                              </h3>
+                              <span className="text-[#ffd700] font-bold text-xl">${service.price}</span>
+                            </div>
+                            {service.description && (
+                              <p className="text-gray-400 text-sm mb-3">{service.description}</p>
+                            )}
+                            <div className="flex items-center text-white text-lg font-semibold mb-4">
+                              <Clock className="w-5 h-5 mr-2" />
+                              {Math.floor(service.duration / 60) > 0 && `${Math.floor(service.duration / 60)} hr `}
+                              {service.duration % 60 > 0 && `${service.duration % 60} min`}
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-end">
+                            <Link href={`/reservar?barberId=${barber.id}&serviceId=${service.id}`}>
+                              <Button 
+                                className="bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-black hover:opacity-90 font-bold text-base px-8 py-6 rounded-lg"
+                              >
+                                Book Now
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Gallery */}
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold text-white mb-6">Gallery</h2>
+          <BarberPublicGallery images={galleryImagesWithUrls} />
+        </div>
+
+        {/* Reviews */}
+        <PublicProfileReviews
+          initialReviews={barber.reviews.map((review) => ({
+            id: review.id,
+            rating: review.rating,
+            comment: review.comment,
+            createdAt: review.createdAt.toISOString(),
+            client: {
+              name: review.client?.name,
+              image: review.client?.image,
+            },
+          }))}
+        />
+      </main>
+    </div>
+  );
+}

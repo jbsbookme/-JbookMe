@@ -1,0 +1,711 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id                                             String              @id @default(cuid())
+  name                                           String?
+  email                                          String              @unique
+  emailVerified                                  DateTime?
+  password                                       String?
+  role                                           Role                @default(CLIENT)
+  phone                                          String?
+  image                                          String?
+  createdAt                                      DateTime            @default(now())
+  updatedAt                                      DateTime            @updatedAt
+  gender                                         Gender?
+  accounts                                       Account[]
+  appointmentsAsClient                           Appointment[]       @relation("ClientAppointments")
+  barber                                         Barber?
+  comments                                       Comment[]           @relation("CommentAuthor")
+  invoices                                       Invoice[]           @relation("InvoiceRecipient")
+  messagesReceived                               Message[]           @relation("MessagesReceived")
+  messagesSent                                   Message[]           @relation("MessagesSent")
+  posts                                          Post[]              @relation("PostAuthor")
+  reviewsGiven                                   Review[]            @relation("ClientReviews")
+  reviewDeletionLogsAsAdmin                      ReviewDeletionLog[] @relation("ReviewDeletionLogAdmin")
+  reviewDeletionLogsAsClient                     ReviewDeletionLog[] @relation("ReviewDeletionLogClient")
+  sessions                                       Session[]
+  socialMediaClicks                              SocialMediaClick[]
+  SocialMediaClick_SocialMediaClick_userIdToUser SocialMediaClick[]  @relation("SocialMediaClick_userIdToUser")
+
+  @@index([email])
+}
+
+model Barber {
+  id                 String              @id @default(cuid())
+  userId             String              @unique
+  bio                String?
+  specialties        String?
+  hourlyRate         Float?
+  isActive           Boolean             @default(true)
+  profileImage       String?
+  phone              String?
+  facebookUrl        String?
+  instagramUrl       String?
+  twitterUrl         String?
+  tiktokUrl          String?
+  youtubeUrl         String?
+  whatsappUrl        String?
+  zelleEmail         String?
+  zellePhone         String?
+  cashappTag         String?
+  contactEmail       String?
+  gender             Gender              @default(BOTH)
+  rating             Float?              @default(5.0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  googlePlaceId      String?
+  googleReviewsUrl   String?
+  lastGoogleSync     DateTime?
+  syncGoogleReviews  Boolean             @default(false)
+  certifications     String?
+  videoIntroUrl      String?
+  whatsappNumber     String?
+  yearsOfExperience  Int?
+  appointments       Appointment[]
+  availability       Availability[]
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media              BarberMedia[]
+  payments           BarberPayment[]
+  daysOff            DayOff[]
+  galleryImages      GalleryImage[]      @relation("BarberGallery")
+  manualPayments     ManualPayment[]
+  posts              Post[]
+  reviews            Review[]
+  reviewDeletionLogs ReviewDeletionLog[]
+  services           Service[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@index([googlePlaceId])
+}
+
+model Service {
+  id                  String        @id @default(cuid())
+  name                String
+  description         String?
+  duration            Int
+  price               Float
+  image               String?
+  barberId            String?
+  gender              Gender        @default(UNISEX)
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  bufferTimeMinutes   Int           @default(15)
+  category            String?
+  discountPrice       Float?
+  isPackage           Boolean       @default(false)
+  maxDuration         Int?
+  minDuration         Int?
+  packageServices     String?
+  specialRequirements String?
+  appointments        Appointment[]
+  barber              Barber?       @relation(fields: [barberId], references: [id])
+
+  @@index([barberId])
+  @@index([isActive])
+  @@index([gender])
+  @@index([category])
+  @@index([isPackage])
+}
+
+model Appointment {
+  id                  String            @id @default(cuid())
+  clientId            String
+  barberId            String
+  serviceId           String
+  date                DateTime
+  time                String
+  status              AppointmentStatus @default(PENDING)
+  paymentMethod       PaymentMethod?
+  paymentStatus       PaymentStatus     @default(PENDING)
+  paymentReference    String?
+  notes               String?
+  cancelledAt         DateTime?
+  cancellationReason  String?
+  notification24hSent Boolean           @default(false)
+  notification12hSent Boolean           @default(false)
+  notification2hSent  Boolean           @default(false)
+  notification30mSent Boolean           @default(false)
+  thankYouSent        Boolean           @default(false)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  autoConfirmed       Boolean           @default(false)
+  barberNotes         String?
+  rescheduledFrom     String?
+  rescheduledTo       String?
+  barber              Barber            @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  client              User              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: Cascade)
+  service             Service           @relation(fields: [serviceId], references: [id])
+  invoice             Invoice?
+  messages            Message[]
+  review              Review?
+
+  @@index([clientId])
+  @@index([barberId])
+  @@index([serviceId])
+  @@index([date])
+  @@index([status])
+}
+
+model Review {
+  id               String      @id @default(cuid())
+  appointmentId    String      @unique
+  clientId         String
+  barberId         String
+  rating           Int
+  comment          String?
+  adminResponse    String?
+  adminRespondedAt DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  googleReviewId   String?     @unique
+  googleReviewUrl  String?
+  isVerified       Boolean     @default(true)
+  lastSyncedAt     DateTime?
+  source           String      @default("INTERNAL")
+  syncedToGoogle   Boolean     @default(false)
+  appointment      Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  barber           Barber      @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  client           User        @relation("ClientReviews", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
+  @@index([barberId])
+  @@index([rating])
+  @@index([googleReviewId])
+  @@index([source])
+}
+
+model ReviewDeletionLog {
+  id              String   @id @default(cuid())
+  reviewId        String
+  appointmentId   String
+  barberId        String
+  clientId        String
+  adminUserId     String
+  rating          Int
+  comment         String?
+  googleReviewId  String?
+  reviewCreatedAt DateTime
+  deletedAt       DateTime @default(now())
+  reason          String
+
+  barber Barber @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  client User   @relation("ReviewDeletionLogClient", fields: [clientId], references: [id], onDelete: Cascade)
+  admin  User   @relation("ReviewDeletionLogAdmin", fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([barberId])
+  @@index([clientId])
+  @@index([adminUserId])
+  @@index([deletedAt])
+  @@index([reviewId])
+}
+
+model Availability {
+  id          String    @id @default(cuid())
+  barberId    String
+  dayOfWeek   DayOfWeek
+  startTime   String
+  endTime     String
+  isAvailable Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  barber      Barber    @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@unique([barberId, dayOfWeek])
+  @@index([barberId])
+}
+
+model Settings {
+  id                  String   @id @default(cuid())
+  shopName            String   @default("Mi Barbería")
+  shopLogo            String?
+  address             String?
+  phone               String?
+  email               String?
+  qrCode              String?
+  latitude            Float?
+  longitude           Float?
+  facebook            String?
+  instagram           String?
+  twitter             String?
+  tiktok              String?
+  youtube             String?
+  whatsapp            String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  femaleGenderImage   String?
+  maleGenderImage     String?
+  businessHours       String?
+  whatsappBusinessUrl String?
+}
+
+model BarberPayment {
+  id        String        @id @default(cuid())
+  barberId  String
+  amount    Float
+  weekStart DateTime
+  weekEnd   DateTime
+  status    PaymentStatus @default(PENDING)
+  paidAt    DateTime?
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  barber    Barber        @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  invoice   Invoice?
+
+  @@index([barberId])
+  @@index([weekStart])
+  @@index([status])
+}
+
+model Expense {
+  id             String          @id @default(cuid())
+  category       ExpenseCategory
+  customCategory String?
+  amount         Float
+  description    String?
+  date           DateTime
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([category])
+  @@index([date])
+}
+
+model CustomExpenseCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BarberMedia {
+  id                 String    @id @default(cuid())
+  barberId           String
+  cloud_storage_path String
+  isPublic           Boolean   @default(true)
+  mediaType          MediaType @default(PHOTO)
+  title              String?
+  description        String?
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  barber             Barber    @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@index([barberId])
+  @@index([isActive])
+}
+
+model DayOff {
+  id        String   @id @default(cuid())
+  barberId  String
+  date      DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  barber    Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@unique([barberId, date])
+  @@index([barberId])
+  @@index([date])
+}
+
+model Invoice {
+  id              String         @id @default(cuid())
+  invoiceNumber   String         @unique
+  type            InvoiceType
+  barberPaymentId String?        @unique
+  appointmentId   String?        @unique
+  issuerName      String
+  issuerAddress   String?
+  issuerPhone     String?
+  issuerEmail     String?
+  recipientId     String?
+  recipientName   String
+  recipientEmail  String
+  recipientPhone  String?
+  amount          Float
+  description     String
+  items           Json?
+  issueDate       DateTime       @default(now())
+  dueDate         DateTime?
+  paidAt          DateTime?
+  isPaid          Boolean        @default(false)
+  pdfPath         String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  invoiceTitle    String?
+  status          InvoiceStatus  @default(PENDING)
+  weekEnd         DateTime?
+  weekStart       DateTime?
+  appointment     Appointment?   @relation(fields: [appointmentId], references: [id])
+  barberPayment   BarberPayment? @relation(fields: [barberPaymentId], references: [id])
+  recipient       User?          @relation("InvoiceRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceNumber])
+  @@index([type])
+  @@index([recipientId])
+  @@index([issueDate])
+  @@index([isPaid])
+  @@index([status])
+}
+
+model GalleryImage {
+  id                 String        @id @default(cuid())
+  cloud_storage_path String
+  isPublic           Boolean       @default(true)
+  title              String
+  description        String?
+  order              Int           @default(0)
+  tags               String[]
+  likes              Int           @default(0)
+  gender             Gender        @default(UNISEX)
+  barberId           String?
+  isActive           Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  barber             Barber?       @relation("BarberGallery", fields: [barberId], references: [id])
+  likedBy            GalleryLike[]
+
+  @@index([isActive])
+  @@index([order])
+  @@index([gender])
+  @@index([barberId])
+}
+
+model GalleryLike {
+  id        String       @id @default(cuid())
+  userId    String
+  imageId   String
+  createdAt DateTime     @default(now())
+  image     GalleryImage @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, imageId])
+  @@index([userId])
+  @@index([imageId])
+}
+
+model Post {
+  id                 String     @id @default(cuid())
+  authorId           String
+  authorType         Role
+  postType           PostType
+  cloud_storage_path String
+  isPublic           Boolean    @default(true)
+  caption            String?
+  hashtags           String[]
+  status             PostStatus @default(PENDING)
+  likes              Int        @default(0)
+  viewCount          Int        @default(0)
+  rejectionReason    String?
+  barberId           String?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  isActive           Boolean    @default(true)
+  comments           Comment[]
+  author             User       @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  barber             Barber?    @relation(fields: [barberId], references: [id])
+  likedBy            PostLike[]
+
+  @@index([authorId])
+  @@index([status])
+  @@index([postType])
+  @@index([barberId])
+  @@index([createdAt])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  author    User      @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean          @default(false)
+  postId    String?
+  commentId String?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model Message {
+  id                 String       @id @default(cuid())
+  senderId           String
+  recipientId        String
+  appointmentId      String?
+  subject            String?
+  content            String
+  isRead             Boolean      @default(false)
+  readAt             DateTime?
+  cloud_storage_path String?
+  isPublic           Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  appointment        Appointment? @relation(fields: [appointmentId], references: [id])
+  recipient          User         @relation("MessagesReceived", fields: [recipientId], references: [id], onDelete: Cascade)
+  sender             User         @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([appointmentId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([endpoint])
+}
+
+model ManualPayment {
+  id            String        @id @default(cuid())
+  barberId      String
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH)
+  description   String?
+  clientName    String?
+  date          DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  barber        Barber        @relation(fields: [barberId], references: [id], onDelete: Cascade)
+
+  @@index([barberId])
+  @@index([date])
+  @@index([paymentMethod])
+}
+
+model InvoiceItemTemplate {
+  id          String   @id @default(cuid())
+  description String
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([description])
+}
+
+model Promotion {
+  id         String          @id @default(cuid())
+  title      String
+  message    String
+  discount   String?
+  startDate  DateTime
+  endDate    DateTime
+  status     PromotionStatus @default(SCHEDULED)
+  targetRole Role?
+  sentCount  Int             @default(0)
+  viewCount  Int             @default(0)
+  createdBy  String?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([startDate, endDate])
+  @@index([status, endDate])
+}
+
+model SocialMediaClick {
+  id                                 String   @id @default(cuid())
+  userId                             String?
+  barberId                           String?
+  network                            String
+  url                                String
+  createdAt                          DateTime @default(now())
+  barber                             User?    @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  User_SocialMediaClick_userIdToUser User?    @relation("SocialMediaClick_userIdToUser", fields: [userId], references: [id])
+
+  @@index([barberId])
+  @@index([createdAt])
+  @@index([network])
+  @@index([userId])
+}
+
+enum Role {
+  ADMIN
+  BARBER
+  CLIENT
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentMethod {
+  ZELLE
+  CASHAPP
+  PAYPAL
+  CASH
+  CREDIT_CARD
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES_WATER
+  UTILITIES_ELECTRICITY
+  SUPPLIES
+  MAINTENANCE
+  MARKETING
+  SALARIES
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  BOTH
+  UNISEX
+}
+
+enum MediaType {
+  PHOTO
+  VIDEO
+}
+
+enum InvoiceType {
+  BARBER_PAYMENT
+  CLIENT_SERVICE
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PostType {
+  BARBER_WORK
+  CLIENT_SHARE
+}
+
+enum NotificationType {
+  POST_APPROVED
+  POST_REJECTED
+  NEW_COMMENT
+  COMMENT_REPLY
+  POST_LIKE
+  APPOINTMENT_REMINDER
+  NEW_REVIEW
+  NEW_MESSAGE
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum PromotionStatus {
+  SCHEDULED
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}

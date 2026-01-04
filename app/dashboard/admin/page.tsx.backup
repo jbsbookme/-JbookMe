@@ -1,0 +1,408 @@
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { DashboardNavbar } from '@/components/dashboard/navbar';
+import { AdminDashboardHeader } from '@/components/admin-dashboard-header';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, User, Calendar, DollarSign, Star, TrendingUp, Scissors, Wallet, FileText, Image as ImageIcon, MapPin, Share2, Bot, ShieldCheck, BarChart3 } from 'lucide-react';
+import { AppointmentStatus } from '@prisma/client';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
+export default function AdminDashboard() {
+  const { data: session, status } = useSession() || {};
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      redirect('/login');
+    }
+    
+    if (status === 'authenticated' && session?.user?.role !== 'ADMIN') {
+      redirect('/dashboard');
+    }
+
+    if (status === 'authenticated') {
+      fetchStats();
+    }
+  }, [status, session]);
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/admin/stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00f0ff]"></div>
+      </div>
+    );
+  }
+
+  if (!session?.user || session.user.role !== 'ADMIN') {
+    return null;
+  }
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user || session.user.role !== 'ADMIN') {
+    redirect('/login');
+  }
+
+  // Get statistics
+  const totalAppointments = await prisma.appointment.count();
+  const completedAppointments = await prisma.appointment.count({
+    where: { status: AppointmentStatus.COMPLETED },
+  });
+  const pendingAppointments = await prisma.appointment.count({
+    where: { status: { in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED] } },
+  });
+
+  const totalClients = await prisma.user.count({
+    where: { role: 'CLIENT' },
+  });
+
+  const totalBarbers = await prisma.barber.count({
+    where: { isActive: true },
+  });
+
+  const totalReviews = await prisma.review.count();
+
+  const pendingPosts = await prisma.post.count({
+    where: { status: 'PENDING' },
+  });
+
+  const reviews = await prisma.review.findMany({
+    select: { rating: true },
+  });
+
+  const avgRating = reviews.length > 0
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+    : 0;
+
+  const completedAppointmentsWithServices = await prisma.appointment.findMany({
+    where: { status: AppointmentStatus.COMPLETED },
+    include: { service: true },
+  });
+
+  const totalRevenue = completedAppointmentsWithServices.reduce(
+    (sum, apt) => sum + (apt.service?.price ?? 0),
+    0
+  );
+
+  // Recent appointments
+  const recentAppointments = await prisma.appointment.findMany({
+    take: 5,
+    orderBy: { createdAt: 'desc' },
+    include: {
+      client: { select: { name: true, email: true } },
+      barber: { include: { user: { select: { name: true } } } },
+      service: true,
+    },
+  });
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getStatusColor = (status: AppointmentStatus) => {
+    switch (status) {
+      case AppointmentStatus.CONFIRMED:
+        return 'text-green-500';
+      case AppointmentStatus.PENDING:
+        return 'text-yellow-500';
+      case AppointmentStatus.COMPLETED:
+        return 'text-blue-500';
+      default:
+        return 'text-gray-400';
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <DashboardNavbar />
+
+      <main className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <AdminDashboardHeader />
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Citas Totales</CardTitle>
+              <Calendar className="w-4 h-4 text-[#00f0ff]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-[#00f0ff]">{totalAppointments}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {pendingAppointments} pendientes
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Clientes</CardTitle>
+              <Users className="w-4 h-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-500">{totalClients}</div>
+              <p className="text-xs text-gray-500 mt-1">Clientes registrados</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Barberos</CardTitle>
+              <Scissors className="w-4 h-4 text-[#ffd700]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-[#ffd700]">{totalBarbers}</div>
+              <p className="text-xs text-gray-500 mt-1">Barberos activos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Ingresos</CardTitle>
+              <DollarSign className="w-4 h-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-500">${totalRevenue.toFixed(0)}</div>
+              <p className="text-xs text-gray-500 mt-1">De {completedAppointments} citas</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Calificación</CardTitle>
+              <Star className="w-4 h-4 text-[#ffd700]" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-[#ffd700]">{avgRating.toFixed(1)}</div>
+              <p className="text-xs text-gray-500 mt-1">{totalReviews} reseñas</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Completadas</CardTitle>
+              <TrendingUp className="w-4 h-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-500">{completedAppointments}</div>
+              <p className="text-xs text-gray-500 mt-1">
+                {totalAppointments > 0
+                  ? ((completedAppointments / totalAppointments) * 100).toFixed(0)
+                  : 0}% del total
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-400">Pending Review</CardTitle>
+              <ShieldCheck className="w-4 h-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-purple-500">{pendingPosts}</div>
+              <p className="text-xs text-gray-500 mt-1">Posts waiting approval</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Acciones Rápidas</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+            <Link href="/dashboard/admin/analytics">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-cyan-500/50">
+                <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Analytics Dashboard</span>
+                <span className="sm:hidden ml-1.5 truncate">Analytics</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/contabilidad">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 text-xs sm:text-lg">
+                <Wallet className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Contabilidad</span>
+                <span className="sm:hidden ml-1.5 truncate">Contabil.</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/ganancias">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-green-500/50">
+                <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Ganancias</span>
+                <span className="sm:hidden ml-1.5">Gananc.</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/moderacion">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-purple-500/50">
+                <ShieldCheck className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Moderation</span>
+                <span className="sm:hidden ml-1.5 truncate">Moder.</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/servicios-hombres">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:opacity-90 text-xs sm:text-lg">
+                <Scissors className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Servicios Hombres</span>
+                <span className="sm:hidden ml-1.5 truncate">Hombres</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/servicios-mujeres">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90 text-xs sm:text-lg">
+                <Scissors className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Servicios Mujeres</span>
+                <span className="sm:hidden ml-1.5 truncate">Mujeres</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/barberos">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-indigo-500 to-blue-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-indigo-500/50">
+                <Scissors className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Barberos (Hombres)</span>
+                <span className="sm:hidden ml-1.5 truncate">Barberos</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/estilistas">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-pink-500/50">
+                <Scissors className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Estilistas (Mujeres)</span>
+                <span className="sm:hidden ml-1.5 truncate">Estilistas</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/usuarios">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-cyan-500 to-teal-500 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-cyan-500/50">
+                <User className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Gestión de Usuarios</span>
+                <span className="sm:hidden ml-1.5 truncate">Usuarios</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/citas">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-emerald-500/50">
+                <Calendar className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Ver Todas las Citas</span>
+                <span className="sm:hidden ml-1.5 truncate">Citas</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/resenas">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-amber-500 to-orange-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-amber-500/50">
+                <Star className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Ver Reseñas</span>
+                <span className="sm:hidden ml-1.5 truncate">Reseñas</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/facturas">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-rose-500 to-red-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-rose-500/50">
+                <FileText className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Facturas</span>
+                <span className="sm:hidden ml-1.5">Facturas</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/galeria-hombres">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-[#00f0ff]/50">
+                <ImageIcon className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Galería Hombres</span>
+                <span className="sm:hidden ml-1.5 truncate">👨 Galería</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/galeria-mujeres">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-pink-500/50">
+                <ImageIcon className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Galería Mujeres</span>
+                <span className="sm:hidden ml-1.5 truncate">👩 Galería</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/imagenes-genero">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-indigo-500 to-blue-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-indigo-500/50">
+                <Users className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Imágenes de Género</span>
+                <span className="sm:hidden ml-1.5 truncate">Género</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/ubicacion">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-lime-500 to-green-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-lime-500/50">
+                <MapPin className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Ubicación</span>
+                <span className="sm:hidden ml-1.5">Ubicac.</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/redes-sociales">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-sky-500 to-blue-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-sky-500/50">
+                <Share2 className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Redes Sociales</span>
+                <span className="sm:hidden ml-1.5 truncate">Redes</span>
+              </Button>
+            </Link>
+            <Link href="/dashboard/admin/asistente">
+              <Button className="w-full h-14 sm:h-20 bg-gradient-to-r from-fuchsia-500 to-pink-600 text-white hover:opacity-90 text-xs sm:text-lg shadow-lg shadow-fuchsia-500/50">
+                <Bot className="w-4 h-4 sm:w-6 sm:h-6 sm:mr-3" />
+                <span className="hidden sm:inline">Asistente Virtual</span>
+                <span className="sm:hidden ml-1.5 truncate">Asist.</span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* Recent Appointments */}
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Citas Recientes</h2>
+          <Card className="bg-[#1a1a1a] border-gray-800">
+            <CardContent className="p-3 sm:p-6">
+              {recentAppointments.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">No hay citas recientes</p>
+              ) : (
+                <div className="space-y-3 sm:space-y-4">
+                  {recentAppointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-[#0a0a0a] rounded-lg border border-gray-800 hover:border-[#00f0ff] transition-colors gap-2 sm:gap-0"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
+                          <span className="font-semibold text-white text-sm sm:text-base truncate">
+                            {appointment.client?.name || 'Cliente'}
+                          </span>
+                          <span className="text-gray-500 text-xs sm:text-base">→</span>
+                          <span className="text-gray-400 text-xs sm:text-base truncate">
+                            {appointment.barber?.user?.name || 'Barbero'}
+                          </span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-500 truncate">
+                          {appointment.service?.name || 'Servicio'} • {formatDate(appointment.date)} {appointment.time}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-4 justify-between sm:justify-end">
+                        <span className="text-[#ffd700] font-semibold text-sm sm:text-base">
+                          ${appointment.service?.price || 0}
+                        </span>
+                        <span className={`text-xs sm:text-sm ${getStatusColor(appointment.status)}`}>
+                          {appointment.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </main>
+    </div>
+  );
+}

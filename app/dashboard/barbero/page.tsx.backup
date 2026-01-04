@@ -1,0 +1,653 @@
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { DashboardNavbar } from '@/components/dashboard/navbar';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
+  Calendar,
+  DollarSign,
+  Clock,
+  Star,
+  Award,
+  Scissors,
+  Camera,
+  User,
+  BarChart3,
+  TrendingUp,
+  Users,
+  Image as ImageIcon,
+  Settings,
+  CalendarClock,
+  CalendarX,
+  Share2,
+} from 'lucide-react';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { format } from 'date-fns';
+import Image from 'next/image';
+
+interface Stats {
+  totalAppointments: number;
+  upcomingAppointments: number;
+  completedThisMonth: number;
+  totalEarnings: number;
+  monthlyEarnings: number;
+  averageRating: number;
+  totalReviews: number;
+  totalPosts: number;
+}
+
+interface Post {
+  id: string;
+  cloud_storage_path: string;
+  caption?: string;
+  likes: number;
+  createdAt: string;
+}
+
+interface Appointment {
+  id: string;
+  date: string;
+  time: string;
+  status: string;
+  client: {
+    name: string;
+  };
+  service: {
+    name: string;
+    price: number;
+  };
+}
+
+export default function BarberDashboard() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [stats, setStats] = useState<Stats>({
+    totalAppointments: 0,
+    upcomingAppointments: 0,
+    completedThisMonth: 0,
+    totalEarnings: 0,
+    monthlyEarnings: 0,
+    averageRating: 0,
+    totalReviews: 0,
+    totalPosts: 0,
+  });
+  const [recentPosts, setRecentPosts] = useState<Post[]>([]);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [barberGender, setBarberGender] = useState<string>('MALE'); // Default to MALE
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/auth');
+      return;
+    }
+
+    if (status === 'authenticated' && session?.user?.role !== 'BARBER') {
+      router.push('/inicio');
+      return;
+    }
+
+    if (status === 'authenticated') {
+      fetchDashboardData();
+    }
+  }, [session, status, router]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Fetch appointments
+      const appointmentsRes = await fetch('/api/appointments');
+      const appointmentsData = await appointmentsRes.json();
+      
+      if (appointmentsRes.ok && appointmentsData.appointments) {
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const upcoming = appointmentsData.appointments.filter((apt: any) => {
+          const aptDate = new Date(apt.date);
+          return aptDate >= now && apt.status === 'CONFIRMED';
+        });
+
+        const completedThisMonth = appointmentsData.appointments.filter((apt: any) => {
+          const aptDate = new Date(apt.date);
+          return (
+            aptDate.getMonth() === currentMonth &&
+            aptDate.getFullYear() === currentYear &&
+            apt.status === 'COMPLETED'
+          );
+        }).length;
+
+        setUpcomingAppointments(upcoming.slice(0, 5));
+
+        // Calculate earnings
+        const totalEarnings = appointmentsData.appointments
+          .filter((apt: any) => apt.status === 'COMPLETED')
+          .reduce((sum: number, apt: any) => sum + (apt.service?.price || 0), 0);
+
+        const monthlyEarnings = appointmentsData.appointments
+          .filter((apt: any) => {
+            const aptDate = new Date(apt.date);
+            return (
+              aptDate.getMonth() === currentMonth &&
+              aptDate.getFullYear() === currentYear &&
+              apt.status === 'COMPLETED'
+            );
+          })
+          .reduce((sum: number, apt: any) => sum + (apt.service?.price || 0), 0);
+
+        setStats((prev) => ({
+          ...prev,
+          totalAppointments: appointmentsData.appointments.length,
+          upcomingAppointments: upcoming.length,
+          completedThisMonth,
+          totalEarnings,
+          monthlyEarnings,
+        }));
+      }
+
+      // Fetch posts
+      const postsRes = await fetch('/api/posts');
+      const postsData = await postsRes.json();
+      
+      if (postsRes.ok && postsData.posts) {
+        setRecentPosts(postsData.posts.slice(0, 6));
+        setStats((prev) => ({
+          ...prev,
+          totalPosts: postsData.posts.length,
+        }));
+      }
+
+      // Fetch reviews
+      const reviewsRes = await fetch('/api/reviews');
+      const reviewsData = await reviewsRes.json();
+      
+      if (reviewsRes.ok && reviewsData.stats) {
+        setStats((prev) => ({
+          ...prev,
+          averageRating: reviewsData.stats.averageRating || 0,
+          totalReviews: reviewsData.stats.totalReviews || 0,
+        }));
+      }
+
+      // Fetch barber profile to get gender
+      const profileRes = await fetch('/api/barber/profile');
+      const profileData = await profileRes.json();
+      
+      if (profileRes.ok && profileData.barber) {
+        setBarberGender(profileData.barber.gender || 'MALE');
+      }
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getMediaUrl = (cloud_storage_path: string) => {
+    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
+    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+  };
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00f0ff]"></div>
+      </div>
+    );
+  }
+
+  const quickActions = [
+    {
+      title: 'My Profile',
+      description: 'Edit your profile and settings',
+      icon: User,
+      href: '/dashboard/barbero/perfil',
+      color: 'from-[#00f0ff] to-[#0099cc]',
+      gradient: 'bg-gradient-to-br from-[#00f0ff]/20 to-[#0099cc]/20',
+    },
+    {
+      title: 'My Services',
+      description: 'Manage your services',
+      icon: Scissors,
+      href: '/dashboard/barbero/servicios',
+      color: 'from-orange-500 to-red-500',
+      gradient: 'bg-gradient-to-br from-orange-500/20 to-red-500/20',
+    },
+    {
+      title: 'My Posts',
+      description: 'View and manage your posts',
+      icon: Camera,
+      href: '/dashboard/barbero/posts',
+      color: 'from-purple-500 to-pink-500',
+      gradient: 'bg-gradient-to-br from-purple-500/20 to-pink-500/20',
+    },
+    {
+      title: 'Earnings',
+      description: 'Track your income',
+      icon: BarChart3,
+      href: '/dashboard/barbero/ganancias',
+      color: 'from-[#ffd700] to-[#ffaa00]',
+      gradient: 'bg-gradient-to-br from-[#ffd700]/20 to-[#ffaa00]/20',
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-black pb-24">
+      <DashboardNavbar />
+
+      <div className="container mx-auto px-4 py-8">
+        {/* Welcome Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8"
+        >
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Welcome back, <span className="text-[#00f0ff]">{session?.user?.name}</span>!
+          </h1>
+          <p className="text-gray-400 text-lg">
+            {barberGender === 'FEMALE' ? '💇‍♀️ Estilista Dashboard' : '💇‍♂️ Barbero Dashboard'}
+          </p>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-[#00f0ff] transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">Upcoming Appointments</p>
+                    <p className="text-3xl font-bold text-white">{stats.upcomingAppointments}</p>
+                  </div>
+                  <div className="p-3 bg-[#00f0ff]/20 rounded-lg">
+                    <Calendar className="w-6 h-6 text-[#00f0ff]" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-[#ffd700] transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">Monthly Earnings</p>
+                    <p className="text-3xl font-bold text-white">${stats.monthlyEarnings}</p>
+                  </div>
+                  <div className="p-3 bg-[#ffd700]/20 rounded-lg">
+                    <DollarSign className="w-6 h-6 text-[#ffd700]" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-green-500 transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">Average Rating</p>
+                    <p className="text-3xl font-bold text-white">{stats.averageRating.toFixed(1)}</p>
+                  </div>
+                  <div className="p-3 bg-green-500/20 rounded-lg">
+                    <Star className="w-6 h-6 text-green-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800 hover:border-purple-500 transition-all">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-gray-400 text-sm mb-1">Total Posts</p>
+                    <p className="text-3xl font-bold text-white">{stats.totalPosts}</p>
+                  </div>
+                  <div className="p-3 bg-purple-500/20 rounded-lg">
+                    <Camera className="w-6 h-6 text-purple-500" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mb-8"
+        >
+          <h2 className="text-2xl font-bold text-white mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <Link key={action.href} href={action.href}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + index * 0.1 }}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 h-full group overflow-hidden relative cursor-pointer">
+                      <div className={`absolute inset-0 ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                      
+                      <CardContent className="p-6 relative z-10">
+                        <div className={`p-3 bg-gradient-to-br ${action.color} rounded-xl inline-block mb-4`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#00f0ff] transition-colors">
+                          {action.title}
+                        </h3>
+                        <p className="text-gray-400 text-sm">
+                          {action.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Upcoming Appointments */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[#00f0ff]" />
+                  Upcoming Appointments
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {upcomingAppointments.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400">No upcoming appointments</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {upcomingAppointments.map((appointment) => (
+                      <div
+                        key={appointment.id}
+                        className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-[#00f0ff] transition-all"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-white font-semibold">{appointment.client.name}</p>
+                            <p className="text-[#00f0ff] text-sm">{appointment.service.name}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-white font-semibold">${appointment.service.price}</p>
+                            <p className="text-gray-400 text-sm">{appointment.time}</p>
+                          </div>
+                        </div>
+                        <p className="text-gray-400 text-sm">
+                          {format(new Date(appointment.date), 'MMM dd, yyyy')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <Link href="/dashboard/barbero/calendario">
+                  <Button className="w-full mt-4 bg-[#00f0ff] hover:bg-[#00d0df] text-black">
+                    View Full Calendar
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Recent Posts */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-purple-500" />
+                  Recent Posts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {recentPosts.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Camera className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400 mb-4">No posts yet</p>
+                    <Link href="/dashboard/barbero/posts">
+                      <Button className="bg-purple-500 hover:bg-purple-600 text-white">
+                        Create Your First Post
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {recentPosts.map((post) => (
+                        <div
+                          key={post.id}
+                          className="relative aspect-square bg-gray-800 rounded-lg overflow-hidden group cursor-pointer"
+                        >
+                          <Image
+                            src={getMediaUrl(post.cloud_storage_path)}
+                            alt={post.caption || 'Post'}
+                            fill
+                            className="object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="text-white text-center">
+                              <Star className="w-6 h-6 mx-auto mb-1" />
+                              <p className="text-sm">{post.likes}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Link href="/dashboard/barbero/posts">
+                      <Button className="w-full mt-4 bg-purple-500 hover:bg-purple-600 text-white">
+                        View All Posts
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Monthly Performance */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mt-8"
+        >
+          <Card className="bg-gray-900/50 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-[#ffd700]" />
+                Monthly Performance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <p className="text-gray-400 text-sm mb-2">Completed This Month</p>
+                  <p className="text-4xl font-bold text-[#00f0ff]">{stats.completedThisMonth}</p>
+                  <p className="text-gray-500 text-xs mt-1">appointments</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-400 text-sm mb-2">Monthly Revenue</p>
+                  <p className="text-4xl font-bold text-[#ffd700]">${stats.monthlyEarnings}</p>
+                  <p className="text-gray-500 text-xs mt-1">this month</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-400 text-sm mb-2">Total Reviews</p>
+                  <p className="text-4xl font-bold text-green-500">{stats.totalReviews}</p>
+                  <p className="text-gray-500 text-xs mt-1">reviews</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Management FAB Button */}
+      <Sheet>
+        <SheetTrigger asChild>
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 1 }}
+            className="fixed bottom-20 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#00f0ff] via-[#00d0dd] to-[#ffd700] shadow-[0_0_30px_rgba(0,240,255,0.6)] hover:shadow-[0_0_40px_rgba(0,240,255,0.8)] flex items-center justify-center transition-all duration-300 hover:scale-110 z-40"
+          >
+            <Settings className="w-7 h-7 text-black" />
+          </motion.button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="bg-[#0a0a0a] border-t border-gray-800 h-[80vh] overflow-y-auto">
+          <SheetHeader className="mb-6">
+            <SheetTitle className="text-2xl font-bold text-[#00f0ff]">Management</SheetTitle>
+            <SheetDescription className="text-gray-400">
+              Select a section
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-3">
+            {/* Services */}
+            <Link href="/dashboard/barbero/servicios">
+              <div className="w-full p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg hover:from-orange-500/20 hover:to-red-500/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/20 rounded-lg group-hover:bg-orange-500/30 transition-colors">
+                    <Scissors className="w-6 h-6 text-orange-400" />
+                  </div>
+                  <span className="text-white font-medium">Services</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Calendar */}
+            <Link href="/dashboard/barbero/calendario">
+              <div className="w-full p-4 bg-gradient-to-r from-[#00f0ff]/10 to-[#0099cc]/10 border border-[#00f0ff]/30 rounded-lg hover:from-[#00f0ff]/20 hover:to-[#0099cc]/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[#00f0ff]/20 rounded-lg group-hover:bg-[#00f0ff]/30 transition-colors">
+                    <Calendar className="w-6 h-6 text-[#00f0ff]" />
+                  </div>
+                  <span className="text-white font-medium">Calendar</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Hours */}
+            <Link href="/dashboard/barbero/horarios">
+              <div className="w-full p-4 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30 rounded-lg hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/20 rounded-lg group-hover:bg-purple-500/30 transition-colors">
+                    <CalendarClock className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <span className="text-white font-medium">Hours</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Days Off */}
+            <Link href="/dashboard/barbero/dias-libres">
+              <div className="w-full p-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 border border-red-500/30 rounded-lg hover:from-red-500/20 hover:to-orange-500/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-500/20 rounded-lg group-hover:bg-red-500/30 transition-colors">
+                    <CalendarX className="w-6 h-6 text-red-400" />
+                  </div>
+                  <span className="text-white font-medium">Days Off</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Gallery */}
+            <Link href="/dashboard/barbero/galeria">
+              <div className="w-full p-4 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-lg hover:from-green-500/20 hover:to-emerald-500/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-500/20 rounded-lg group-hover:bg-green-500/30 transition-colors">
+                    <ImageIcon className="w-6 h-6 text-green-400" />
+                  </div>
+                  <span className="text-white font-medium">Gallery</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Social Media */}
+            <Link href="/dashboard/barbero/perfil">
+              <div className="w-full p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg hover:from-blue-500/20 hover:to-cyan-500/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg group-hover:bg-blue-500/30 transition-colors">
+                    <Share2 className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <span className="text-white font-medium">Social Media</span>
+                </div>
+              </div>
+            </Link>
+
+            {/* Earnings */}
+            <Link href="/dashboard/barbero/ganancias">
+              <div className="w-full p-4 bg-gradient-to-r from-[#ffd700]/10 to-[#ffaa00]/10 border border-[#ffd700]/30 rounded-lg hover:from-[#ffd700]/20 hover:to-[#ffaa00]/20 transition-all duration-300 cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-[#ffd700]/20 rounded-lg group-hover:bg-[#ffd700]/30 transition-colors">
+                    <DollarSign className="w-6 h-6 text-[#ffd700]" />
+                  </div>
+                  <span className="text-white font-medium">Earnings</span>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}

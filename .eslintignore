@@ -1,0 +1,5 @@
+.next
+.build
+**/*backup.*
+**/*_backup.*
+**/*temp_backup.*
