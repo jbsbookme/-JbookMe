@@ -268,12 +268,12 @@ export default function FeedPage() {
       
       if (barbersRes.ok) {
         const barbersData = await barbersRes.json();
-        setBarbers((barbersData.barbers || []).slice(0, 4));
+        setBarbers((barbersData.barbers || []).slice(0, 12));
       }
       
       if (stylistsRes.ok) {
         const stylistsData = await stylistsRes.json();
-        setStylists((stylistsData.barbers || []).slice(0, 4));
+        setStylists((stylistsData.barbers || []).slice(0, 12));
       }
 
       // Fetch next appointment
