@@ -428,6 +428,11 @@ export default function FeedPage() {
   };
 
   const getMediaUrl = (cloud_storage_path: string) => {
+    // If it's already a full URL, return as-is
+    if (/^https?:\/\//i.test(cloud_storage_path)) {
+      return cloud_storage_path;
+    }
+
     // Si la ruta empieza con /, es una ruta local (public folder)
     if (cloud_storage_path.startsWith('/')) {
       return cloud_storage_path;

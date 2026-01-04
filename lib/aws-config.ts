@@ -17,5 +17,10 @@ export function getBucketConfig() {
 
 // Create and configure S3 client
 export function createS3Client(): S3Client {
-  return new S3Client({});
+  const region = process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION;
+  if (!region) {
+    throw new Error('AWS region is not configured (set AWS_REGION)');
+  }
+
+  return new S3Client({ region });
 }

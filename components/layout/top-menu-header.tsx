@@ -19,11 +19,16 @@ export function TopMenuHeader() {
   }, []);
 
   // Match BottomNav visibility rules
+  const isBarberDetailRoute =
+    pathname?.startsWith('/barberos/') ||
+    (!!pathname && /^\/[a-z]{2}\/barberos\//i.test(pathname));
+
   if (
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/registro') ||
     pathname?.startsWith('/auth') ||
     pathname?.startsWith('/asistente') ||
+    isBarberDetailRoute ||
     pathname?.startsWith('/dashboard/admin') ||
     pathname?.startsWith('/dashboard/barbero')
   ) {

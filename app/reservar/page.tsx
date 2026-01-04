@@ -133,6 +133,7 @@ export default function ReservarPage() {
   const [paymentReference, setPaymentReference] = useState('');
   const [acceptCancellationPolicy, setAcceptCancellationPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [barbersLoading, setBarbersLoading] = useState(false);
   const [maleGenderImage, setMaleGenderImage] = useState<string | null>(null);
   const [femaleGenderImage, setFemaleGenderImage] = useState<string | null>(null);
 
@@ -284,6 +285,7 @@ export default function ReservarPage() {
   }, [selectedGender, selectedBarber?.gender]);
 
   const fetchBarbers = useCallback(async () => {
+    setBarbersLoading(true);
     try {
       // Add gender filter to API call
       const genderParam = selectedGender ? `?gender=${selectedGender}` : '';
@@ -321,6 +323,8 @@ export default function ReservarPage() {
       }
     } catch (error) {
       console.error('Error fetching barbers:', error);
+    } finally {
+      setBarbersLoading(false);
     }
   }, [selectedGender]);
 
@@ -381,6 +385,21 @@ export default function ReservarPage() {
       fetchBarbers();
     }
   }, [selectedService, fetchBarbers]);
+
+  // If barbers load after selecting a service, recompute the filtered list.
+  // Otherwise the UI can look empty until the user re-selects the service.
+  useEffect(() => {
+    if (!selectedService) return;
+
+    let filtered = barbers;
+    if (selectedService.gender === 'MALE') {
+      filtered = barbers.filter((b) => b.gender === 'MALE' || b.gender === 'BOTH');
+    } else if (selectedService.gender === 'FEMALE') {
+      filtered = barbers.filter((b) => b.gender === 'FEMALE' || b.gender === 'BOTH');
+    }
+
+    setFilteredBarbers(filtered);
+  }, [barbers, selectedService]);
 
   // Fetch available times when date is selected
   useEffect(() => {
@@ -729,51 +748,58 @@ export default function ReservarPage() {
         <p className="text-gray-400">Select your preferred professional</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredBarbers.map((barber) => (
-          <motion.div
-            key={barber.id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleBarberSelect(barber)}
-            className="cursor-pointer"
-          >
-            <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 p-6 text-center">
-              <div className="relative w-24 h-24 mx-auto mb-4">
-                <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.4)]">
-                  {barber.user.image ? (
-                    <Image
-                      src={barber.user.image}
-                      alt={barber.user.name || 'Barber'}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                      <Scissors className="w-10 h-10 text-gray-600" />
-                    </div>
-                  )}
+      {barbersLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00f0ff]" />
+          <p className="text-gray-400 text-sm mt-4">Loading professionals...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredBarbers.map((barber) => (
+            <motion.div
+              key={barber.id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleBarberSelect(barber)}
+              className="cursor-pointer"
+            >
+              <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 p-6 text-center">
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.4)]">
+                    {barber.user.image ? (
+                      <Image
+                        src={barber.user.image}
+                        alt={barber.user.name || 'Barber'}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                        <Scissors className="w-10 h-10 text-gray-600" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-lg font-bold text-white mb-1">
-                {barber.user.name || 'Professional'}
-              </h3>
-              <p className="text-xs text-[#00f0ff] mb-2 font-semibold">
-                {getProfessionalTitle(barber.gender)}
-              </p>
-              {barber.rating && (
-                <div className="flex items-center justify-center gap-1 text-[#ffd700] mb-2">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span className="text-sm font-semibold">{barber.rating.toFixed(1)}</span>
-                </div>
-              )}
-              {barber.specialties && (
-                <p className="text-xs text-gray-500 line-clamp-2">{barber.specialties}</p>
-              )}
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+                <h3 className="text-lg font-bold text-white mb-1">
+                  {barber.user.name || 'Professional'}
+                </h3>
+                <p className="text-xs text-[#00f0ff] mb-2 font-semibold">
+                  {getProfessionalTitle(barber.gender)}
+                </p>
+                {barber.rating && (
+                  <div className="flex items-center justify-center gap-1 text-[#ffd700] mb-2">
+                    <Star className="w-4 h-4 fill-current" />
+                    <span className="text-sm font-semibold">{barber.rating.toFixed(1)}</span>
+                  </div>
+                )}
+                {barber.specialties && (
+                  <p className="text-xs text-gray-500 line-clamp-2">{barber.specialties}</p>
+                )}
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 

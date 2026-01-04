@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { uploadFile, getFileUrl } from '@/lib/s3';
+import { isBarberOrStylist } from '@/lib/auth/role-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session || !(session.user.role === 'ADMIN' || isBarberOrStylist(session.user.role))) {
       return NextResponse.json(
-        { error: 'Solo administradores pueden subir imágenes' },
+        { error: 'No autorizado para subir imágenes' },
         { status: 403 }
       );
     }

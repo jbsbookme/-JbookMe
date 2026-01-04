@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { uploadFile, getFileUrl } from '@/lib/s3';
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,24 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const ext = file.name.split('.').pop();
     const fileName = `${timestamp}.${ext}`;
+
+    // Prefer S3 when available (Vercel/serverless friendly)
+    try {
+      console.log('[Upload Service Local] Attempting S3 upload...');
+      const cloud_storage_path = await uploadFile(buffer, `services/${fileName}`, true);
+      const imageUrl = await getFileUrl(cloud_storage_path, true);
+      console.log('[Upload Service Local] S3 upload successful:', imageUrl);
+
+      return NextResponse.json(
+        {
+          url: imageUrl,
+          cloud_storage_path,
+        },
+        { status: 200 }
+      );
+    } catch (s3Error) {
+      console.log('[Upload Service Local] S3 failed, saving locally:', s3Error);
+    }
 
     // Asegurar que existe el directorio public/uploads/services
     const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'services');

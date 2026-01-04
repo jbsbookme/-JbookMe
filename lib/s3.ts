@@ -27,6 +27,10 @@ function getS3Context(): S3Context {
 
   const { bucketName, folderPrefix } = getBucketConfig();
   const region = process.env.AWS_REGION || extractRegionFromBucket(bucketName);
+  // Ensure AWS SDK always has a region (required by @aws-sdk/client-s3)
+  if (!process.env.AWS_REGION) {
+    process.env.AWS_REGION = region;
+  }
   const s3Client = createS3Client();
 
   cachedContext = { s3Client, bucketName, folderPrefix, region };
@@ -47,12 +51,20 @@ export async function uploadFile(
 ): Promise<string> {
   const { s3Client, bucketName, folderPrefix } = getS3Context();
   const timestamp = Date.now();
-  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  // Preserve folder paths (/) but sanitize other characters.
+  // This lets callers pass keys like: "posts/2026/01/barber_work/123.jpg".
+  const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._/-]/g, '_');
+
+  // If a path is provided (contains '/'), assume caller already planned the folder structure.
+  // Otherwise, prefix with a timestamp to avoid collisions.
+  const relativeKey = sanitizedFileName.includes('/')
+    ? sanitizedFileName.replace(/^\/+/, '')
+    : `${timestamp}-${sanitizedFileName}`;
   
   // Generate S3 key based on public/private
   const key = isPublic
-    ? `${folderPrefix}public/uploads/${timestamp}-${sanitizedFileName}`
-    : `${folderPrefix}uploads/${timestamp}-${sanitizedFileName}`;
+    ? `${folderPrefix}public/uploads/${relativeKey}`
+    : `${folderPrefix}uploads/${relativeKey}`;
 
   const command = new PutObjectCommand({
     Bucket: bucketName,

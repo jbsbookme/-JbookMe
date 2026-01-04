@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
+import { uploadFile, getFileUrl } from '@/lib/s3'
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,6 +53,22 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const ext = file.name.split('.').pop()
     const fileName = `${timestamp}.${ext}`
+
+    // Prefer S3 when available
+    try {
+      console.log('[Upload] Attempting S3 upload...')
+      const cloud_storage_path = await uploadFile(buffer, `gallery/${fileName}`, true)
+      const publicUrl = await getFileUrl(cloud_storage_path, true)
+      console.log('[Upload] S3 upload successful:', publicUrl)
+
+      return NextResponse.json({
+        success: true,
+        url: publicUrl,
+        cloud_storage_path
+      })
+    } catch (s3Error) {
+      console.log('[Upload] S3 failed, saving locally:', s3Error)
+    }
 
     // Create directory if it doesn't exist
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'gallery')

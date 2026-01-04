@@ -127,6 +127,14 @@ export default function InicioPage() {
   };
 
   const getMediaUrl = (cloud_storage_path: string) => {
+    if (/^https?:\/\//i.test(cloud_storage_path)) {
+      return cloud_storage_path;
+    }
+
+    if (cloud_storage_path.startsWith('/')) {
+      return cloud_storage_path;
+    }
+
     const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
     const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
     return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;

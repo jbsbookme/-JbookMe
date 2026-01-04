@@ -39,7 +39,7 @@ function looksLikeBcryptHash(value: string | null | undefined) {
 async function upsertTestUser(spec: TestUserSpec) {
   const existing = await prisma.user.findUnique({
     where: { email: spec.email },
-    select: { id: true, email: true, role: true, password: true },
+    select: { id: true, email: true, role: true, password: true, name: true },
   });
 
   // Only set/overwrite password if missing or clearly not a bcrypt hash.
@@ -66,6 +66,7 @@ async function upsertTestUser(spec: TestUserSpec) {
   }
 
   const roleDifferent = existing.role !== spec.role;
+  const nameMissing = !existing.name || existing.name.trim().length === 0;
 
   const updated = await prisma.user.update({
     where: { email: spec.email },
@@ -73,7 +74,7 @@ async function upsertTestUser(spec: TestUserSpec) {
       ...(roleDifferent ? { role: spec.role } : {}),
       ...(shouldSetPassword ? { password: hashedPassword } : {}),
       // Keep name stable unless empty
-      ...(spec.name && (!existing ? true : false) ? { name: spec.name } : {}),
+      ...(spec.name && nameMissing ? { name: spec.name } : {}),
     },
     select: { id: true, email: true, role: true },
   });

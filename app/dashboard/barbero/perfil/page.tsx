@@ -142,7 +142,7 @@ export default function BarberProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-24">
+    <div className="min-h-screen bg-black pb-24 overflow-x-hidden">
       <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -176,7 +176,7 @@ export default function BarberProfilePage() {
           >
             <Card className="bg-gray-900/50 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-white flex flex-wrap items-center gap-2 min-w-0">
                   <User className="w-5 h-5 text-[#00f0ff]" />
                   Basic Information
                 </CardTitle>
@@ -232,7 +232,7 @@ export default function BarberProfilePage() {
           >
             <Card className="bg-gray-900/50 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-white flex flex-wrap items-center gap-2 min-w-0">
                   <DollarSign className="w-5 h-5 text-[#ffd700]" />
                   Professional Information
                 </CardTitle>
@@ -282,14 +282,14 @@ export default function BarberProfilePage() {
           >
             <Card className="bg-gray-900/50 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-white flex flex-wrap items-center gap-2 min-w-0">
                   <Instagram className="w-5 h-5 text-purple-500" />
                   Social Media
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-white mb-2 text-sm flex items-center gap-2">
+                  <label className="block text-white mb-2 text-sm flex flex-wrap items-center gap-2 min-w-0">
                     <Instagram className="w-4 h-4" />
                     Instagram
                   </label>
@@ -302,7 +302,7 @@ export default function BarberProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-white mb-2 text-sm flex items-center gap-2">
+                  <label className="block text-white mb-2 text-sm flex flex-wrap items-center gap-2 min-w-0">
                     <Facebook className="w-4 h-4" />
                     Facebook
                   </label>
@@ -315,7 +315,7 @@ export default function BarberProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-white mb-2 text-sm flex items-center gap-2">
+                  <label className="block text-white mb-2 text-sm flex flex-wrap items-center gap-2 min-w-0">
                     <Twitter className="w-4 h-4" />
                     TikTok
                   </label>
@@ -338,7 +338,7 @@ export default function BarberProfilePage() {
           >
             <Card className="bg-gray-900/50 border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-white flex flex-wrap items-center gap-2 min-w-0">
                   <DollarSign className="w-5 h-5 text-green-500" />
                   Payment Methods
                 </CardTitle>
