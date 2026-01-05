@@ -48,8 +48,9 @@ export function PublicProfileReviews({ initialReviews }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   const collapsedCount = 3;
-  const hasMore = reviews.length > collapsedCount;
-  const visibleReviews = isOpen ? reviews : reviews.slice(0, collapsedCount);
+  const primaryReviews = reviews.slice(0, collapsedCount);
+  const moreReviews = reviews.slice(collapsedCount);
+  const hasMore = moreReviews.length > 0;
 
   const emptyState = useMemo(() => reviews.length === 0, [reviews.length]);
 
@@ -91,14 +92,7 @@ export function PublicProfileReviews({ initialReviews }: Props) {
       <div className="flex items-center justify-between gap-4 mb-6">
         <h2 className="text-3xl font-bold text-white">Reviews</h2>
         {emptyState || !hasMore ? null : (
-          <Button
-            type="button"
-            variant="outline"
-            className="border-gray-700 text-white hover:bg-[#0a0a0a] hover:text-[#00f0ff]"
-            onClick={() => setIsOpen((v) => !v)}
-          >
-            {isOpen ? 'Show less' : `Show all (${reviews.length})`}
-          </Button>
+          <div className="hidden sm:block text-gray-400 text-sm">{reviews.length} total</div>
         )}
       </div>
       {emptyState ? (
@@ -110,8 +104,8 @@ export function PublicProfileReviews({ initialReviews }: Props) {
         </Card>
       ) : (
         <div>
-          <div className={`space-y-4 ${isOpen ? 'max-h-[70vh] overflow-y-auto pr-1' : ''}`}>
-            {visibleReviews.map((review) => (
+          <div className="space-y-4">
+            {primaryReviews.map((review) => (
               <Card key={review.id} className="bg-[#1a1a1a] border-gray-800">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -158,16 +152,70 @@ export function PublicProfileReviews({ initialReviews }: Props) {
           </div>
 
           {!hasMore ? null : (
-            <div className="mt-4 sm:hidden">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-gray-700 text-white hover:bg-[#0a0a0a] hover:text-[#00f0ff]"
-                onClick={() => setIsOpen((v) => !v)}
-              >
-                {isOpen ? 'Show less' : `Show all (${reviews.length})`}
-              </Button>
-            </div>
+            <details
+              className="mt-4"
+              open={isOpen}
+              onToggle={(e) => {
+                const el = e.currentTarget;
+                setIsOpen(el.open);
+              }}
+            >
+              <summary className="list-none cursor-pointer">
+                <div className="w-full rounded-lg border border-gray-800 bg-[#1a1a1a] px-4 py-3 text-center text-gray-300 hover:text-white hover:border-[#00f0ff] transition-colors">
+                  {isOpen ? 'Show less reviews' : `Show more reviews (${moreReviews.length})`}
+                </div>
+              </summary>
+              <div className="mt-4 space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                {moreReviews.map((review) => (
+                  <Card key={review.id} className="bg-[#1a1a1a] border-gray-800">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          {review.client?.image ? (
+                            <div className="relative w-12 h-12 rounded-full overflow-hidden">
+                              <Image
+                                src={review.client.image}
+                                alt={review.client?.name || 'Client'}
+                                fill
+                                sizes="48px"
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#00f0ff]/20 to-[#0099cc]/10 flex items-center justify-center">
+                              <User className="w-6 h-6 text-[#00f0ff]" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <h4 className="text-white font-semibold">
+                                {review.client?.name || 'Client'}
+                              </h4>
+                              <p className="text-gray-500 text-sm">{formatDate(review.createdAt)}</p>
+                            </div>
+                            <div className="flex items-center">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-5 h-5 ${
+                                    i < review.rating
+                                      ? 'text-[#ffd700] fill-current'
+                                      : 'text-gray-600'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          {review.comment ? <p className="text-gray-400">{review.comment}</p> : null}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </details>
           )}
         </div>
       )}
