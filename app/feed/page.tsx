@@ -547,15 +547,21 @@ export default function FeedPage() {
               </Link>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scroll-px-4">
               {barbers.map((pro) => {
                 const ringClass = 'border-[#00f0ff]/60';
                 const glowClass = 'shadow-[0_0_18px_rgba(0,240,255,0.25)]';
                 const name = pro.user?.name || 'Barber';
 
                 return (
-                  <Link key={pro.id} href={`/barberos/${pro.id}`} className="flex-shrink-0 w-20">
-                    <div className={`relative w-16 h-16 mx-auto rounded-full overflow-hidden border-2 ${ringClass} ${glowClass}`}>
+                  <Link
+                    key={pro.id}
+                    href={`/barberos/${pro.id}`}
+                    className="flex-none w-[calc((100%-1.5rem)/3)] sm:w-20 snap-start"
+                  >
+                    <div
+                      className={`relative w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full overflow-hidden border-2 ${ringClass} ${glowClass}`}
+                    >
                       {(pro.profileImage || pro.user?.image) ? (
                         <Image
                           src={pro.profileImage || pro.user?.image || ''}
@@ -565,12 +571,14 @@ export default function FeedPage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                          <Scissors className="w-7 h-7 text-[#00f0ff]/60" />
+                          <Scissors className="w-6 h-6 sm:w-7 sm:h-7 text-[#00f0ff]/60" />
                         </div>
                       )}
                     </div>
 
-                    <p className="mt-2 text-xs text-white text-center truncate">{name}</p>
+                    <p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs text-white text-center truncate leading-tight">
+                      {name}
+                    </p>
                     {pro.rating && pro.rating > 0 ? (
                       <div className="mt-1 hidden sm:flex items-center justify-center gap-1">
                         <Star className="w-3 h-3 text-[#ffd700] fill-current" />
@@ -602,15 +610,21 @@ export default function FeedPage() {
               </Link>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scroll-px-4">
               {stylists.map((pro) => {
                 const ringClass = 'border-pink-400/60';
                 const glowClass = 'shadow-[0_0_18px_rgba(236,72,153,0.25)]';
                 const name = pro.user?.name || 'Stylist';
 
                 return (
-                  <Link key={pro.id} href={`/barberos/${pro.id}`} className="flex-shrink-0 w-20">
-                    <div className={`relative w-16 h-16 mx-auto rounded-full overflow-hidden border-2 ${ringClass} ${glowClass}`}>
+                  <Link
+                    key={pro.id}
+                    href={`/barberos/${pro.id}`}
+                    className="flex-none w-[calc((100%-1.5rem)/3)] sm:w-20 snap-start"
+                  >
+                    <div
+                      className={`relative w-14 h-14 sm:w-16 sm:h-16 mx-auto rounded-full overflow-hidden border-2 ${ringClass} ${glowClass}`}
+                    >
                       {(pro.profileImage || pro.user?.image) ? (
                         <Image
                           src={pro.profileImage || pro.user?.image || ''}
@@ -620,12 +634,14 @@ export default function FeedPage() {
                         />
                       ) : (
                         <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                          <Sparkles className="w-7 h-7 text-pink-400/60" />
+                          <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-pink-400/60" />
                         </div>
                       )}
                     </div>
 
-                    <p className="mt-2 text-xs text-white text-center truncate">{name}</p>
+                    <p className="mt-1.5 sm:mt-2 text-[11px] sm:text-xs text-white text-center truncate leading-tight">
+                      {name}
+                    </p>
                     {pro.rating && pro.rating > 0 ? (
                       <div className="mt-1 hidden sm:flex items-center justify-center gap-1">
                         <Star className="w-3 h-3 text-[#ffd700] fill-current" />
