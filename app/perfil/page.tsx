@@ -177,7 +177,7 @@ export default function PerfilPage() {
     <div className="min-h-screen bg-black pb-24 overflow-x-hidden">
       <DashboardNavbar />
 
-      <div className="container mx-auto px-4 pt-10 pb-8 sm:pt-8">
+      <div className="container mx-auto px-4 pt-[calc(7.5rem+env(safe-area-inset-top))] pb-8 sm:pt-[calc(8rem+env(safe-area-inset-top))]">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
