@@ -23,6 +23,31 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   const role = (token as any)?.role as string | undefined;
 
+  // Treat /inicio as a public landing page. If the user is already authenticated,
+  // redirect them to their role-specific home.
+  if (pathname === '/inicio' && token) {
+    const url = req.nextUrl.clone();
+
+    if (isAdmin(role)) {
+      url.pathname = '/dashboard/admin';
+      return NextResponse.redirect(url);
+    }
+
+    if (isBarberOrStylist(role)) {
+      url.pathname = '/dashboard/barbero';
+      return NextResponse.redirect(url);
+    }
+
+    if (isClient(role)) {
+      url.pathname = '/feed';
+      return NextResponse.redirect(url);
+    }
+
+    // Unknown role: take them to a safe default.
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
+  }
+
   const isAppProtectedRoute =
     pathname === '/feed' ||
     pathname.startsWith('/feed/') ||
@@ -98,6 +123,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    '/inicio',
     '/feed/:path*',
     '/reservar/:path*',
     '/inbox/:path*',
