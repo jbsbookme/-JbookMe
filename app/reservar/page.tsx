@@ -1268,35 +1268,34 @@ export default function ReservarPage() {
                           <p className="text-xs text-gray-500">{group.items.length} slots</p>
                         </div>
 
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {group.items.map((time) => (
-                            (() => {
-                              const slot = formatSlot(time);
-                              return (
-                            <button
-                              key={time}
-                              type="button"
-                              onClick={() => setSelectedTime(time)}
-                              className={`min-w-[72px] rounded-lg border px-3 py-2 text-center transition-colors ${
-                                selectedTime === time
-                                  ? 'border-[#00f0ff]/60 bg-[#00f0ff]/10'
-                                  : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
-                              }`}
-                            >
-                              <div className="text-[11px] text-gray-400 leading-none">
-                                {slot.sub || '\u00A0'}
-                              </div>
-                              <div
-                                className={`text-base font-bold leading-tight whitespace-nowrap ${
-                                  selectedTime === time ? 'text-[#00f0ff]' : 'text-white'
+                        <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+                          {group.items.map((time) => {
+                            const slot = formatSlot(time);
+                            return (
+                              <button
+                                key={time}
+                                type="button"
+                                onClick={() => setSelectedTime(time)}
+                                aria-pressed={selectedTime === time}
+                                className={`min-w-[72px] rounded-lg border px-3 py-2 text-center transition-colors ${
+                                  selectedTime === time
+                                    ? 'border-[#00f0ff]/60 bg-[#00f0ff]/10'
+                                    : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
                                 }`}
                               >
-                                {slot.main}
-                              </div>
-                            </button>
-                              );
-                            })()
-                          ))}
+                                <div className="text-[11px] text-gray-400 leading-none">
+                                  {slot.sub || '\u00A0'}
+                                </div>
+                                <div
+                                  className={`text-base font-bold leading-tight whitespace-nowrap ${
+                                    selectedTime === time ? 'text-[#00f0ff]' : 'text-white'
+                                  }`}
+                                >
+                                  {slot.main}
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )

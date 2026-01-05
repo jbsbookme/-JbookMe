@@ -45,9 +45,7 @@ export default async function BarberProfilePage({ params }: Params) {
   // - Always include general services (barberId: null) and services assigned to this barber.
   // - Include UNISEX (and null) so profiles don't look like they only have 2-3 services.
   // - If the barber is BOTH/unknown, don't filter by gender.
-  const genderFilter:
-    | { gender?: { in: Array<'MALE' | 'FEMALE' | 'UNISEX'> } }
-    | {} =
+  const genderFilter: { gender?: { in: Array<'MALE' | 'FEMALE' | 'UNISEX'> } } =
     barber.gender === 'MALE' || barber.gender === 'FEMALE'
       ? { gender: { in: [barber.gender, 'UNISEX'] } }
       : {};
