@@ -1268,7 +1268,7 @@ export default function ReservarPage() {
                           <p className="text-xs text-gray-500">{group.items.length} slots</p>
                         </div>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {group.items.map((time) => (
                             (() => {
                               const slot = formatSlot(time);
@@ -1277,23 +1277,21 @@ export default function ReservarPage() {
                               key={time}
                               type="button"
                               onClick={() => setSelectedTime(time)}
-                              className={`rounded-lg border px-3 py-3 text-left font-semibold transition-all duration-300 ${
+                              className={`min-w-[72px] rounded-lg border px-3 py-2 text-center transition-colors ${
                                 selectedTime === time
-                                  ? 'border-transparent bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black shadow-[0_0_15px_rgba(0,240,255,0.35)]'
-                                  : 'border-gray-800 bg-gray-800/70 text-white hover:bg-gray-700/70'
+                                  ? 'border-[#00f0ff]/60 bg-[#00f0ff]/10'
+                                  : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
                               }`}
                             >
-                              <div className="text-sm leading-none text-center whitespace-nowrap">
+                              <div className="text-[11px] text-gray-400 leading-none">
+                                {slot.sub || '\u00A0'}
+                              </div>
+                              <div
+                                className={`text-base font-bold leading-tight whitespace-nowrap ${
+                                  selectedTime === time ? 'text-[#00f0ff]' : 'text-white'
+                                }`}
+                              >
                                 {slot.main}
-                                {slot.sub ? (
-                                  <span
-                                    className={`ml-1 text-[10px] font-bold tracking-wide ${
-                                      selectedTime === time ? 'text-black/70' : 'text-gray-400'
-                                    }`}
-                                  >
-                                    {slot.sub}
-                                  </span>
-                                ) : null}
                               </div>
                             </button>
                               );
