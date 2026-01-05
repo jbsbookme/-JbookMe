@@ -98,6 +98,14 @@ export default async function BarberProfilePage({ params }: Params) {
   const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
   const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
 
+  const formatDuration = (minutes: number) => {
+    const total = Number(minutes) || 0;
+    const hoursPart = Math.floor(total / 60);
+    const minsPart = total % 60;
+    if (hoursPart > 0) return minsPart > 0 ? `${hoursPart} hr ${minsPart} min` : `${hoursPart} hr`;
+    return `${minsPart} min`;
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 overflow-x-hidden">
       {/* Header */}
@@ -233,58 +241,45 @@ export default async function BarberProfilePage({ params }: Params) {
           {services.length === 0 ? (
             <p className="text-gray-400">No services available</p>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-3">
               {primaryServices.map((service) => (
-                <Card key={service.id} className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff] transition-colors overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="flex flex-row">
-                      {/* Service Image */}
-                      <div className="relative w-24 h-24 sm:w-48 sm:h-48 flex-shrink-0 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                <Card
+                  key={service.id}
+                  className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff]/60 transition-colors"
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-gray-700 bg-black/20">
                         {service.image ? (
-                          <Image
-                            src={service.image}
-                            alt={service.name}
-                            fill
-                            sizes="(max-width: 640px) 96px, 192px"
-                            className="object-cover"
-                          />
+                          <Image src={service.image} alt={service.name} fill sizes="48px" className="object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Clock className="w-8 h-8 sm:w-16 sm:h-16 text-[#00f0ff]/30" />
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Clock className="h-6 w-6 text-gray-600" />
                           </div>
                         )}
                       </div>
 
-                      {/* Service Info */}
-                      <div className="flex-1 p-3 sm:p-6">
-                        <div className="flex flex-col h-full justify-between">
-                          <div>
-                            <div className="flex justify-between items-start gap-3 mb-1 sm:mb-2">
-                              <h3 className="text-base sm:text-2xl font-bold text-white uppercase tracking-wide" style={{ color: '#00ff00' }}>
-                                {service.name}
-                              </h3>
-                              <span className="text-[#ffd700] font-bold text-sm sm:text-xl whitespace-nowrap">${service.price}</span>
-                            </div>
-                            {service.description && (
-                              <p className="text-gray-400 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{service.description}</p>
-                            )}
-                            <div className="flex items-center text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">
-                              <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                              {Math.floor(service.duration / 60) > 0 && `${Math.floor(service.duration / 60)} hr `}
-                              {service.duration % 60 > 0 && `${service.duration % 60} min`}
-                            </div>
-                          </div>
-                          
-                          <div className="flex justify-end">
-                            <Link href={`/reservar?barberId=${barber.id}&serviceId=${service.id}`}>
-                              <Button 
-                                className="bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-black hover:opacity-90 font-bold text-sm sm:text-base px-4 sm:px-8 py-2 sm:py-6 rounded-lg"
-                              >
-                                Book Now
-                              </Button>
-                            </Link>
-                          </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="truncate text-base font-bold italic text-white">{service.name}</p>
+                          <span className="shrink-0 text-sm font-bold text-[#ffd700]">${service.price}</span>
                         </div>
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{formatDuration(service.duration)}</span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        <Link href={`/reservar?barberId=${barber.id}&serviceId=${service.id}`}>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-gray-700 bg-transparent text-white hover:border-[#00f0ff]/60 hover:bg-[#00f0ff]/10"
+                          >
+                            Book Now
+                          </Button>
+                        </Link>
                       </div>
                     </div>
                   </CardContent>
@@ -298,66 +293,51 @@ export default async function BarberProfilePage({ params }: Params) {
                       Show more services ({moreServices.length})
                     </div>
                   </summary>
-                  <div className="mt-4 grid grid-cols-1 gap-4">
+                  <div className="mt-4 space-y-3">
                     {moreServices.map((service) => (
                       <Card
                         key={service.id}
-                        className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff] transition-colors overflow-hidden"
+                        className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff]/60 transition-colors"
                       >
-                        <CardContent className="p-0">
-                          <div className="flex flex-row">
-                            {/* Service Image */}
-                            <div className="relative w-24 h-24 sm:w-48 sm:h-48 flex-shrink-0 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                        <CardContent className="p-3">
+                          <div className="flex items-center gap-3">
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-gray-700 bg-black/20">
                               {service.image ? (
                                 <Image
                                   src={service.image}
                                   alt={service.name}
                                   fill
-                                  sizes="(max-width: 640px) 96px, 192px"
+                                  sizes="48px"
                                   className="object-cover"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                  <Clock className="w-8 h-8 sm:w-16 sm:h-16 text-[#00f0ff]/30" />
+                                <div className="flex h-full w-full items-center justify-center">
+                                  <Clock className="h-6 w-6 text-gray-600" />
                                 </div>
                               )}
                             </div>
 
-                            {/* Service Info */}
-                            <div className="flex-1 p-3 sm:p-6">
-                              <div className="flex flex-col h-full justify-between">
-                                <div>
-                                  <div className="flex justify-between items-start gap-3 mb-1 sm:mb-2">
-                                    <h3
-                                      className="text-base sm:text-2xl font-bold text-white uppercase tracking-wide"
-                                      style={{ color: '#00ff00' }}
-                                    >
-                                      {service.name}
-                                    </h3>
-                                    <span className="text-[#ffd700] font-bold text-sm sm:text-xl whitespace-nowrap">
-                                      ${service.price}
-                                    </span>
-                                  </div>
-                                  {service.description && (
-                                    <p className="text-gray-400 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">
-                                      {service.description}
-                                    </p>
-                                  )}
-                                  <div className="flex items-center text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">
-                                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                                    {Math.floor(service.duration / 60) > 0 && `${Math.floor(service.duration / 60)} hr `}
-                                    {service.duration % 60 > 0 && `${service.duration % 60} min`}
-                                  </div>
-                                </div>
-
-                                <div className="flex justify-end">
-                                  <Link href={`/reservar?barberId=${barber.id}&serviceId=${service.id}`}>
-                                    <Button className="bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-black hover:opacity-90 font-bold text-sm sm:text-base px-4 sm:px-8 py-2 sm:py-6 rounded-lg">
-                                      Book Now
-                                    </Button>
-                                  </Link>
-                                </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="truncate text-base font-bold italic text-white">{service.name}</p>
+                                <span className="shrink-0 text-sm font-bold text-[#ffd700]">${service.price}</span>
                               </div>
+                              <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>{formatDuration(service.duration)}</span>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0">
+                              <Link href={`/reservar?barberId=${barber.id}&serviceId=${service.id}`}>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-gray-700 bg-transparent text-white hover:border-[#00f0ff]/60 hover:bg-[#00f0ff]/10"
+                                >
+                                  Book Now
+                                </Button>
+                              </Link>
                             </div>
                           </div>
                         </CardContent>
