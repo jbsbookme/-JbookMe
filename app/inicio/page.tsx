@@ -175,7 +175,7 @@ export default function InicioPage() {
       title: t('common.myProfileCard'),
       description: t('common.myProfileDesc'),
       icon: User,
-      href: '/dashboard/cliente',
+      href: '/perfil',
       color: 'from-[#ffd700] to-[#ffaa00]',
       gradient: 'bg-gradient-to-br from-[#ffd700]/20 to-[#ffaa00]/20',
     },

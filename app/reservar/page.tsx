@@ -592,7 +592,7 @@ export default function ReservarPage() {
 
         if (res.ok) {
           showProfessionalSuccessToast('rescheduled');
-          router.push('/dashboard/cliente');
+          router.push('/perfil');
         } else {
           const data = await res.json().catch(() => ({}));
           toast.error(data.error || data.message || 'Error rescheduling appointment');
@@ -618,7 +618,7 @@ export default function ReservarPage() {
 
       if (res.ok) {
         showProfessionalSuccessToast('booked');
-        router.push('/dashboard/cliente');
+        router.push('/perfil');
       } else {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error || data.message || 'Error booking appointment');

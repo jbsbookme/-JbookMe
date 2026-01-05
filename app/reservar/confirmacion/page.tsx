@@ -48,7 +48,7 @@ export default function ConfirmacionReservaPage() {
         {/* Button */}
         <Button
           onClick={() => {
-            router.replace('/dashboard/cliente');
+            router.replace('/perfil');
           }}
           className="w-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold py-3 text-lg hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all"
         >

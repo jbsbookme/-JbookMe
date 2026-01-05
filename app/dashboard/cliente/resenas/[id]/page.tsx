@@ -48,7 +48,7 @@ export default function LeaveReviewPage() {
 
       if (!response.ok) {
         toast.error(data?.error || 'Appointment not found');
-        router.push('/dashboard/cliente');
+        router.push('/perfil');
         return;
       }
 
@@ -99,7 +99,7 @@ export default function LeaveReviewPage() {
       }
 
       toast.success('Review submitted successfully!');
-      router.push('/dashboard/cliente');
+      router.push('/perfil');
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Error creating review';
       console.error('Error creating review:', error);
