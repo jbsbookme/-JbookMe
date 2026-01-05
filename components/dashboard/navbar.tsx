@@ -22,12 +22,19 @@ export function DashboardNavbar({ showQuickBook = false }: Props) {
   const { user } = useUser();
   useI18n();
 
+  const isClientProfileRoute =
+    pathname?.startsWith('/perfil') || (!!pathname && /^\/[a-z]{2}\/perfil\b/i.test(pathname));
+
+  // Client profile has its own header/CTAs; hide this top icon bar there.
+  if (isClientProfileRoute) {
+    return null;
+  }
+
   // If the global top header is visible, offset this navbar below it.
   const isTopHeaderHidden =
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/registro') ||
     pathname?.startsWith('/auth') ||
-    pathname?.startsWith('/perfil') ||
     pathname?.startsWith('/dashboard/admin') ||
     pathname?.startsWith('/dashboard/barbero');
 
