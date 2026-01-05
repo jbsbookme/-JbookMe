@@ -677,11 +677,10 @@ export default function FeedPage() {
                     <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#00f0ff]/25 to-[#ffd700]/20 border border-[#00f0ff]/30 flex items-center justify-center">
                       <Calendar className="w-5 h-5 text-[#00f0ff]" />
                     </div>
-                    <p className="text-white font-extrabold text-xl tracking-wide">BOOK NOW</p>
+                    <p className="text-white font-extrabold text-xl tracking-wide">
+                      {language === 'es' ? 'RESERVAR' : 'BOOK'}
+                    </p>
                   </div>
-                  <p className="mt-2 text-xs text-gray-300">
-                    {language === 'es' ? 'Reserva en segundos' : 'Book in seconds'}
-                  </p>
                 </CardContent>
                 <div className="absolute inset-0 shimmer opacity-50" />
               </Card>
