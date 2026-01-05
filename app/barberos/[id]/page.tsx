@@ -407,45 +407,45 @@ export default async function BarberProfilePage({ params }: Params) {
               </div>
             </details>
           ) : null}
+        </div>
 
-          {/* Posts (IG-style) */}
-          <div className="mt-8">
-            <h3 className="text-xl font-bold text-white mb-4">Posts</h3>
-            {workPosts.length === 0 ? (
-              <p className="text-gray-400">No posts yet</p>
-            ) : (
-              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-                {workPosts.map((post) => {
-                  const src = getMediaUrl(post.cloud_storage_path);
-                  const video = isVideo(post.cloud_storage_path);
-                  return (
-                    <div
-                      key={post.id}
-                      className="relative aspect-square overflow-hidden rounded-lg bg-gray-900"
-                    >
-                      {video ? (
-                        <video
-                          src={src}
-                          className="h-full w-full object-cover"
-                          muted
-                          playsInline
-                          preload="metadata"
-                        />
-                      ) : (
-                        <Image
-                          src={src}
-                          alt={post.caption || 'Post'}
-                          fill
-                          sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                          className="object-cover"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        {/* Posts */}
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold text-white mb-6">Posts</h2>
+          {workPosts.length === 0 ? (
+            <p className="text-gray-400">No posts yet</p>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+              {workPosts.map((post) => {
+                const src = getMediaUrl(post.cloud_storage_path);
+                const video = isVideo(post.cloud_storage_path);
+                return (
+                  <div
+                    key={post.id}
+                    className="relative aspect-square overflow-hidden rounded-lg bg-gray-900"
+                  >
+                    {video ? (
+                      <video
+                        src={src}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                    ) : (
+                      <Image
+                        src={src}
+                        alt={post.caption || 'Post'}
+                        fill
+                        sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                        className="object-cover"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Reviews */}
