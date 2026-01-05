@@ -48,6 +48,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Keep backward-compat: the client "My Profile" entry historically pointed to
+  // /dashboard/cliente, but the redesigned profile lives at /perfil.
+  if (pathname === '/dashboard/cliente' && token && isClient(role)) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/perfil';
+    return NextResponse.redirect(url);
+  }
+
   const isAppProtectedRoute =
     pathname === '/feed' ||
     pathname.startsWith('/feed/') ||

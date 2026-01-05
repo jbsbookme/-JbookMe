@@ -71,15 +71,12 @@ export default function InicioPage() {
   const [barbers, setBarbers] = useState<Barber[]>([]);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/auth');
-      return;
-    }
-
-    if (session?.user?.role === 'CLIENT') {
+    // /inicio is a public landing page. If unauthenticated, render the page normally.
+    // If authenticated, middleware will redirect off /inicio.
+    if (status === 'authenticated' && session?.user?.role === 'CLIENT') {
       fetchClientStats();
     }
-    
+
     fetchRecentPosts();
   }, [session, status, router]);
 
