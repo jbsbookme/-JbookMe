@@ -4,12 +4,13 @@ import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Sparkles } from 'lucide-react';
+import { LogOut, Share2, User, Sparkles } from 'lucide-react';
 import { NotificationsBell } from '@/components/notifications-bell';
 import { LanguageSelector } from '@/components/language-selector';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { usePathname } from 'next/navigation';
 import { useUser } from '@/contexts/user-context';
+import { toast } from 'sonner';
 
 export function DashboardNavbar() {
   const { data: session } = useSession() || {};
@@ -29,6 +30,39 @@ export function DashboardNavbar() {
     await signOut({ callbackUrl: '/login' });
   };
 
+  const handleShare = async () => {
+    try {
+      const shareData = {
+        title: 'JBookMe',
+        text: 'Book your appointment on JBookMe.',
+        url: window.location.origin,
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+        toast.success('Shared');
+        return;
+      }
+
+      await navigator.clipboard.writeText(window.location.origin);
+      toast.success('Link copied');
+    } catch (error: unknown) {
+      const errorName =
+        typeof error === 'object' && error !== null && 'name' in error
+          ? String((error as { name?: unknown }).name)
+          : '';
+
+      if (errorName !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(window.location.origin);
+          toast.success('Link copied');
+        } catch {
+          toast.error('Unable to share');
+        }
+      }
+    }
+  };
+
   return (
     <nav
       className={`sticky ${isTopHeaderHidden ? 'top-0' : 'top-16'} z-50 w-full border-b border-gray-800 bg-black`}
@@ -36,6 +70,16 @@ export function DashboardNavbar() {
       <div className="container mx-auto flex h-16 items-center justify-end px-4 max-w-7xl">
         <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3">
           <NotificationsBell />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            aria-label="Share"
+            className="border-transparent bg-white/5 text-white hover:bg-white/10 hover:text-white h-8 w-8 p-0"
+          >
+            <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
+          </Button>
           <LanguageSelector />
           <div className="hidden sm:flex items-center space-x-2 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.6)]">
             {(user?.image || session?.user?.image) ? (
@@ -66,7 +110,7 @@ export function DashboardNavbar() {
             variant="outline"
             size="sm"
             onClick={handleLogout}
-            className="border-transparent bg-gradient-to-r from-red-500 via-orange-500 to-red-500 text-white hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(255,0,0,0.8)] h-8 w-8 p-0"
+            className="ml-1 border-transparent bg-gradient-to-r from-red-500 via-orange-500 to-red-500 text-white hover:scale-105 transition-transform duration-300 shadow-[0_0_20px_rgba(255,0,0,0.8)] h-8 w-8 p-0"
           >
             <LogOut className="w-4 h-4 sm:w-5 sm:h-5 drop-shadow-[0_0_8px_rgba(255,255,255,1)]" />
           </Button>

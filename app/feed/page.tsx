@@ -1198,9 +1198,9 @@ export default function FeedPage() {
 
       {/* Persistent mobile booking button (stays visible while scrolling) */}
       {!isBookingCtaInView && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 sm:hidden">
+        <div className="fixed bottom-24 left-4 z-40 sm:hidden">
           <Link href="/reservar">
-            <Button className="h-12 px-6 rounded-full bg-[#00f0ff] text-black font-extrabold hover:bg-[#00f0ff]/90">
+            <Button className="h-11 px-5 rounded-full bg-[#00f0ff] text-black font-extrabold hover:bg-[#00f0ff]/90 shadow-lg shadow-black/40">
               <Calendar className="w-5 h-5 mr-2" />
               {language === 'es' ? 'RESERVAR' : 'BOOK'}
             </Button>
