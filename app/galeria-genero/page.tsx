@@ -21,8 +21,8 @@ export default function GaleriaGeneroPage() {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
               <Button
                 type="button"
                 variant="ghost"
@@ -39,16 +39,16 @@ export default function GaleriaGeneroPage() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold">Gallery</h1>
-                <p className="text-xs sm:text-sm text-gray-400">Choose what you want to explore</p>
+                <p className="text-xs sm:text-sm text-gray-400 break-words">Choose what you want to explore</p>
               </div>
             </div>
 
             <Button
               variant="outline"
               onClick={() => router.push('/galeria')}
-              className="border-gray-700 text-white hover:bg-[#111111]"
+              className="border-gray-700 text-white hover:bg-[#111111] self-start sm:self-auto"
             >
               View all
             </Button>

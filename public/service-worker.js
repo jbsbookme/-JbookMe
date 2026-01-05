@@ -1,12 +1,9 @@
 // Service Worker for BookMe PWA
-const CACHE_NAME = 'bookme-v3';
+const CACHE_NAME = 'bookme-v4';
 const urlsToCache = [
-  '/',
-  '/inicio',
-  '/feed',
-  '/galeria',
-  '/menu',
   '/manifest.json',
+  '/icon-192.png',
+  '/icon-96.png',
 ];
 
 // Install event - cache resources
@@ -39,8 +36,8 @@ self.addEventListener('activate', (event) => {
 });
 
 // Fetch event
-// - For HTML navigations: network-first (so deploys show up), fallback to cache.
-// - For other GET requests: cache-first, then network.
+// - For HTML navigations: network-only (ultra fresh, no HTML caching).
+// - For other GET requests: cache-first, then network (but never cache HTML).
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -50,13 +47,13 @@ self.addEventListener('fetch', (event) => {
 
   if (isHTML) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
-          return response;
-        })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+      fetch(request).catch(
+        () =>
+          new Response(
+            '<!doctype html><html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>Offline</title></head><body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#0a0a0a;color:#fff;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px;text-align:center"><div><h1 style="margin:0 0 8px;font-size:20px">You\'re offline</h1><p style="margin:0;color:#9ca3af;font-size:14px">Please check your connection and try again.</p></div></body></html>',
+            { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+          )
+      )
     );
     return;
   }
@@ -67,6 +64,10 @@ self.addEventListener('fetch', (event) => {
 
       return fetch(request.clone()).then((response) => {
         if (!response || response.status !== 200) return response;
+
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) return response;
+
         const responseToCache = response.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
         return response;
