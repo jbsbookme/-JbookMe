@@ -86,8 +86,8 @@ export default async function BarberProfilePage({ params }: Params) {
     likes: img.likes,
   }));
 
-  const primaryServices = services.slice(0, 3);
-  const moreServices = services.slice(3);
+  const primaryServices = services.slice(0, 4);
+  const moreServices = services.slice(4);
   const primaryGalleryImages = galleryImagesWithUrls.slice(0, 3);
   const moreGalleryImages = galleryImagesWithUrls.slice(3);
 
@@ -193,41 +193,43 @@ export default async function BarberProfilePage({ params }: Params) {
                   )}
 
                   {/* CTA Button */}
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center md:justify-start">
-                    <Link href={`/reservar?barberId=${barber.id}`} className="block">
+                  <div className="flex flex-col gap-3 items-center md:items-start">
+                    {telHref || chatHref ? (
+                      <div className="flex gap-2 justify-center md:justify-start">
+                        {telHref ? (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                          >
+                            <a href={telHref} aria-label="Call">
+                              <Phone className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+
+                        {chatHref ? (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                          >
+                            <a href={chatHref} aria-label="Chat" target={chatTarget} rel={chatRel}>
+                              <MessageCircle className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    <Link href={`/reservar?barberId=${barber.id}`} className="block w-full sm:w-auto">
                       <Button className="w-full sm:w-auto bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 neon-glow text-base sm:text-lg px-6 sm:px-8">
                         <Calendar className="w-5 h-5 mr-2" />
                         Appointment
                       </Button>
                     </Link>
-
-                    <div className="flex gap-2 justify-center md:justify-start">
-                      {telHref ? (
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="icon"
-                          className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                        >
-                          <a href={telHref} aria-label="Call">
-                            <Phone className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      ) : null}
-
-                      {chatHref ? (
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="icon"
-                          className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                        >
-                          <a href={chatHref} aria-label="Chat" target={chatTarget} rel={chatRel}>
-                            <MessageCircle className="h-4 w-4" />
-                          </a>
-                        </Button>
-                      ) : null}
-                    </div>
                   </div>
                 </div>
               </div>
