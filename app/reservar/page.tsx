@@ -1140,6 +1140,20 @@ export default function ReservarPage() {
     const minutesFor = (t: string) => parseTimeToMinutes(t) ?? 0;
     const sortedSlots = [...filteredAvailableTimes].sort((a, b) => minutesFor(a) - minutesFor(b));
 
+    const formatSlot = (raw: string) => {
+      const text = String(raw ?? '').trim();
+      const upper = text.toUpperCase();
+      const m = upper.match(/^\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\s*$/);
+      if (m) {
+        const hh = Number(m[1]);
+        const mm = m[2] ?? '00';
+        const ap = m[3];
+        const hour = Number.isFinite(hh) ? String(hh) : m[1];
+        return { main: `${hour}:${mm}`, sub: ap };
+      }
+      return { main: text, sub: '' };
+    };
+
     const morning = sortedSlots.filter((t) => minutesFor(t) < 12 * 60);
     const afternoon = sortedSlots.filter((t) => minutesFor(t) >= 12 * 60 && minutesFor(t) < 17 * 60);
     const evening = sortedSlots.filter((t) => minutesFor(t) >= 17 * 60);
@@ -1256,6 +1270,9 @@ export default function ReservarPage() {
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                           {group.items.map((time) => (
+                            (() => {
+                              const slot = formatSlot(time);
+                              return (
                             <button
                               key={time}
                               type="button"
@@ -1266,15 +1283,21 @@ export default function ReservarPage() {
                                   : 'border-gray-800 bg-gray-800/70 text-white hover:bg-gray-700/70'
                               }`}
                             >
-                              <div className="text-sm leading-none">{time}</div>
-                              <div
-                                className={`mt-1 text-[11px] ${
-                                  selectedTime === time ? 'text-black/80' : 'text-gray-400'
-                                }`}
-                              >
-                                Available
+                              <div className="text-sm leading-none text-center whitespace-nowrap">
+                                {slot.main}
+                                {slot.sub ? (
+                                  <span
+                                    className={`ml-1 text-[10px] font-bold tracking-wide ${
+                                      selectedTime === time ? 'text-black/70' : 'text-gray-400'
+                                    }`}
+                                  >
+                                    {slot.sub}
+                                  </span>
+                                ) : null}
                               </div>
                             </button>
+                              );
+                            })()
                           ))}
                         </div>
                       </div>
