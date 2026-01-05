@@ -41,22 +41,27 @@ export default async function BarberProfilePage({ params }: Params) {
     notFound();
   }
 
-  // Get active services filtered by barber's gender
-  // MALE barbers → ONLY MALE services (no UNISEX)
-  // FEMALE stylists → ONLY FEMALE services (no UNISEX)
-  // Include both: general services (barberId: null) AND services assigned to this specific barber
+  // Services
+  // - Always include general services (barberId: null) and services assigned to this barber.
+  // - Include UNISEX (and null) so profiles don't look like they only have 2-3 services.
+  // - If the barber is BOTH/unknown, don't filter by gender.
+  const genderFilter:
+    | { gender?: { in: Array<'MALE' | 'FEMALE' | 'UNISEX'> } }
+    | {} =
+    barber.gender === 'MALE' || barber.gender === 'FEMALE'
+      ? { gender: { in: [barber.gender, 'UNISEX'] } }
+      : {};
+
   const services = await prisma.service.findMany({
     where: {
       isActive: true,
-      gender: barber.gender, // STRICT: Only exact gender match (no UNISEX)
+      ...genderFilter,
       OR: [
-        { barberId: null }, // General services for all barbers
-        { barberId: barber.id }, // Services assigned specifically to this barber
+        { barberId: null },
+        { barberId: barber.id },
       ],
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
+    orderBy: { createdAt: 'asc' },
   });
 
   const totalRating = barber.reviews.reduce((sum, review) => sum + review.rating, 0);
