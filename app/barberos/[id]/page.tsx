@@ -123,11 +123,11 @@ export default async function BarberProfilePage({ params }: Params) {
         {/* Profile Header */}
         <div className="mb-12">
           <Card className="bg-[#1a1a1a] border-gray-800">
-            <CardContent className="p-8">
-              <div className="flex flex-col md:flex-row gap-8">
+            <CardContent className="p-6 sm:p-8">
+              <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-center md:text-left">
                 {/* Profile Image */}
                 <div className="flex-shrink-0">
-                  <div className="relative w-48 h-48 rounded-lg overflow-hidden bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                  <div className="relative w-28 h-28 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-[#00f0ff]/60 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
                     {barber.profileImage || barber.user?.image ? (
                       <Image
                         src={barber.profileImage || barber.user?.image || ''}
@@ -138,19 +138,19 @@ export default async function BarberProfilePage({ params }: Params) {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#00f0ff]/10 to-[#ffd700]/10">
-                        <User className="w-24 h-24 text-[#00f0ff]/40" />
+                        <User className="w-12 h-12 sm:w-20 sm:h-20 text-[#00f0ff]/40" />
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Profile Info */}
-                <div className="flex-1">
-                  <h1 className="text-4xl font-bold text-white mb-2">
+                <div className="flex-1 w-full">
+                  <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 leading-tight">
                     {barber.user?.name || 'Barber'}
                   </h1>
                   {barber.specialties && (
-                    <p className="text-[#00f0ff] text-lg mb-4">{barber.specialties}</p>
+                    <p className="text-[#00f0ff] text-sm sm:text-lg mb-4">{barber.specialties}</p>
                   )}
 
                   {/* Rating */}
@@ -163,12 +163,12 @@ export default async function BarberProfilePage({ params }: Params) {
 
                   {/* Bio */}
                   {barber.bio && (
-                    <p className="text-gray-400 mb-6">{barber.bio}</p>
+                    <p className="text-gray-400 mb-6 text-sm sm:text-base">{barber.bio}</p>
                   )}
 
                   {/* CTA Button */}
-                  <Link href={`/reservar?barberId=${barber.id}`}>
-                    <Button className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 neon-glow text-lg px-8">
+                  <Link href={`/reservar?barberId=${barber.id}`} className="block md:inline-block">
+                    <Button className="w-full sm:w-auto bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 neon-glow text-base sm:text-lg px-6 sm:px-8">
                       <Calendar className="w-5 h-5 mr-2" />
                       Appointment
                     </Button>
