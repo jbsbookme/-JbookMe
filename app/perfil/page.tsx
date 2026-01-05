@@ -177,9 +177,9 @@ export default function PerfilPage() {
     <div className="min-h-screen bg-black pb-24 overflow-x-hidden">
       <DashboardNavbar />
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-10 pb-8 sm:pt-8">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="max-w-2xl mx-auto"
         >
@@ -195,7 +195,7 @@ export default function PerfilPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
+              <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 leading-tight">
                 {t('client.my')} <span className="text-[#00f0ff]">{t('client.profile')}</span>
               </h1>
               <p className="text-gray-400">{t('client.manageInfo')}</p>
