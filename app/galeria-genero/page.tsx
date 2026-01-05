@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { User, Users, ArrowLeft } from 'lucide-react';
 
 export default function GaleriaGeneroPage() {
@@ -14,104 +14,102 @@ export default function GaleriaGeneroPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
-        {/* Back button */}
-        <button
-          type="button"
-          onClick={() => {
-            if (typeof window !== 'undefined' && window.history.length > 1) {
-              router.back();
-            } else {
-              router.push('/feed');
-            }
-          }}
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-[#00f0ff] transition-colors mb-8"
-          aria-label="Back"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="sr-only">Back</span>
-        </button>
+    <div className="min-h-screen bg-[#0a0a0a] text-white pb-24">
+      {/* Header */}
+      <div
+        className="sticky top-0 z-40 bg-black/90 backdrop-blur-sm border-b border-gray-800"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="text-gray-400 hover:text-white"
+                aria-label="Back"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push('/feed');
+                  }
+                }}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold">Gallery</h1>
+                <p className="text-xs sm:text-sm text-gray-400">Choose what you want to explore</p>
+              </div>
+            </div>
 
-        {/* Title */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Select a <span className="text-[#00f0ff] neon-text">Gallery</span>
-          </h1>
-          <p className="text-gray-400 text-lg">What style do you want to explore?</p>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/galeria')}
+              className="border-gray-700 text-white hover:bg-[#111111]"
+            >
+              View all
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-10">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+          <h2 className="text-2xl sm:text-3xl font-bold">
+            Select a <span className="text-[#00f0ff]">gallery</span>
+          </h2>
+          <p className="text-gray-400 mt-2">Men or Women styles</p>
         </motion.div>
 
-        {/* Gender Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Male Gallery */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-          >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
             <Card
+              role="button"
+              tabIndex={0}
               onClick={() => handleGenderSelect('MALE')}
-              className="group relative overflow-hidden bg-gradient-to-br from-[#1a1a2e] to-[#0f0f1e] border-2 border-[#00f0ff]/30 hover:border-[#00f0ff] cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(0,240,255,0.5)]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') handleGenderSelect('MALE');
+              }}
+              className="bg-[#111111] border-gray-800 hover:border-[#00f0ff]/60 transition-colors cursor-pointer"
             >
-              <div className="p-8 flex flex-col items-center justify-center min-h-[250px]">
-                <div className="w-20 h-20 rounded-full bg-[#00f0ff]/10 flex items-center justify-center mb-6 group-hover:bg-[#00f0ff]/20 transition-colors">
-                  <User className="w-10 h-10 text-[#00f0ff]" />
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
+                  <User className="w-7 h-7 text-[#00f0ff]" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-[#00f0ff] transition-colors">
-                  Men&apos;s Cuts
-                </h3>
-                <p className="text-gray-400 text-center">
-                  Modern and classic men&apos;s styles
-                </p>
-              </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold">Men&apos;s Cuts</h3>
+                  <p className="text-sm text-gray-400">Modern & classic styles</p>
+                </div>
+              </CardContent>
             </Card>
           </motion.div>
 
-          {/* Female Gallery */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <Card
+              role="button"
+              tabIndex={0}
               onClick={() => handleGenderSelect('FEMALE')}
-              className="group relative overflow-hidden bg-gradient-to-br from-[#2e1a2e] to-[#1e0f1e] border-2 border-pink-500/30 hover:border-pink-500 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(255,182,193,0.5)]"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') handleGenderSelect('FEMALE');
+              }}
+              className="bg-[#111111] border-gray-800 hover:border-[#ffd700]/60 transition-colors cursor-pointer"
             >
-              <div className="p-8 flex flex-col items-center justify-center min-h-[250px]">
-                <div className="w-20 h-20 rounded-full bg-pink-500/10 flex items-center justify-center mb-6 group-hover:bg-pink-500/20 transition-colors">
-                  <Users className="w-10 h-10 text-pink-400" />
+              <CardContent className="p-6 flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-[#ffd700]/10 flex items-center justify-center">
+                  <Users className="w-7 h-7 text-[#ffd700]" />
                 </div>
-                <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-pink-400 transition-colors">
-                  Women&apos;s Cuts
-                </h3>
-                <p className="text-gray-400 text-center">
-                  Elegant styles and trending looks
-                </p>
-              </div>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold">Women&apos;s Cuts</h3>
+                  <p className="text-sm text-gray-400">Elegant & trending looks</p>
+                </div>
+              </CardContent>
             </Card>
           </motion.div>
         </div>
-
-        {/* All Gallery Link */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center mt-8"
-        >
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/galeria')}
-            className="text-gray-400 hover:text-white"
-          >
-            View full gallery
-          </Button>
-        </motion.div>
-      </div>
+      </main>
     </div>
   );
 }

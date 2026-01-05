@@ -290,34 +290,6 @@ export default function InboxPage() {
                       className="bg-[#1a1a1a] border-gray-700 min-h-[120px] resize-none"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="image" className="text-xs sm:text-sm">Image (optional)</Label>
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="bg-[#1a1a1a] border-gray-700 h-8 sm:h-9 text-xs sm:text-sm"
-                    />
-                    {imagePreview && (
-                      <div className="relative w-full h-40 mt-3">
-                        <Image
-                          src={imagePreview}
-                          alt="Preview"
-                          fill
-                          className="object-cover rounded-lg"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={handleRemoveImage}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Image (optional)</Label>
                     <Button
@@ -336,6 +308,27 @@ export default function InboxPage() {
                       onChange={handleImageChange}
                       className="hidden"
                     />
+
+                    {imagePreview ? (
+                      <div className="relative w-full h-40 mt-2">
+                        <Image
+                          src={imagePreview}
+                          alt="Preview"
+                          fill
+                          className="object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={handleRemoveImage}
+                          aria-label="Remove image"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
