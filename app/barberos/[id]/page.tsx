@@ -91,10 +91,13 @@ export default async function BarberProfilePage({ params }: Params) {
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black">
-        <div className="container mx-auto flex min-h-16 items-center justify-between px-4 max-w-7xl flex-wrap gap-2">
+      <header
+        className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
+        <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 max-w-7xl gap-2">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="relative w-10 h-10 rounded-lg overflow-hidden">
+            <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
               <Image 
                 src="/logo.png" 
                 alt="JBookMe Logo" 
@@ -103,15 +106,15 @@ export default async function BarberProfilePage({ params }: Params) {
                 priority
               />
             </div>
-            <span className="text-xl font-bold">
+            <span className="text-base sm:text-xl font-bold leading-none">
               <span className="text-[#00f0ff]">JBook</span>
               <span className="text-[#ffd700]">Me</span>
             </span>
           </Link>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center gap-2 justify-end">
             <Link href="/barberos">
               <Button variant="ghost" className="text-gray-300 hover:text-[#00f0ff] px-2">
-                <ArrowLeft className="w-5 h-5 mr-2" />
+                <ArrowLeft className="w-5 h-5 sm:mr-2" />
                 <span className="hidden sm:inline">View Barbers</span>
               </Button>
             </Link>
