@@ -1,5 +1,5 @@
 // Service Worker for BookMe PWA
-const CACHE_NAME = 'bookme-v1';
+const CACHE_NAME = 'bookme-v2';
 const urlsToCache = [
   '/',
   '/inicio',
@@ -27,7 +27,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName.startsWith('bookme-') && cacheName !== CACHE_NAME) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -38,35 +38,40 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event
+// - For HTML navigations: network-first (so deploys show up), fallback to cache.
+// - For other GET requests: cache-first, then network.
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        // Clone the request
-        const fetchRequest = event.request.clone();
-        
-        return fetch(fetchRequest).then((response) => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          
-          // Clone the response
+  const request = event.request;
+  if (request.method !== 'GET') return;
+
+  const accept = request.headers.get('accept') || '';
+  const isHTML = request.mode === 'navigate' || accept.includes('text/html');
+
+  if (isHTML) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
           const responseToCache = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
           return response;
-        });
-      })
+        })
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+
+      return fetch(request.clone()).then((response) => {
+        if (!response || response.status !== 200) return response;
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, responseToCache));
+        return response;
+      });
+    })
   );
 });
 
