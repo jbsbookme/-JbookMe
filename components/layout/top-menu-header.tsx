@@ -29,6 +29,7 @@ export function TopMenuHeader() {
     pathname?.startsWith('/auth') ||
     pathname?.startsWith('/asistente') ||
     isBarberDetailRoute ||
+    pathname?.startsWith('/perfil') ||
     pathname?.startsWith('/dashboard/admin') ||
     pathname?.startsWith('/dashboard/barbero')
   ) {

@@ -27,6 +27,7 @@ export function DashboardNavbar({ showQuickBook = false }: Props) {
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/registro') ||
     pathname?.startsWith('/auth') ||
+    pathname?.startsWith('/perfil') ||
     pathname?.startsWith('/dashboard/admin') ||
     pathname?.startsWith('/dashboard/barbero');
 
@@ -75,6 +76,7 @@ export function DashboardNavbar({ showQuickBook = false }: Props) {
   return (
     <nav
       className={`sticky ${topClass} z-50 w-full border-b border-gray-800 bg-black`}
+      style={isTopHeaderHidden ? { paddingTop: 'env(safe-area-inset-top)' } : undefined}
     >
       <div className="container mx-auto flex h-16 items-center justify-end px-4 max-w-7xl">
         <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3">
