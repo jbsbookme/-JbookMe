@@ -522,7 +522,7 @@ export default function PerfilPage() {
             </Card>
           </div>
 
-          {/* MY GALLERY */}
+          {/* POSTS */}
           <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/20 transition-colors">
             <CardContent className="p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -530,8 +530,8 @@ export default function PerfilPage() {
                   <Camera className="w-6 h-6 text-[#00f0ff]" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">My Gallery</h3>
-                  <p className="text-sm text-gray-400">Your latest posts</p>
+                  <h3 className="text-xl font-bold text-white">Posts</h3>
+                  <p className="text-sm text-gray-400">Your latest photos & videos</p>
                 </div>
               </div>
 

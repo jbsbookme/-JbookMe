@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const cloud_storage_path = await uploadFile(buffer, fileName, true);
+    const cloud_storage_path = await uploadFile(buffer, fileName, true, file.type || undefined);
 
     // Get the public URL
     const fileUrl = await getFileUrl(cloud_storage_path, true);

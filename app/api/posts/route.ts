@@ -131,7 +131,22 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { error: 'Image is required' },
+        { error: 'Media (photo or video) is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!file.type?.startsWith('image/') && !file.type?.startsWith('video/')) {
+      return NextResponse.json(
+        { error: 'Only images and videos are allowed' },
+        { status: 400 }
+      );
+    }
+
+    // 50MB max (keeps parity with /api/posts/upload)
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: 'File is too large (max 50MB)' },
         { status: 400 }
       );
     }
@@ -166,7 +181,7 @@ export async function POST(request: NextRequest) {
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
       const key = `posts/${year}/${month}/${typeFolder}/${Date.now()}-${sanitizedFileName}`;
       console.log('[POST /api/posts] Attempting S3 upload with key:', key);
-      cloud_storage_path = await uploadFile(buffer, key, true);
+      cloud_storage_path = await uploadFile(buffer, key, true, file.type || undefined);
       console.log('[POST /api/posts] S3 upload successful, path:', cloud_storage_path);
     } catch (s3Error) {
       // If S3 fails, save locally with organized structure

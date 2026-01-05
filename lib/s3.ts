@@ -47,7 +47,8 @@ function getS3Context(): S3Context {
 export async function uploadFile(
   buffer: Buffer,
   fileName: string,
-  isPublic = false
+  isPublic = false,
+  contentType?: string
 ): Promise<string> {
   const { s3Client, bucketName, folderPrefix } = getS3Context();
   const timestamp = Date.now();
@@ -70,6 +71,7 @@ export async function uploadFile(
     Bucket: bucketName,
     Key: key,
     Body: buffer,
+    ...(contentType ? { ContentType: contentType } : {}),
   });
 
   await s3Client.send(command);
