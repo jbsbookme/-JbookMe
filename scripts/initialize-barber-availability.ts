@@ -6,15 +6,15 @@ config();
 
 const prisma = new PrismaClient();
 
-// Horarios por defecto: Lunes a Sábado, 9:00 AM - 6:00 PM
+// Horarios por defecto: Lunes a Sábado, 9:00 AM - 8:00 PM
 const DEFAULT_SCHEDULE = [
-  { dayOfWeek: DayOfWeek.MONDAY, startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { dayOfWeek: DayOfWeek.TUESDAY, startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { dayOfWeek: DayOfWeek.WEDNESDAY, startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { dayOfWeek: DayOfWeek.THURSDAY, startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { dayOfWeek: DayOfWeek.FRIDAY, startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { dayOfWeek: DayOfWeek.SATURDAY, startTime: '09:00', endTime: '18:00', isAvailable: true },
-  { dayOfWeek: DayOfWeek.SUNDAY, startTime: '09:00', endTime: '18:00', isAvailable: false },
+  { dayOfWeek: DayOfWeek.MONDAY, startTime: '09:00', endTime: '20:00', isAvailable: true },
+  { dayOfWeek: DayOfWeek.TUESDAY, startTime: '09:00', endTime: '20:00', isAvailable: true },
+  { dayOfWeek: DayOfWeek.WEDNESDAY, startTime: '09:00', endTime: '20:00', isAvailable: true },
+  { dayOfWeek: DayOfWeek.THURSDAY, startTime: '09:00', endTime: '20:00', isAvailable: true },
+  { dayOfWeek: DayOfWeek.FRIDAY, startTime: '09:00', endTime: '20:00', isAvailable: true },
+  { dayOfWeek: DayOfWeek.SATURDAY, startTime: '09:00', endTime: '20:00', isAvailable: true },
+  { dayOfWeek: DayOfWeek.SUNDAY, startTime: '09:00', endTime: '20:00', isAvailable: false },
 ];
 
 async function initializeBarberAvailability() {
