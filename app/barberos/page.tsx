@@ -334,41 +334,48 @@ export default function BarberosPage() {
                   className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff] transition-all duration-300 group animate-in"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <CardHeader>
-                    <div className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
-                      {barber.profileImage || barber.user?.image ? (
-                        <Image
-                          src={barber.profileImage || barber.user?.image || ''}
-                          alt={barber.user?.name || t('barbers.barber')}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#00f0ff]/10 to-[#ffd700]/10">
-                          <User className="w-20 h-20 text-[#00f0ff]/40" />
+                  <CardHeader className="text-center">
+                    <div className="relative mx-auto mb-4">
+                      <Link href={`/barberos/${barber.id}`} aria-label={t('barbers.viewProfile')} className="inline-block">
+                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-[#00f0ff]/60 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                          {barber.profileImage || barber.user?.image ? (
+                            <Image
+                              src={barber.profileImage || barber.user?.image || ''}
+                              alt={barber.user?.name || t('barbers.barber')}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <User className="w-10 h-10 text-[#00f0ff]/40" />
+                            </div>
+                          )}
                         </div>
-                      )}
-                      
+                      </Link>
+
                       {/* Top Rated Badge */}
                       {barber.avgRating >= 4.5 && (
-                        <div className="absolute top-2 left-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 shadow-lg">
+                        <div className="absolute -top-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-[11px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-lg">
                           <Award className="w-3 h-3" />
-                          Top Rated
+                          Top
                         </div>
                       )}
                     </div>
-                    <CardTitle className="text-white text-2xl">{barber.user?.name || t('barbers.barber')}</CardTitle>
-                    <div className="text-[#00f0ff] text-sm font-semibold mb-2">
+
+                    <CardTitle className="text-white text-xl sm:text-2xl leading-tight">
+                      {barber.user?.name || t('barbers.barber')}
+                    </CardTitle>
+                    <div className="text-[#00f0ff] text-sm font-semibold">
                       {getProfessionalTitle(barber.gender)}
                     </div>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-gray-400 text-sm line-clamp-2">
                       {barber.specialties || t('barbers.specialist')}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 text-center">
                     {/* Rating */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
                         <Star className="w-5 h-5 text-[#ffd700] fill-current" />
                         <span className="text-[#ffd700] font-semibold">
                           {barber.avgRating > 0 ? barber.avgRating.toFixed(1) : t('common.new')}
@@ -378,7 +385,7 @@ export default function BarberosPage() {
                         </span>
                       </div>
                       {barber.hourlyRate && (
-                        <span className="text-[#00f0ff] font-semibold">${barber.hourlyRate}/hr</span>
+                        <div className="text-[#00f0ff] font-semibold text-sm">${barber.hourlyRate}/hr</div>
                       )}
                     </div>
 
@@ -438,33 +445,40 @@ export default function BarberosPage() {
                   className="bg-[#1a1a1a] border-gray-800 hover:border-[#ffd700] transition-all duration-300 group animate-in"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <CardHeader>
-                    <div className="relative w-full aspect-square mb-4 rounded-lg overflow-hidden bg-gradient-to-br from-[#ffd700]/10 to-[#ff69b4]/10">
-                      {barber.profileImage || barber.user?.image ? (
-                        <Image
-                          src={barber.profileImage || barber.user?.image || ''}
-                          alt={barber.user?.name || 'Stylist'}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#ffd700]/10 to-[#ff69b4]/10">
-                          <User className="w-20 h-20 text-[#ffd700]/40" />
+                  <CardHeader className="text-center">
+                    <div className="relative mx-auto mb-4">
+                      <Link href={`/barberos/${barber.id}`} aria-label={t('barbers.viewProfile')} className="inline-block">
+                        <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-[#ffd700]/60 bg-gradient-to-br from-[#ffd700]/10 to-[#ff69b4]/10">
+                          {barber.profileImage || barber.user?.image ? (
+                            <Image
+                              src={barber.profileImage || barber.user?.image || ''}
+                              alt={barber.user?.name || 'Stylist'}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <User className="w-10 h-10 text-[#ffd700]/40" />
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </Link>
                     </div>
-                    <CardTitle className="text-white text-2xl">{barber.user?.name || 'Stylist'}</CardTitle>
-                    <div className="text-[#ffd700] text-sm font-semibold mb-2">
+
+                    <CardTitle className="text-white text-xl sm:text-2xl leading-tight">
+                      {barber.user?.name || 'Stylist'}
+                    </CardTitle>
+                    <div className="text-[#ffd700] text-sm font-semibold">
                       {getProfessionalTitle(barber.gender)}
                     </div>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-gray-400 text-sm line-clamp-2">
                       {barber.specialties || 'Hair Styling Specialist'}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 text-center">
                     {/* Rating */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
                         <Star className="w-5 h-5 text-[#ffd700] fill-current" />
                         <span className="text-[#ffd700] font-semibold">
                           {barber.avgRating > 0 ? barber.avgRating.toFixed(1) : t('common.new')}
@@ -474,7 +488,7 @@ export default function BarberosPage() {
                         </span>
                       </div>
                       {barber.hourlyRate && (
-                        <span className="text-[#ffd700] font-semibold">${barber.hourlyRate}/hr</span>
+                        <div className="text-[#ffd700] font-semibold text-sm">${barber.hourlyRate}/hr</div>
                       )}
                     </div>
 
