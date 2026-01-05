@@ -83,6 +83,11 @@ export default async function BarberProfilePage({ params }: Params) {
     likes: img.likes,
   }));
 
+  const primaryServices = services.slice(0, 3);
+  const moreServices = services.slice(3);
+  const primaryGalleryImages = galleryImagesWithUrls.slice(0, 3);
+  const moreGalleryImages = galleryImagesWithUrls.slice(3);
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 overflow-x-hidden">
       {/* Header */}
@@ -186,7 +191,7 @@ export default async function BarberProfilePage({ params }: Params) {
             <p className="text-gray-400">No services available</p>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {services.map((service) => (
+              {primaryServices.map((service) => (
                 <Card key={service.id} className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff] transition-colors overflow-hidden">
                   <CardContent className="p-0">
                     <div className="flex flex-row">
@@ -242,6 +247,82 @@ export default async function BarberProfilePage({ params }: Params) {
                   </CardContent>
                 </Card>
               ))}
+
+              {moreServices.length > 0 ? (
+                <details className="mt-2">
+                  <summary className="list-none cursor-pointer">
+                    <div className="w-full rounded-lg border border-gray-800 bg-[#1a1a1a] px-4 py-3 text-center text-gray-300 hover:text-white hover:border-[#00f0ff] transition-colors">
+                      Show more services ({moreServices.length})
+                    </div>
+                  </summary>
+                  <div className="mt-4 grid grid-cols-1 gap-4">
+                    {moreServices.map((service) => (
+                      <Card
+                        key={service.id}
+                        className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff] transition-colors overflow-hidden"
+                      >
+                        <CardContent className="p-0">
+                          <div className="flex flex-row">
+                            {/* Service Image */}
+                            <div className="relative w-24 h-24 sm:w-48 sm:h-48 flex-shrink-0 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                              {service.image ? (
+                                <Image
+                                  src={service.image}
+                                  alt={service.name}
+                                  fill
+                                  sizes="(max-width: 640px) 96px, 192px"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Clock className="w-8 h-8 sm:w-16 sm:h-16 text-[#00f0ff]/30" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Service Info */}
+                            <div className="flex-1 p-3 sm:p-6">
+                              <div className="flex flex-col h-full justify-between">
+                                <div>
+                                  <div className="flex justify-between items-start gap-3 mb-1 sm:mb-2">
+                                    <h3
+                                      className="text-base sm:text-2xl font-bold text-white uppercase tracking-wide"
+                                      style={{ color: '#00ff00' }}
+                                    >
+                                      {service.name}
+                                    </h3>
+                                    <span className="text-[#ffd700] font-bold text-sm sm:text-xl whitespace-nowrap">
+                                      ${service.price}
+                                    </span>
+                                  </div>
+                                  {service.description && (
+                                    <p className="text-gray-400 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">
+                                      {service.description}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center text-white text-sm sm:text-lg font-semibold mb-2 sm:mb-4">
+                                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                                    {Math.floor(service.duration / 60) > 0 && `${Math.floor(service.duration / 60)} hr `}
+                                    {service.duration % 60 > 0 && `${service.duration % 60} min`}
+                                  </div>
+                                </div>
+
+                                <div className="flex justify-end">
+                                  <Link href={`/reservar?barberId=${barber.id}&serviceId=${service.id}`}>
+                                    <Button className="bg-gradient-to-r from-[#00ff00] to-[#00cc00] text-black hover:opacity-90 font-bold text-sm sm:text-base px-4 sm:px-8 py-2 sm:py-6 rounded-lg">
+                                      Book Now
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
             </div>
           )}
         </div>
@@ -249,7 +330,20 @@ export default async function BarberProfilePage({ params }: Params) {
         {/* Gallery */}
         <div className="mb-12">
           <h2 className="text-3xl font-bold text-white mb-6">Gallery</h2>
-          <BarberPublicGallery images={galleryImagesWithUrls} />
+          <BarberPublicGallery images={primaryGalleryImages} />
+
+          {moreGalleryImages.length > 0 ? (
+            <details className="mt-4">
+              <summary className="list-none cursor-pointer">
+                <div className="w-full rounded-lg border border-gray-800 bg-[#1a1a1a] px-4 py-3 text-center text-gray-300 hover:text-white hover:border-[#00f0ff] transition-colors">
+                  Show more photos ({moreGalleryImages.length})
+                </div>
+              </summary>
+              <div className="mt-4">
+                <BarberPublicGallery images={moreGalleryImages} />
+              </div>
+            </details>
+          ) : null}
         </div>
 
         {/* Reviews */}

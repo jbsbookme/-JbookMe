@@ -47,6 +47,10 @@ export function PublicProfileReviews({ initialReviews }: Props) {
   const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews);
   const [isOpen, setIsOpen] = useState(false);
 
+  const collapsedCount = 3;
+  const hasMore = reviews.length > collapsedCount;
+  const visibleReviews = isOpen ? reviews : reviews.slice(0, collapsedCount);
+
   const emptyState = useMemo(() => reviews.length === 0, [reviews.length]);
 
   useEffect(() => {
@@ -86,14 +90,14 @@ export function PublicProfileReviews({ initialReviews }: Props) {
     <div>
       <div className="flex items-center justify-between gap-4 mb-6">
         <h2 className="text-3xl font-bold text-white">Reviews</h2>
-        {emptyState ? null : (
+        {emptyState || !hasMore ? null : (
           <Button
             type="button"
             variant="outline"
             className="border-gray-700 text-white hover:bg-[#0a0a0a] hover:text-[#00f0ff]"
             onClick={() => setIsOpen((v) => !v)}
           >
-            {isOpen ? 'Hide reviews' : `Show reviews (${reviews.length})`}
+            {isOpen ? 'Show less' : `Show all (${reviews.length})`}
           </Button>
         )}
       </div>
@@ -105,9 +109,9 @@ export function PublicProfileReviews({ initialReviews }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className={isOpen ? 'block' : 'hidden'}>
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-            {reviews.map((review) => (
+        <div>
+          <div className={`space-y-4 ${isOpen ? 'max-h-[70vh] overflow-y-auto pr-1' : ''}`}>
+            {visibleReviews.map((review) => (
               <Card key={review.id} className="bg-[#1a1a1a] border-gray-800">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -152,6 +156,19 @@ export function PublicProfileReviews({ initialReviews }: Props) {
               </Card>
             ))}
           </div>
+
+          {!hasMore ? null : (
+            <div className="mt-4 sm:hidden">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-gray-700 text-white hover:bg-[#0a0a0a] hover:text-[#00f0ff]"
+                onClick={() => setIsOpen((v) => !v)}
+              >
+                {isOpen ? 'Show less' : `Show all (${reviews.length})`}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>
