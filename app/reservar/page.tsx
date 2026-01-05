@@ -760,57 +760,69 @@ export default function ReservarPage() {
         <p className="text-gray-400">Choose the service you want to book</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {services.map((service) => (
-          <motion.div
-            key={service.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleServiceSelect(service)}
-            className="cursor-pointer"
-          >
-            <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 overflow-hidden group">
-              <div className="relative h-48 bg-gray-800">
-                {service.image ? (
-                  <Image
-                    src={service.image}
-                    alt={service.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Scissors className="w-16 h-16 text-gray-600" />
+      <div className="space-y-3 max-w-4xl mx-auto">
+        {services.map((service) => {
+          const minutes = service.duration ?? 0;
+          const hoursPart = Math.floor(minutes / 60);
+          const minsPart = minutes % 60;
+          const durationLabel =
+            hoursPart > 0
+              ? minsPart > 0
+                ? `${hoursPart} hr ${minsPart} min`
+                : `${hoursPart} hr`
+              : `${minsPart} min`;
+
+          return (
+            <motion.div
+              key={service.id}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => handleServiceSelect(service)}
+              className="cursor-pointer"
+            >
+              <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff]/60 transition-all duration-300">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-gray-700 bg-black/20">
+                      {service.image ? (
+                        <Image src={service.image} alt={service.name} fill className="object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Scissors className="h-6 w-6 text-gray-600" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-base font-bold italic text-white">{service.name}</p>
+                        <span className="text-sm font-bold text-[#ffd700]">${service.price}</span>
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{durationLabel}</span>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-gray-700 bg-transparent text-white hover:border-[#00f0ff]/60 hover:bg-[#00f0ff]/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleServiceSelect(service);
+                        }}
+                      >
+                        Book Now
+                      </Button>
+                    </div>
                   </div>
-                )}
-                <div className="absolute top-3 right-3 bg-[#ffd700] text-black px-3 py-1 rounded-full font-bold">
-                  ${service.price}
-                </div>
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-white mb-2">{service.name}</h3>
-                <p className="text-gray-400 text-sm mb-4 line-clamp-2">
-                  {service.description || 'No description'}
-                </p>
-                <div className="flex items-center text-gray-500 text-sm mb-4">
-                  <Clock className="w-4 h-4 mr-2" />
-                  {service.duration} min
-                </div>
-                <Button 
-                  size="sm"
-                  className="w-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold hover:opacity-90 transition-opacity text-xs py-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleServiceSelect(service);
-                  }}
-                >
-                  <CalendarIcon className="w-3 h-3 mr-1.5" />
-                  Book Now
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          );
+        })}
       </div>
     </motion.div>
   );
