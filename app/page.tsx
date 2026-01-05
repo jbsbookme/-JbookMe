@@ -21,7 +21,7 @@ export default function HomePage() {
       } else if (session?.user?.role === 'BARBER' || session?.user?.role === 'STYLIST') {
         router.push('/dashboard/barbero');
       } else {
-        router.push('/inicio');
+        router.push('/feed');
       }
     }
   }, [session, status, router]);
