@@ -86,6 +86,44 @@ export default async function BarberProfilePage({ params }: Params) {
     likes: img.likes,
   }));
 
+  const workPosts = await prisma.post.findMany({
+    where: {
+      isActive: true,
+      status: 'APPROVED',
+      isPublic: true,
+      postType: 'BARBER_WORK',
+      barberId: barber.id,
+    },
+    select: {
+      id: true,
+      caption: true,
+      cloud_storage_path: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 12,
+  });
+
+  const getMediaUrl = (cloud_storage_path: string) => {
+    if (/^https?:\/\//i.test(cloud_storage_path)) {
+      return cloud_storage_path;
+    }
+
+    if (cloud_storage_path.startsWith('/')) {
+      return cloud_storage_path;
+    }
+
+    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
+    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+  };
+
+  const isVideo = (path: string): boolean => {
+    return /\.(mp4|webm|ogg|mov)$/i.test(path);
+  };
+
   const primaryServices = services.slice(0, 4);
   const moreServices = services.slice(4);
   const primaryGalleryImages = galleryImagesWithUrls.slice(0, 3);
@@ -369,6 +407,45 @@ export default async function BarberProfilePage({ params }: Params) {
               </div>
             </details>
           ) : null}
+
+          {/* Posts (IG-style) */}
+          <div className="mt-8">
+            <h3 className="text-xl font-bold text-white mb-4">Posts</h3>
+            {workPosts.length === 0 ? (
+              <p className="text-gray-400">No posts yet</p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                {workPosts.map((post) => {
+                  const src = getMediaUrl(post.cloud_storage_path);
+                  const video = isVideo(post.cloud_storage_path);
+                  return (
+                    <div
+                      key={post.id}
+                      className="relative aspect-square overflow-hidden rounded-lg bg-gray-900"
+                    >
+                      {video ? (
+                        <video
+                          src={src}
+                          className="h-full w-full object-cover"
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <Image
+                          src={src}
+                          alt={post.caption || 'Post'}
+                          fill
+                          sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                          className="object-cover"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Reviews */}

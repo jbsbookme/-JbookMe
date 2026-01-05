@@ -19,6 +19,14 @@ import { motion } from 'framer-motion';
 import { useUser } from '@/contexts/user-context';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
 
+type Post = {
+  id: string;
+  cloud_storage_path: string;
+  postType: 'BARBER_WORK' | 'CLIENT_SHARE';
+  createdAt?: string;
+  caption?: string | null;
+};
+
 interface Appointment {
   id: string;
   barberId: string;
@@ -59,6 +67,27 @@ export default function PerfilPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [appointmentsLoading, setAppointmentsLoading] = useState(false);
   const [appointmentsExpanded, setAppointmentsExpanded] = useState(false);
+
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [myPostsLoading, setMyPostsLoading] = useState(false);
+
+  const getMediaUrl = (cloud_storage_path: string) => {
+    if (/^https?:\/\//i.test(cloud_storage_path)) {
+      return cloud_storage_path;
+    }
+
+    if (cloud_storage_path.startsWith('/')) {
+      return cloud_storage_path;
+    }
+
+    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
+    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+  };
+
+  const isVideo = (path: string): boolean => {
+    return /\.(mp4|webm|ogg|mov)$/i.test(path);
+  };
 
   const isActiveAppointment = (aptStatus: string) => aptStatus === 'PENDING' || aptStatus === 'CONFIRMED';
 
@@ -109,6 +138,25 @@ export default function PerfilPage() {
     }
   }, []);
 
+  const fetchMyPosts = useCallback(async () => {
+    const userId = (session?.user as { id?: string } | undefined)?.id;
+    if (!userId) return;
+
+    setMyPostsLoading(true);
+    try {
+      const res = await fetch(`/api/posts?authorId=${encodeURIComponent(userId)}`);
+      const data = await res.json();
+      if (res.ok) {
+        const posts = (data.posts || []) as Post[];
+        setMyPosts(posts.filter((p) => p.postType === 'CLIENT_SHARE').slice(0, 12));
+      }
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setMyPostsLoading(false);
+    }
+  }, [session?.user]);
+
   const fetchProfile = useCallback(async () => {
     try {
       const response = await fetch('/api/user/profile');
@@ -136,8 +184,9 @@ export default function PerfilPage() {
     if (status === 'authenticated') {
       fetchProfile();
       fetchAppointments();
+      fetchMyPosts();
     }
-  }, [status, router, fetchProfile, fetchAppointments]);
+  }, [status, router, fetchProfile, fetchAppointments, fetchMyPosts]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash === '#appointments') {
@@ -472,6 +521,58 @@ export default function PerfilPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* MY GALLERY */}
+          <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/20 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
+                  <Camera className="w-6 h-6 text-[#00f0ff]" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">My Gallery</h3>
+                  <p className="text-sm text-gray-400">Your latest posts</p>
+                </div>
+              </div>
+
+              {myPostsLoading ? (
+                <div className="text-gray-400 text-sm">Loading...</div>
+              ) : myPosts.length === 0 ? (
+                <div className="text-gray-400 text-sm">No posts yet</div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
+                  {myPosts.map((post) => {
+                    const src = getMediaUrl(post.cloud_storage_path);
+                    const video = isVideo(post.cloud_storage_path);
+                    return (
+                      <div
+                        key={post.id}
+                        className="relative aspect-square overflow-hidden rounded-lg bg-black/20 border border-gray-800"
+                      >
+                        {video ? (
+                          <video
+                            src={src}
+                            className="h-full w-full object-cover"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <Image
+                            src={src}
+                            alt={post.caption || 'Post'}
+                            fill
+                            sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* CHAT CON BARBEROS */}
           <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/30 transition-colors">
