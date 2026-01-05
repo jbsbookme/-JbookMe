@@ -4,7 +4,7 @@ import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { LogOut, Share2, User, Sparkles } from 'lucide-react';
+import { Calendar, LogOut, Share2, User, Sparkles } from 'lucide-react';
 import { NotificationsBell } from '@/components/notifications-bell';
 import { LanguageSelector } from '@/components/language-selector';
 import { useI18n } from '@/lib/i18n/i18n-context';
@@ -12,7 +12,11 @@ import { usePathname } from 'next/navigation';
 import { useUser } from '@/contexts/user-context';
 import { toast } from 'sonner';
 
-export function DashboardNavbar() {
+type Props = {
+  showQuickBook?: boolean;
+};
+
+export function DashboardNavbar({ showQuickBook = false }: Props) {
   const { data: session } = useSession() || {};
   const pathname = usePathname();
   const { user } = useUser();
@@ -63,13 +67,27 @@ export function DashboardNavbar() {
     }
   };
 
+  const topClass = isTopHeaderHidden ? 'top-0' : 'top-14 sm:top-16';
+
   return (
     <nav
-      className={`sticky ${isTopHeaderHidden ? 'top-0' : 'top-16'} z-50 w-full border-b border-gray-800 bg-black`}
+      className={`sticky ${topClass} z-50 w-full border-b border-gray-800 bg-black`}
     >
       <div className="container mx-auto flex h-16 items-center justify-end px-4 max-w-7xl">
         <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3">
           <NotificationsBell />
+          {showQuickBook ? (
+            <Link href="/reservar" aria-label="Book">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-transparent bg-[#00f0ff] text-black hover:bg-[#00f0ff]/90 h-8 w-8 p-0 shadow-[0_0_14px_rgba(0,240,255,0.35)]"
+              >
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+              </Button>
+            </Link>
+          ) : null}
           <Button
             type="button"
             variant="outline"

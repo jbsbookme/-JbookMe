@@ -533,7 +533,7 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
+      <DashboardNavbar showQuickBook={!isBookingCtaInView} />
       
       {/* Mensaje de bienvenida */}
       <div className="hidden sm:block bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800">
@@ -1197,16 +1197,7 @@ export default function FeedPage() {
       )}
 
       {/* Persistent mobile booking button (stays visible while scrolling) */}
-      {!isBookingCtaInView && (
-        <div className="fixed bottom-24 left-4 z-40 sm:hidden">
-          <Link href="/reservar">
-            <Button className="h-11 px-5 rounded-full bg-[#00f0ff] text-black font-extrabold hover:bg-[#00f0ff]/90 shadow-lg shadow-black/40">
-              <Calendar className="w-5 h-5 mr-2" />
-              {language === 'es' ? 'RESERVAR' : 'BOOK'}
-            </Button>
-          </Link>
-        </div>
-      )}
+      {/* Quick BOOK now lives in the header (next to notifications) */}
 
       {/* FAB Buttons */}
       <ShareFAB />
