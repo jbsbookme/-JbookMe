@@ -48,12 +48,12 @@ export function TopMenuHeader() {
       className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black"
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="container mx-auto flex h-16 items-center justify-between px-4 max-w-7xl">
-        <Link href={dashboardHref} className="flex items-center space-x-3">
-          <div className="relative w-10 h-10 rounded-lg overflow-hidden">
+      <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 max-w-7xl">
+        <Link href={dashboardHref} className="flex items-center space-x-2 sm:space-x-3">
+          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
             <Image src="/logo.png" alt="JBookMe Logo" fill className="object-contain" priority />
           </div>
-          <span className="text-xl font-bold">
+          <span className="text-base sm:text-xl font-bold leading-none">
             <span className="text-[#00f0ff]">JBook</span>
             <span className="text-[#ffd700]">Me</span>
           </span>
