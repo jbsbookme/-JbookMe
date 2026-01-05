@@ -147,7 +147,7 @@ export default async function BarberProfilePage({ params }: Params) {
 
       <main className="container mx-auto px-4 py-12 max-w-6xl">
         {/* Profile Header */}
-        <div className="mb-12 -mt-4">
+        <div className="mb-12 -mt-6">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-center md:text-left">
