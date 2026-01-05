@@ -1,5 +1,5 @@
 // Service Worker for BookMe PWA
-const CACHE_NAME = 'bookme-v2';
+const CACHE_NAME = 'bookme-v3';
 const urlsToCache = [
   '/',
   '/inicio',

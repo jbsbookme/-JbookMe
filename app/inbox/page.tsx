@@ -200,16 +200,20 @@ export default function InboxPage() {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    
+
+    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+
     if (hours < 1) {
-      const minutes = Math.floor(diff / (1000 * 60));
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      const days = Math.floor(hours / 24);
-      return `${days}d ago`;
+      const minutes = Math.max(0, Math.floor(diff / (1000 * 60)));
+      return rtf.format(-minutes, 'minute');
     }
+
+    if (hours < 24) {
+      return rtf.format(-hours, 'hour');
+    }
+
+    const days = Math.floor(hours / 24);
+    return rtf.format(-days, 'day');
   };
 
   if (status === 'loading' || loading) {
@@ -225,8 +229,8 @@ export default function InboxPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
-      <div className="bg-[#111111] border-b border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur border-b border-gray-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <HistoryBackButton
@@ -256,14 +260,12 @@ export default function InboxPage() {
               </DialogTrigger>
               <DialogContent className="bg-[#111111] border-gray-800 text-white sm:max-w-lg max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="text-xl sm:text-2xl font-bold text-[#00f0ff]">{t('inbox.sendNewMessage')}</DialogTitle>
-                  <DialogDescription className="text-gray-400 text-sm">
-                    {t('inbox.selectRecipientAndWrite')}
-                  </DialogDescription>
+                  <DialogTitle className="text-xl sm:text-2xl font-bold text-[#00f0ff]">{t('inbox.compose')}</DialogTitle>
+                  <DialogDescription className="text-gray-400 text-sm">{t('inbox.composeDescription')}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="recipient" className="text-sm font-medium">{t('inbox.recipient')}</Label>
+                    <Label htmlFor="recipient" className="text-sm font-medium">{t('inbox.to')}</Label>
                     <Select
                       value={newMessage.recipientId}
                       onValueChange={(value) => setNewMessage({ ...newMessage, recipientId: value })}
@@ -274,24 +276,24 @@ export default function InboxPage() {
                       <SelectContent className="bg-[#1a1a1a] border-gray-700">
                         {users.map((user) => (
                           <SelectItem key={user.id} value={user.id}>
-                            {user.name} ({user.role === 'BARBER' || user.role === 'STYLIST' ? t('inbox.barber') : t('inbox.client')})
+                            {user.name} ({user.role === 'BARBER' || user.role === 'STYLIST' ? t('appointments.barber') : t('appointments.client')})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="content" className="text-sm font-medium">Message</Label>
+                    <Label htmlFor="content" className="text-sm font-medium">{t('inbox.message')}</Label>
                     <Textarea
                       id="content"
-                      placeholder="Write your message here..."
+                      placeholder={t('inbox.writeMessage')}
                       value={newMessage.content}
                       onChange={(e) => setNewMessage({ ...newMessage, content: e.target.value })}
                       className="bg-[#1a1a1a] border-gray-700 min-h-[120px] resize-none"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Image (optional)</Label>
+                    <Label className="text-sm font-medium">{t('inbox.attachImage')}</Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -299,7 +301,7 @@ export default function InboxPage() {
                       className="w-full border-gray-700 hover:bg-[#1a1a1a]"
                     >
                       <ImageIcon className="h-4 w-4 mr-2" />
-                      Attach Image
+                      {t('inbox.attachImage')}
                     </Button>
                     <Input
                       id="message-image"
@@ -323,7 +325,7 @@ export default function InboxPage() {
                           size="icon"
                           className="absolute top-2 right-2"
                           onClick={handleRemoveImage}
-                          aria-label="Remove image"
+                          aria-label={t('inbox.removeImage')}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -337,7 +339,7 @@ export default function InboxPage() {
                     onClick={() => setDialogOpen(false)} 
                     className="border-gray-700"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={handleSendMessage}
@@ -347,12 +349,12 @@ export default function InboxPage() {
                     {sending ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black mr-2"></div>
-                        Sending...
+                        {t('inbox.sending')}
                       </>
                     ) : (
                       <>
                         <Send className="h-4 w-4 mr-2" />
-                        Send Message
+                        {t('inbox.send')}
                       </>
                     )}
                   </Button>
@@ -364,17 +366,17 @@ export default function InboxPage() {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="received" className="space-y-6">
-          <TabsList className="bg-[#111111] border border-gray-800">
-            <TabsTrigger value="received" className="data-[state=active]:bg-[#00f0ff] data-[state=active]:text-black">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <Tabs defaultValue="received" className="space-y-5">
+          <TabsList className="w-full bg-[#111111] border border-gray-800 rounded-xl p-1 grid grid-cols-2">
+            <TabsTrigger value="received" className="rounded-lg data-[state=active]:bg-[#00f0ff] data-[state=active]:text-black">
               <Inbox className="h-4 w-4 mr-2" />
               {t('inbox.received')}
               {unreadCount > 0 && (
                 <Badge className="ml-2 bg-red-500 text-white">{unreadCount}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="sent" className="data-[state=active]:bg-[#ffd700] data-[state=active]:text-black">
+            <TabsTrigger value="sent" className="rounded-lg data-[state=active]:bg-[#ffd700] data-[state=active]:text-black">
               <Send className="h-4 w-4 mr-2" />
               {t('inbox.sent')}
             </TabsTrigger>
@@ -395,7 +397,7 @@ export default function InboxPage() {
                   <Card
                     key={message.id}
                     className={`bg-[#111111] border-gray-800 hover:border-[#00f0ff] transition-colors cursor-pointer ${
-                      !message.read ? 'border-[#00f0ff]/50' : ''
+                      !message.read ? 'border-[#00f0ff]/60 shadow-[0_0_0_1px_rgba(0,240,255,0.25)]' : ''
                     }`}
                     onClick={() => !message.read && markAsRead(message.id)}
                   >
@@ -412,7 +414,7 @@ export default function InboxPage() {
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-[#00f0ff]">{message.sender.name}</p>
                               {!message.read && (
-                                <Badge className="bg-[#00f0ff] text-black">{t('inbox.newBadge')}</Badge>
+                                <Badge className="bg-[#00f0ff] text-black">{t('inbox.new')}</Badge>
                               )}
                             </div>
                             <span className="text-sm text-gray-400">{formatDate(message.createdAt)}</span>
@@ -430,7 +432,7 @@ export default function InboxPage() {
                           )}
                           {message.appointment && (
                             <div className="mt-2 p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
-                              <p className="text-sm text-gray-400">Related to appointment:</p>
+                              <p className="text-sm text-gray-400">{t('inbox.relatedAppointment')}:</p>
                               <p className="text-sm font-medium text-[#ffd700]">
                                 {message.appointment.service.name} - {message.appointment.date} at {message.appointment.time}
                               </p>
@@ -471,7 +473,7 @@ export default function InboxPage() {
                         </Avatar>
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-[#ffd700]">{t('inbox.for')}: {message.recipient.name}</p>
+                            <p className="font-semibold text-[#ffd700]">{t('inbox.to')}: {message.recipient.name}</p>
                             <span className="text-sm text-gray-400">{formatDate(message.createdAt)}</span>
                           </div>
                           <p className="text-gray-300">{message.content}</p>
@@ -487,7 +489,7 @@ export default function InboxPage() {
                           )}
                           {message.appointment && (
                             <div className="mt-2 p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
-                              <p className="text-sm text-gray-400">Related to appointment:</p>
+                              <p className="text-sm text-gray-400">{t('inbox.relatedAppointment')}:</p>
                               <p className="text-sm font-medium text-[#ffd700]">
                                 {message.appointment.service.name} - {message.appointment.date} at {message.appointment.time}
                               </p>
