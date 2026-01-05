@@ -9,7 +9,6 @@ import {
   MapPin, 
   Phone, 
   Mail, 
-  Calendar,
   Clock, 
   Facebook, 
   Instagram, 
@@ -34,7 +33,6 @@ import { Button } from '@/components/ui/button';
 import { signOut } from 'next-auth/react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n/i18n-context';
-import { isAdmin, isBarberOrStylist } from '@/lib/auth/role-utils';
 import { useUser } from '@/contexts/user-context';
 
 interface Settings {
@@ -57,13 +55,6 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [contactExpanded, setContactExpanded] = useState(false);
   const [hoursExpanded, setHoursExpanded] = useState(false);
-
-  const role = (session?.user as unknown as { role?: string } | undefined)?.role;
-  const appointmentsHref = isAdmin(role)
-    ? '/dashboard/admin/citas'
-    : isBarberOrStylist(role)
-      ? '/dashboard/barbero'
-      : '/perfil#appointments';
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -221,18 +212,6 @@ export default function MenuPage() {
                       <Scissors className="w-5 h-5 text-[#00f0ff]" />
                     </div>
                     <span className="text-white">{t('booking.title')}</span>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </div>
-              </Link>
-
-              <Link href={appointmentsHref} className="block">
-                <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-[#00f0ff]/20 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-[#00f0ff]" />
-                    </div>
-                    <span className="text-white">Appointment History</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </div>
