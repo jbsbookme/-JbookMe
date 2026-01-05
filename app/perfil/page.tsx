@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useSession } from 'next-auth/react';
@@ -10,15 +11,38 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Camera, Save, ArrowLeft, MessageSquare } from 'lucide-react';
+import { User, Camera, Save, ArrowLeft, MessageSquare, Calendar, Clock, RefreshCw, XCircle, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useUser } from '@/contexts/user-context';
+import { AddToCalendarButton } from '@/components/add-to-calendar-button';
+
+interface Appointment {
+  id: string;
+  barberId: string;
+  serviceId: string;
+  date: string;
+  time: string;
+  status: string;
+  service: {
+    name: string;
+    price: number;
+    duration: number;
+  } | null;
+  barber: {
+    profileImage: string | null;
+    user: {
+      name: string;
+      email: string;
+      image: string | null;
+    };
+  } | null;
+}
 
 export default function PerfilPage() {
-  const { status } = useSession();
+  const { status, data: session } = useSession();
   const { updateUser } = useUser();
   const { t } = useI18n();
   const router = useRouter();
@@ -31,6 +55,59 @@ export default function PerfilPage() {
   const [email, setEmail] = useState('');
   const [image, setImage] = useState<string | null>(null);
   const [gender, setGender] = useState<string | null>(null);
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointmentsLoading, setAppointmentsLoading] = useState(false);
+  const [appointmentsExpanded, setAppointmentsExpanded] = useState(false);
+
+  const isActiveAppointment = (aptStatus: string) => aptStatus === 'PENDING' || aptStatus === 'CONFIRMED';
+
+  const normalizeStatusForDisplay = (aptStatus: string) => {
+    // This product flow does not require manual confirmation.
+    return aptStatus === 'PENDING' ? 'CONFIRMED' : aptStatus;
+  };
+
+  const parseHoursMinutes = (timeValue: string): { hours: number; minutes: number } => {
+    const match = timeValue.trim().match(/^\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?\s*$/i);
+    if (!match) return { hours: 0, minutes: 0 };
+
+    let hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const ampm = match[4]?.toUpperCase();
+
+    if (ampm) {
+      if (ampm === 'AM') {
+        hours = hours === 12 ? 0 : hours;
+      } else {
+        hours = hours === 12 ? 12 : hours + 12;
+      }
+    }
+    return { hours, minutes };
+  };
+
+  const getAppointmentDateTime = (appointment: Appointment) => {
+    const dateValue = new Date(appointment.date);
+    const { hours, minutes } = parseHoursMinutes(appointment.time);
+    if (!Number.isNaN(dateValue.getTime())) {
+      dateValue.setHours(hours, minutes, 0, 0);
+    }
+    return dateValue;
+  };
+
+  const fetchAppointments = useCallback(async () => {
+    setAppointmentsLoading(true);
+    try {
+      const res = await fetch('/api/appointments');
+      const data = await res.json();
+      if (res.ok) {
+        setAppointments(data.appointments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    } finally {
+      setAppointmentsLoading(false);
+    }
+  }, []);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -58,8 +135,76 @@ export default function PerfilPage() {
 
     if (status === 'authenticated') {
       fetchProfile();
+      fetchAppointments();
     }
-  }, [status, router, fetchProfile]);
+  }, [status, router, fetchProfile, fetchAppointments]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#appointments') {
+      setAppointmentsExpanded(true);
+    }
+  }, []);
+
+  const handleReschedule = (appointment: Appointment) => {
+    if (!isActiveAppointment(appointment.status)) {
+      toast.error('Only active appointments can be rescheduled');
+      return;
+    }
+    if (!appointment.barberId || !appointment.serviceId) {
+      toast.error('Error: could not retrieve appointment details');
+      return;
+    }
+    const params = new URLSearchParams({
+      barberId: appointment.barberId,
+      serviceId: appointment.serviceId,
+      reschedule: appointment.id,
+    });
+    router.push(`/reservar?${params.toString()}`);
+  };
+
+  const handleCancel = async (appointment: Appointment) => {
+    if (!isActiveAppointment(appointment.status)) {
+      toast.error('Only active appointments can be cancelled');
+      return;
+    }
+
+    const appointmentDateTime = getAppointmentDateTime(appointment);
+    const now = new Date();
+    const hoursDiff = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursDiff < 24) {
+      toast.error('Cannot cancel: you must cancel at least 24 hours in advance', {
+        duration: 5000,
+        style: { background: '#dc2626', color: '#fff' },
+      });
+      return;
+    }
+
+    const accepted = window.confirm('I accept the 24-hour cancellation policy. Do you want to cancel this appointment?');
+    if (!accepted) return;
+
+    try {
+      const res = await fetch(`/api/appointments/${appointment.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'CANCELLED',
+          cancellationReason: 'Cancelled by client',
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('✓ Appointment cancelled successfully');
+        fetchAppointments();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error cancelling appointment');
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      toast.error('Error cancelling appointment');
+    }
+  };
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -331,20 +476,21 @@ export default function PerfilPage() {
           {/* CHAT CON BARBEROS */}
           <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/30 transition-colors">
             <CardContent className="p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
-                    <MessageSquare className="w-6 h-6 text-[#00f0ff]" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">{t('nav.chat')}</h3>
-                    <p className="text-sm text-gray-400">{t('client.chatWithBarber')}</p>
-                  </div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
+                  <MessageSquare className="w-6 h-6 text-[#00f0ff]" />
                 </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">{t('nav.chat')}</h3>
+                  <p className="text-sm text-gray-400">{t('client.chatWithBarber')}</p>
+                </div>
+              </div>
+
+              <div className="flex justify-center mb-4">
                 <Link href="/inbox">
                   <Button
                     size="sm"
-                    className="h-9 px-3 text-sm shrink-0 bg-gradient-to-r from-[#00f0ff] to-cyan-400 text-black font-bold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]"
+                    className="h-9 px-5 text-sm bg-gradient-to-r from-[#00f0ff] to-cyan-400 text-black font-bold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]"
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     {t('client.openChat')}
@@ -354,6 +500,150 @@ export default function PerfilPage() {
               <p className="text-gray-400 text-sm">
                 {t('client.chatDescription')}
               </p>
+            </CardContent>
+          </Card>
+
+          {/* APPOINTMENT HISTORY */}
+          <Card id="appointments" className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/20 transition-colors">
+            <CardContent className="p-6">
+              <button
+                type="button"
+                onClick={() => setAppointmentsExpanded((v) => !v)}
+                className="w-full flex items-center justify-between"
+                aria-expanded={appointmentsExpanded}
+                aria-controls="appointments-panel"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-[#ffd700]/10 flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-[#ffd700]" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-xl font-bold text-white">Appointment History</h3>
+                    <p className="text-sm text-gray-400">Your recent appointments</p>
+                  </div>
+                </div>
+                <ChevronRight
+                  className={`w-5 h-5 text-gray-500 transition-transform ${appointmentsExpanded ? 'rotate-90' : ''}`}
+                />
+              </button>
+
+              {appointmentsExpanded && (
+                <div className="mt-4" id="appointments-panel">
+                  {appointmentsLoading ? (
+                    <div className="text-gray-400 text-sm">Loading appointments...</div>
+                  ) : appointments.length === 0 ? (
+                    <div className="text-gray-400 text-sm">No recent appointments</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {appointments.slice(0, 5).map((appointment) => {
+                        const displayStatus = normalizeStatusForDisplay(appointment.status);
+                        const statusClass =
+                          displayStatus === 'CONFIRMED'
+                            ? 'bg-green-500/20 text-green-400'
+                            : displayStatus === 'COMPLETED'
+                              ? 'bg-blue-500/20 text-blue-400'
+                              : displayStatus === 'CANCELLED'
+                                ? 'bg-red-500/20 text-red-400'
+                                : 'bg-yellow-500/20 text-yellow-400';
+
+                        return (
+                          <div
+                            key={appointment.id}
+                            className="p-4 bg-black/20 rounded-lg border border-gray-800"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="text-white font-semibold truncate">
+                                  {appointment.service?.name || 'Service'}
+                                </p>
+                                <p className="text-gray-400 text-sm truncate">
+                                  with {appointment.barber?.user?.name || 'Barber'}
+                                </p>
+                                <div className="flex items-center gap-3 text-xs text-gray-500 mt-2">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {new Date(appointment.date).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: '2-digit',
+                                    })}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {appointment.time}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-end gap-2">
+                                <p className="text-lg font-bold text-[#ffd700]">
+                                  ${appointment.service?.price || 0}
+                                </p>
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusClass}`}>
+                                  {displayStatus === 'CONFIRMED'
+                                    ? 'Confirmed'
+                                    : displayStatus === 'COMPLETED'
+                                      ? 'Completed'
+                                      : displayStatus === 'CANCELLED'
+                                        ? 'Cancelled'
+                                        : 'Pending'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-3 flex items-center gap-2">
+                              <AddToCalendarButton
+                                appointmentId={appointment.id}
+                                variant="outline"
+                                size="sm"
+                                showText={false}
+                                appointmentData={{
+                                  date: appointment.date,
+                                  time: appointment.time,
+                                  service: {
+                                    name: appointment.service?.name || 'Service',
+                                    duration: appointment.service?.duration || 60,
+                                  },
+                                  barber: {
+                                    name: appointment.barber?.user?.name || 'Barber',
+                                    email: appointment.barber?.user?.email,
+                                  },
+                                  client: {
+                                    name: name || session?.user?.name || 'Client',
+                                    email: email || session?.user?.email || '',
+                                  },
+                                }}
+                              />
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleReschedule(appointment)}
+                                disabled={!isActiveAppointment(appointment.status)}
+                                className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-blue-500"
+                                title="Reschedule"
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleCancel(appointment)}
+                                disabled={!isActiveAppointment(appointment.status)}
+                                className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-orange-500"
+                                title="Cancel"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
