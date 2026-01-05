@@ -205,43 +205,7 @@ export default function PerfilPage() {
                   <p className="text-gray-400 text-sm sm:text-base">{t('client.manageInfo')}</p>
                 </div>
               </div>
-
-              <Button
-                onClick={handleSaveProfile}
-                disabled={saving || !name.trim()}
-                className="hidden sm:inline-flex bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black font-bold hover:opacity-90 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black mr-2"></div>
-                    {t('common.saving')}
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    {t('profile.saveProfile')}
-                  </>
-                )}
-              </Button>
             </div>
-
-            <Button
-              onClick={handleSaveProfile}
-              disabled={saving || !name.trim()}
-              className="sm:hidden w-full bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black font-bold hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black mr-2"></div>
-                  {t('common.saving')}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {t('profile.saveProfile')}
-                </>
-              )}
-            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6">
@@ -342,6 +306,24 @@ export default function PerfilPage() {
                   </Select>
                   <p className="text-xs text-gray-500 mt-1">Helps personalize your experience</p>
                 </div>
+
+                <Button
+                  onClick={handleSaveProfile}
+                  disabled={saving || !name.trim()}
+                  className="w-full sm:w-auto sm:ml-auto h-10 px-4 text-sm bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black font-bold hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-black mr-2"></div>
+                      {t('common.saving')}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      {t('profile.saveProfile')}
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -349,7 +331,7 @@ export default function PerfilPage() {
           {/* CHAT CON BARBEROS */}
           <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/30 transition-colors">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
                     <MessageSquare className="w-6 h-6 text-[#00f0ff]" />
@@ -360,7 +342,10 @@ export default function PerfilPage() {
                   </div>
                 </div>
                 <Link href="/inbox">
-                  <Button className="bg-gradient-to-r from-[#00f0ff] to-cyan-400 text-black font-bold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]">
+                  <Button
+                    size="sm"
+                    className="h-9 px-3 text-sm shrink-0 bg-gradient-to-r from-[#00f0ff] to-cyan-400 text-black font-bold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]"
+                  >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     {t('client.openChat')}
                   </Button>
