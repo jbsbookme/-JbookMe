@@ -84,9 +84,10 @@ export function DashboardNavbar({ showQuickBook = false }: Props) {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 w-8 p-0 border-[#00f0ff]/30 bg-[#00f0ff]/10 text-[#00f0ff] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.18)]"
+                className="h-8 px-2.5 border-[#00f0ff]/30 bg-[#00f0ff]/10 text-[#00f0ff] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.18)] inline-flex items-center gap-1.5"
               >
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#00f0ff]" />
+                <span className="text-[11px] font-semibold tracking-wide">BOOK</span>
               </Button>
             </Link>
           ) : null}
