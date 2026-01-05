@@ -28,7 +28,7 @@ import {
   User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { enUS } from 'date-fns/locale';
 
@@ -1131,84 +1131,160 @@ export default function ReservarPage() {
   };
 
   // Step 4: Date & Time
-  const renderDateTimeStep = () => (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="space-y-6 max-w-4xl mx-auto"
-    >
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Select Date & Time</h2>
-        <p className="text-gray-400">Choose when you want your appointment</p>
-      </div>
+  const renderDateTimeStep = () => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calendar */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-6">
-            <h3 className="text-xl font-bold text-[#00f0ff] mb-4 text-center">Select a Day</h3>
-            <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                className="mx-auto rounded-md border border-gray-700"
-              />
-            </div>
-            {selectedDate && (
-              <div className="mt-4 p-3 bg-gradient-to-r from-[#00f0ff]/10 to-[#0099cc]/10 border border-[#00f0ff]/30 rounded-lg">
-                <p className="text-sm text-gray-400 mb-1">Selected date:</p>
-                <p className="text-lg font-bold text-[#00f0ff]">
-                  {format(selectedDate, 'MMMM d, yyyy', { locale: enUS })}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+    const quickDays = Array.from({ length: 7 }, (_, i) => addDays(todayStart, i));
 
-        {/* Time Slots */}
-        <Card className="bg-gray-900 border-gray-800">
-          <CardContent className="p-6">
-            <h3 className="text-xl font-bold text-[#00f0ff] mb-4 text-center">Select a Time</h3>
-            {!selectedDate ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Clock className="w-16 h-16 text-gray-600 mb-4" />
-                <p className="text-gray-400 text-center">
-                  👈 First, select a day in the calendar
-                </p>
+    const minutesFor = (t: string) => parseTimeToMinutes(t) ?? 0;
+    const sortedSlots = [...filteredAvailableTimes].sort((a, b) => minutesFor(a) - minutesFor(b));
+
+    const morning = sortedSlots.filter((t) => minutesFor(t) < 12 * 60);
+    const afternoon = sortedSlots.filter((t) => minutesFor(t) >= 12 * 60 && minutesFor(t) < 17 * 60);
+    const evening = sortedSlots.filter((t) => minutesFor(t) >= 17 * 60);
+
+    const slotGroups: Array<{ label: string; items: string[] }> = [
+      { label: 'Morning', items: morning },
+      { label: 'Afternoon', items: afternoon },
+      { label: 'Evening', items: evening },
+    ];
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        className="space-y-6 max-w-4xl mx-auto"
+      >
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-white mb-2">Select Date & Time</h2>
+          <p className="text-gray-400">Choose when you want your appointment</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Calendar */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <h3 className="text-xl font-bold text-[#00f0ff] mb-4 text-center">Select a Day</h3>
+
+              <div className="flex justify-center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={(date) => date < todayStart}
+                  className="mx-auto rounded-md border border-gray-700"
+                />
               </div>
-            ) : filteredAvailableTimes.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Clock className="w-16 h-16 text-gray-600 mb-4" />
-                <p className="text-gray-400 text-center">
-                  No times available for this day
-                </p>
-                <p className="text-gray-500 text-sm mt-2">
-                  Try another date
-                </p>
+
+              {/* Quick 7-day strip (schedule-style) */}
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-400">Next days</p>
+                  {selectedDate ? (
+                    <p className="text-sm text-gray-300">
+                      <span className="text-gray-500">Selected:</span>{' '}
+                      <span className="font-semibold text-white">
+                        {format(selectedDate, 'EEE, MMM d', { locale: enUS })}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+                  {quickDays.map((d) => {
+                    const isSelected = selectedDate ? isSameDay(d, selectedDate) : false;
+                    return (
+                      <button
+                        key={d.toISOString()}
+                        type="button"
+                        onClick={() => handleDateSelect(d)}
+                        className={`min-w-[72px] rounded-lg border px-3 py-2 text-center transition-colors ${
+                          isSelected
+                            ? 'border-[#00f0ff]/60 bg-[#00f0ff]/10'
+                            : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
+                        }`}
+                      >
+                        <div className="text-[11px] text-gray-400">{format(d, 'EEE', { locale: enUS })}</div>
+                        <div className={`text-base font-bold ${isSelected ? 'text-[#00f0ff]' : 'text-white'}`}>
+                          {format(d, 'd', { locale: enUS })}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-3">
-                {filteredAvailableTimes.map((time) => (
-                  <button
-                    key={time}
-                    onClick={() => setSelectedTime(time)}
-                    className={`py-3 px-4 rounded-lg font-semibold transition-all duration-300 ${
-                      selectedTime === time
-                        ? 'bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black shadow-[0_0_15px_rgba(0,240,255,0.5)]'
-                        : 'bg-gray-800 text-white hover:bg-gray-700 border border-gray-700'
-                    }`}
-                  >
-                    {time}
-                  </button>
-                ))}
+            </CardContent>
+          </Card>
+
+          {/* Time Slots */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-[#00f0ff]">Select a Time</h3>
+                {selectedDate ? (
+                  <div className="text-right">
+                    <div className="text-xs text-gray-500">Date</div>
+                    <div className="text-sm font-semibold text-white">
+                      {format(selectedDate, 'EEE, MMM d', { locale: enUS })}
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+
+              {!selectedDate ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Clock className="w-16 h-16 text-gray-600 mb-4" />
+                  <p className="text-gray-400 text-center">Select a day to see available times</p>
+                </div>
+              ) : sortedSlots.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Clock className="w-16 h-16 text-gray-600 mb-4" />
+                  <p className="text-gray-400 text-center">No times available for this day</p>
+                  <p className="text-gray-500 text-sm mt-2">Try another date</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {slotGroups.map((group) =>
+                    group.items.length === 0 ? null : (
+                      <div key={group.label}>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-sm font-semibold text-gray-300">{group.label}</p>
+                          <p className="text-xs text-gray-500">{group.items.length} slots</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {group.items.map((time) => (
+                            <button
+                              key={time}
+                              type="button"
+                              onClick={() => setSelectedTime(time)}
+                              className={`rounded-lg border px-3 py-3 text-left font-semibold transition-all duration-300 ${
+                                selectedTime === time
+                                  ? 'border-transparent bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black shadow-[0_0_15px_rgba(0,240,255,0.35)]'
+                                  : 'border-gray-800 bg-gray-800/70 text-white hover:bg-gray-700/70'
+                              }`}
+                            >
+                              <div className="text-sm leading-none">{time}</div>
+                              <div
+                                className={`mt-1 text-[11px] ${
+                                  selectedTime === time ? 'text-black/80' : 'text-gray-400'
+                                }`}
+                              >
+                                Available
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
       {/* Additional Notes */}
       <Card className="bg-gray-900 border-gray-800">
@@ -1266,8 +1342,9 @@ export default function ReservarPage() {
           </CardContent>
         </Card>
       )}
-    </motion.div>
-  );
+      </motion.div>
+    );
+  };
 
   // Step 5: Payment Method
   const renderPaymentStep = () => {
