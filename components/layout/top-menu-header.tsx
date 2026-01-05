@@ -43,9 +43,18 @@ export function TopMenuHeader() {
   const menuHref = isAuthenticated ? '/menu' : authHrefFor('/menu');
   const dashboardHref = isAuthenticated ? '/dashboard' : authHrefFor('/dashboard');
 
+  // When a second sticky header (DashboardNavbar) is present, avoid a visible seam line.
+  const hasSecondaryStickyHeader =
+    pathname?.startsWith('/feed') ||
+    pathname?.startsWith('/perfil') ||
+    pathname?.startsWith('/galeria') ||
+    pathname?.startsWith('/inicio') ||
+    pathname?.startsWith('/reservar') ||
+    pathname?.startsWith('/dashboard');
+
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black"
+      className={`sticky top-0 z-50 w-full bg-black ${hasSecondaryStickyHeader ? 'border-b border-transparent' : 'border-b border-gray-800'}`}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 max-w-7xl">
