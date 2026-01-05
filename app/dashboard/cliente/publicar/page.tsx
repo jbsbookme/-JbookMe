@@ -106,10 +106,10 @@ export default function ClientUploadPage() {
         throw new Error(error.error || 'Failed to upload post');
       }
 
-      toast.success('Post published! Sharing...');
+      toast.success('Post published. Preparing to share...');
       
       // Auto-share after successful upload
-      const text = `${caption.trim()}\n\n${hashtagArray.map(tag => `#${tag}`).join(' ')}\n\n📲 Book your appointment on JBookMe: https://jbookme.abacusai.app`;
+      const text = `${caption.trim()}\n\n${hashtagArray.map(tag => `#${tag}`).join(' ')}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
       
       // Try Web Share API first (works on mobile with image)
       if (navigator.share && navigator.canShare) {

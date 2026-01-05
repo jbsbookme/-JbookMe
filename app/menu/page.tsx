@@ -88,7 +88,7 @@ export default function MenuPage() {
 
   const handleShare = async () => {
     const shareData = {
-      title: 'JBookMe',
+      title: 'Jb Barbershop • BookMe',
       text: t('common.shareText'),
       url: window.location.origin,
     };
