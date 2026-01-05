@@ -120,6 +120,8 @@ export default function FeedPage() {
   const [showComments, setShowComments] = useState<Set<string>>(new Set());
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
+  const bookingCtaRef = useRef<HTMLDivElement | null>(null);
+  const [isBookingCtaInView, setIsBookingCtaInView] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState<{ url: string; isVideo: boolean } | null>(null);
   const [imageScale, setImageScale] = useState(1);
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set());
@@ -253,6 +255,26 @@ export default function FeedPage() {
       fetchData();
     }
   }, [status, router]);
+
+  // Show the persistent mobile BOOK button only after the main booking CTA card
+  // (date card) has scrolled out of view.
+  useEffect(() => {
+    if (loading || status === 'loading') return;
+    const el = bookingCtaRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsBookingCtaInView(entry.isIntersecting);
+      },
+      {
+        threshold: 0.4,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loading, status]);
 
   const fetchData = async () => {
     try {
@@ -658,7 +680,7 @@ export default function FeedPage() {
         )}
 
         {/* Quick Action (Primary CTA) */}
-        <div>
+        <div ref={bookingCtaRef}>
           <Link href="/reservar" className="block">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -1175,14 +1197,16 @@ export default function FeedPage() {
       )}
 
       {/* Persistent mobile booking button (stays visible while scrolling) */}
-      <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 sm:hidden">
-        <Link href="/reservar">
-          <Button className="h-12 px-6 rounded-full bg-[#00f0ff] text-black font-extrabold hover:bg-[#00f0ff]/90">
-            <Calendar className="w-5 h-5 mr-2" />
-            {language === 'es' ? 'RESERVAR' : 'BOOK'}
-          </Button>
-        </Link>
-      </div>
+      {!isBookingCtaInView && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-40 sm:hidden">
+          <Link href="/reservar">
+            <Button className="h-12 px-6 rounded-full bg-[#00f0ff] text-black font-extrabold hover:bg-[#00f0ff]/90">
+              <Calendar className="w-5 h-5 mr-2" />
+              {language === 'es' ? 'RESERVAR' : 'BOOK'}
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* FAB Buttons */}
       <ShareFAB />
