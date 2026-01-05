@@ -179,11 +179,11 @@ export const translations = {
       enter: 'ENTRAR',
       processing: 'Procesando...',
       invalidCredentials: 'Credenciales inválidas',
-      welcomeBack: 'Inicio de sesión exitoso. Bienvenido a BookMe — Jb Barbershop.',
+      welcomeBack: 'Acceso confirmado. Bienvenido a BookMe — Jb Barbershop.',
       accountCreated: 'Cuenta creada en BookMe — Jb Barbershop. Iniciando sesión...',
       signupError: 'Error al crear cuenta',
       logout: 'Salir',
-      logoutSuccess: 'Sesión cerrada. Gracias por usar BookMe — Jb Barbershop.',
+      logoutSuccess: 'Sesión finalizada. Esperamos verte pronto en Jb Barbershop — BookMe.',
     },
 
     // Booking
@@ -1068,13 +1068,13 @@ export const translations = {
       passwordMinLength: 'Password must be at least 6 characters',
       passwordsDontMatch: 'Passwords do not match',
       emailInUse: 'Email already in use',
-      welcomeBack: 'Sign-in successful. Welcome to BookMe — Jb Barbershop.',
+      welcomeBack: 'Access confirmed. Welcome to BookMe — Jb Barbershop.',
       accountCreated: 'Account created! Redirecting...',
       loggingIn: 'Logging in...',
       signingUp: 'Creating account...',
       logout: 'Logout',
       logoutConfirm: 'Are you sure you want to logout?',
-      logoutSuccess: 'You’re signed out. Thanks for using BookMe — Jb Barbershop.',
+      logoutSuccess: 'Signed out. We look forward to welcoming you back at Jb Barbershop — BookMe.',
     },
 
     // Welcome
