@@ -400,7 +400,7 @@ export default function AsistentePage() {
       </div>
 
       {/* Chat */}
-      <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full px-4 py-4 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full px-4 py-4 pb-28 flex flex-col gap-3">
         <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
           <ScrollArea className="flex-1 min-h-0">
             <div className="min-h-full p-4 space-y-4 flex flex-col justify-end">
@@ -456,43 +456,47 @@ export default function AsistentePage() {
             </div>
           </ScrollArea>
         </Card>
+      </div>
 
-        {/* Composer (sticky) */}
+      {/* Composer (fixed) */}
+      <div className="fixed inset-x-0 bottom-0 z-50">
         <div
-          className="sticky bottom-0 z-30 bg-gray-900/95 backdrop-blur border border-gray-800 rounded-2xl p-3"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+          className="mx-auto max-w-4xl px-4"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
         >
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
-              disabled={isLoading || isListening}
-              className="flex-1 h-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
-            />
+          <div className="bg-gray-900/95 backdrop-blur border border-gray-800 rounded-2xl p-3">
+            <div className="flex gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
+                disabled={isLoading || isListening}
+                className="flex-1 h-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
+              />
 
-            <Button
-              onClick={isListening ? stopListening : startListening}
-              disabled={isLoading}
-              variant="outline"
-              className={`${
-                isListening
-                  ? 'bg-red-500 hover:bg-red-600 border-red-500 animate-pulse'
-                  : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
-              }`}
-              title={isListening ? 'Stop recording' : 'Speak'}
-            >
-              <Mic className={`w-4 h-4 ${isListening ? 'text-white' : 'text-[#00f0ff]'}`} />
-            </Button>
+              <Button
+                onClick={isListening ? stopListening : startListening}
+                disabled={isLoading}
+                variant="outline"
+                className={`${
+                  isListening
+                    ? 'bg-red-500 hover:bg-red-600 border-red-500 animate-pulse'
+                    : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
+                }`}
+                title={isListening ? 'Stop recording' : 'Speak'}
+              >
+                <Mic className={`w-4 h-4 ${isListening ? 'text-white' : 'text-[#00f0ff]'}`} />
+              </Button>
 
-            <Button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="bg-cyan-500 hover:bg-cyan-600 text-black h-9"
-            >
-              <Send className="w-4 h-4" />
-            </Button>
+              <Button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="bg-cyan-500 hover:bg-cyan-600 text-black h-9"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
