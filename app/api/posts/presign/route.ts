@@ -6,6 +6,8 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createS3Client, getBucketConfig } from '@/lib/aws-config';
 import { isBarberOrStylist } from '@/lib/auth/role-utils';
 
+export const dynamic = 'force-dynamic';
+
 const extractRegionFromBucket = (name: string): string => {
   const regionMatch = name.match(
     /(us|eu|ap|sa|ca|me|af)-(north|south|east|west|central|southeast|northeast)-\d+/
@@ -52,13 +54,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { bucketName, folderPrefix } = getBucketConfig();
+    // Validate storage configuration early so production failures are obvious.
+    let bucketName: string;
+    let folderPrefix: string;
+    try {
+      ({ bucketName, folderPrefix } = getBucketConfig());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return NextResponse.json(
+        {
+          error: msg,
+          code: 'PRESIGN_MISSING_ENV',
+          required: ['AWS_BUCKET_NAME (or NEXT_PUBLIC_AWS_BUCKET_NAME)', 'AWS_REGION (or NEXT_PUBLIC_AWS_REGION)'],
+        },
+        { status: 500 }
+      );
+    }
 
-    // Ensure region is set for AWS SDK.
-    if (!process.env.AWS_REGION) {
+    // Ensure region is set for AWS SDK (required for signing).
+    if (!process.env.AWS_REGION && !process.env.AWS_DEFAULT_REGION && !process.env.NEXT_PUBLIC_AWS_REGION) {
       process.env.AWS_REGION = extractRegionFromBucket(bucketName);
     }
-    const s3Client = createS3Client();
+
+    let s3Client;
+    try {
+      s3Client = createS3Client();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return NextResponse.json(
+        {
+          error: msg,
+          code: 'PRESIGN_MISSING_ENV',
+          required: ['AWS_REGION (or AWS_DEFAULT_REGION or NEXT_PUBLIC_AWS_REGION)'],
+        },
+        { status: 500 }
+      );
+    }
 
     const now = new Date();
     const year = now.getFullYear();
@@ -79,12 +110,34 @@ export async function POST(request: NextRequest) {
     // Short expiry: client uploads immediately.
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 });
 
+    const region =
+      process.env.AWS_REGION ||
+      process.env.AWS_DEFAULT_REGION ||
+      process.env.NEXT_PUBLIC_AWS_REGION ||
+      extractRegionFromBucket(bucketName);
+
+    const publicUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
+
     return NextResponse.json({
       uploadUrl,
       cloud_storage_path: key,
+      publicUrl,
     });
   } catch (error) {
     console.error('[POST /api/posts/presign] Error:', error);
+
+    const message = error instanceof Error ? error.message : String(error);
+    if (/credentials|CredentialProviderError|Missing credentials/i.test(message)) {
+      return NextResponse.json(
+        {
+          error: 'AWS credentials are not configured in this environment',
+          code: 'PRESIGN_MISSING_AWS_CREDENTIALS',
+          required: ['AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_REGION', 'AWS_BUCKET_NAME'],
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to create upload URL', code: 'PRESIGN_FAILED' },
       { status: 500 }
