@@ -340,7 +340,7 @@ export default function AsistentePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-24">
+    <div className="min-h-screen bg-black">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -398,7 +398,7 @@ export default function AsistentePage() {
 
       {/* Chat Container */}
       <div className="max-w-4xl mx-auto px-4 py-6">
-        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100vh-200px)]">
+        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-200px)]">
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
