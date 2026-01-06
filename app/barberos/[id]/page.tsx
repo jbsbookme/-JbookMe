@@ -147,45 +147,47 @@ export default async function BarberProfilePage({ params }: Params) {
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 overflow-x-hidden">
       {/* Header */}
-      <header
-        className="sticky top-0 z-50 w-full border-b border-gray-800 bg-black"
+      <div
+        className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 max-w-7xl gap-2">
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
-              <Image 
-                src="/logo.png" 
-                alt="JBookMe Logo" 
-                fill
-                className="object-contain"
-                priority
-              />
-            </div>
-            <span className="text-base sm:text-xl font-bold leading-none">
-              <span className="text-[#00f0ff]">JBook</span>
-              <span className="text-[#ffd700]">Me</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2 justify-end">
-            <Link href="/barberos">
-              <Button variant="ghost" className="text-gray-300 hover:text-[#00f0ff] px-2">
-                <ArrowLeft className="w-5 h-5 sm:mr-2" />
-                <span className="hidden sm:inline">View Barbers</span>
+        <div className="max-w-6xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/barberos" aria-label="Back">
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Back"
+                className="text-gray-400 hover:text-white hover:bg-gray-800/50"
+              >
+                <ArrowLeft className="w-5 h-5" />
               </Button>
             </Link>
+
+            <div className="min-w-0 flex-1">
+              <h1 className="text-white text-xl font-semibold truncate text-center sm:text-left">
+                {barber.user?.name || 'Barber'}
+              </h1>
+              {barber.specialties ? (
+                <p className="text-gray-400 text-sm truncate text-center sm:text-left">{barber.specialties}</p>
+              ) : null}
+            </div>
+
             <Link href="/auth">
-              <Button variant="outline" className="border-gray-700 text-white hover:bg-[#0a0a0a] hover:text-[#00f0ff] px-3">
+              <Button
+                variant="outline"
+                className="border-gray-700 text-white hover:bg-black/40 hover:text-[#00f0ff] px-3"
+              >
                 Login
               </Button>
             </Link>
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="container mx-auto px-4 py-12 max-w-6xl">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Profile Header */}
-        <div className="mb-12 -mt-8">
+        <div className="mb-12">
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-center md:text-left">
