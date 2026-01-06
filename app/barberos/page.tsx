@@ -61,16 +61,14 @@ export default function BarberosPage() {
     return `https://${trimmed}`;
   };
 
-  const renderStars = (rating: number) => {
-    const safe = Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : 0;
-    const filled = Math.round(safe);
+  const renderStars = () => {
     return (
       <div className="flex items-center gap-1">
         {Array.from({ length: 5 }).map((_, idx) => (
           <Star
             key={idx}
-            className={`h-5 w-5 ${idx < filled ? 'text-[#ffd700]' : 'text-gray-600'}`}
-            fill={idx < filled ? 'currentColor' : 'none'}
+            className="h-5 w-5 text-gray-600"
+            fill="none"
           />
         ))}
       </div>
@@ -212,7 +210,7 @@ export default function BarberosPage() {
                               <span className="text-[#ffd700] text-2xl font-bold">{avg.toFixed(1)}</span>
                             </div>
                             <div className="flex items-center justify-center md:justify-start gap-3">
-                              {renderStars(avg)}
+                              {renderStars()}
                               <span className="text-gray-400 text-lg">({reviews} reviews)</span>
                             </div>
                           </div>
