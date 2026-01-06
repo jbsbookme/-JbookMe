@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Calendar, Clock, MessageCircle, Phone, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MessageCircle, Phone, User, Facebook, Instagram, Music2 } from 'lucide-react';
 import { PublicProfileRating } from '@/components/public-profile-rating';
 import { PublicProfileReviews } from '@/components/public-profile-reviews';
 import { BarberPublicGallery } from '@/components/barber-public-gallery';
@@ -136,6 +136,17 @@ export default async function BarberProfilePage({ params }: Params) {
   const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
   const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
 
+  const normalizeUrl = (url: string | null | undefined) => {
+    const trimmed = url?.trim();
+    if (!trimmed) return null;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
+  const fbHref = normalizeUrl(barber.facebookUrl);
+  const igHref = normalizeUrl(barber.instagramUrl);
+  const ttHref = normalizeUrl(barber.tiktokUrl);
+
   const formatDuration = (minutes: number) => {
     const total = Number(minutes) || 0;
     const hoursPart = Math.floor(total / 60);
@@ -258,6 +269,49 @@ export default async function BarberProfilePage({ params }: Params) {
                           >
                             <a href={chatHref} aria-label="Chat" target={chatTarget} rel={chatRel}>
                               <MessageCircle className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {(fbHref || igHref || ttHref) ? (
+                      <div className="flex gap-2 justify-center md:justify-start">
+                        {fbHref ? (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                          >
+                            <a href={fbHref} aria-label="Facebook" target="_blank" rel="noreferrer noopener">
+                              <Facebook className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+
+                        {igHref ? (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                          >
+                            <a href={igHref} aria-label="Instagram" target="_blank" rel="noreferrer noopener">
+                              <Instagram className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : null}
+
+                        {ttHref ? (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                          >
+                            <a href={ttHref} aria-label="TikTok" target="_blank" rel="noreferrer noopener">
+                              <Music2 className="h-4 w-4" />
                             </a>
                           </Button>
                         ) : null}

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Star, Facebook, Instagram, Music2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { HistoryBackButton } from '@/components/layout/history-back-button';
 
@@ -13,6 +13,11 @@ interface Barber {
   id: string;
   profileImage?: string | null;
   gender?: 'MALE' | 'FEMALE' | 'BOTH' | null;
+  facebookUrl?: string | null;
+  instagramUrl?: string | null;
+  tiktokUrl?: string | null;
+  avgRating?: number;
+  totalReviews?: number;
   user?: {
     name?: string | null;
     image?: string | null;
@@ -47,6 +52,29 @@ export default function BarberosPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const normalizeUrl = (url: string | null | undefined) => {
+    const trimmed = url?.trim();
+    if (!trimmed) return null;
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
+  const renderStars = (rating: number) => {
+    const safe = Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : 0;
+    const filled = Math.round(safe);
+    return (
+      <div className="flex items-center gap-1">
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <Star
+            key={idx}
+            className={`h-5 w-5 ${idx < filled ? 'text-[#ffd700]' : 'text-gray-600'}`}
+            fill={idx < filled ? 'currentColor' : 'none'}
+          />
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -126,28 +154,35 @@ export default function BarberosPage() {
                 const iconClass = 'text-[#00f0ff]/40';
                 const buttonClass = 'from-[#00f0ff] to-[#0099cc]';
 
+                const fbHref = normalizeUrl(barber.facebookUrl);
+                const igHref = normalizeUrl(barber.instagramUrl);
+                const ttHref = normalizeUrl(barber.tiktokUrl);
+
+                const avg = typeof barber.avgRating === 'number' ? barber.avgRating : 0;
+                const reviews = typeof barber.totalReviews === 'number' ? barber.totalReviews : 0;
+
                 return (
                   <Card
                     key={barber.id}
-                    className="bg-[#1a1a1a] border-gray-800 hover:border-gray-700 transition-colors"
+                    className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff]/40 transition-colors"
                     style={{ animationDelay: `${index * 60}ms` }}
                   >
-                    <CardContent className="p-6">
-                      <div className="flex flex-col sm:flex-row gap-5 items-center sm:items-start text-center sm:text-left">
+                    <CardContent className="p-6 sm:p-8">
+                      <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-center md:text-left">
                         <div className="flex-shrink-0">
                           <div
-                            className={`relative w-24 h-24 rounded-full overflow-hidden border-2 bg-gradient-to-br ${ringClass}`}
+                            className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 bg-gradient-to-br ${ringClass}`}
                           >
                             {barber.profileImage || barber.user?.image ? (
                               <Image
                                 src={barber.profileImage || barber.user?.image || ''}
                                 alt={barber.user?.name || t('barbers.barber')}
                                 fill
-                                sizes="96px"
+                                sizes="128px"
                                 className="object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
                                 <User className={`w-10 h-10 ${iconClass}`} />
                               </div>
                             )}
@@ -155,29 +190,90 @@ export default function BarberosPage() {
                         </div>
 
                         <div className="flex-1 w-full">
-                          <div className="mb-4">
-                            <h2 className="text-white text-xl font-bold leading-tight">
-                              {barber.user?.name || t('barbers.barber')}
-                            </h2>
-                            {barber.specialties ? (
-                              <p className="text-gray-300 text-sm mt-1 line-clamp-2">{barber.specialties}</p>
-                            ) : null}
-                            {barber.bio ? (
-                              <p className="text-gray-400 text-sm mt-2 line-clamp-3">{barber.bio}</p>
-                            ) : null}
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div className="min-w-0">
+                              <h2 className="text-white text-2xl font-bold leading-tight truncate">
+                                {barber.user?.name || t('barbers.barber')}
+                              </h2>
+                              {barber.specialties ? (
+                                <p className="text-[#00f0ff] text-sm sm:text-base mt-2 line-clamp-2">{barber.specialties}</p>
+                              ) : null}
+                            </div>
                             {barber.hourlyRate ? (
-                              <div className="text-gray-400 text-sm mt-2">
-                                ${barber.hourlyRate}/hr
+                              <div className="text-[#00f0ff] text-xl sm:text-2xl font-bold whitespace-nowrap">
+                                ${barber.hourlyRate}/hour
                               </div>
                             ) : null}
                           </div>
 
-                          <Link href={`/reservar?barberId=${barber.id}`} className="block w-full">
-                            <Button className={`w-full bg-gradient-to-r ${buttonClass} text-black hover:opacity-90 font-bold`}>
-                              <Calendar className="w-4 h-4 mr-2" />
-                              {t('booking.bookAppointment')}
-                            </Button>
-                          </Link>
+                          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-center md:justify-start">
+                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                              <Star className="h-6 w-6 text-[#ffd700]" fill="currentColor" />
+                              <span className="text-[#ffd700] text-2xl font-bold">{avg.toFixed(1)}</span>
+                            </div>
+                            <div className="flex items-center justify-center md:justify-start gap-3">
+                              {renderStars(avg)}
+                              <span className="text-gray-400 text-lg">({reviews} reviews)</span>
+                            </div>
+                          </div>
+
+                          {barber.bio ? (
+                            <p className="text-gray-400 mt-5 text-sm sm:text-base line-clamp-3">{barber.bio}</p>
+                          ) : null}
+
+                          {(fbHref || igHref || ttHref) ? (
+                            <div className="mt-6 flex gap-2 justify-center md:justify-start">
+                              {fbHref ? (
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="icon"
+                                  className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                                >
+                                  <a href={fbHref} aria-label="Facebook" target="_blank" rel="noreferrer noopener">
+                                    <Facebook className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : null}
+
+                              {igHref ? (
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="icon"
+                                  className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                                >
+                                  <a href={igHref} aria-label="Instagram" target="_blank" rel="noreferrer noopener">
+                                    <Instagram className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : null}
+
+                              {ttHref ? (
+                                <Button
+                                  asChild
+                                  variant="outline"
+                                  size="icon"
+                                  className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                                >
+                                  <a href={ttHref} aria-label="TikTok" target="_blank" rel="noreferrer noopener">
+                                    <Music2 className="h-4 w-4" />
+                                  </a>
+                                </Button>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          <div className="mt-6 flex justify-center md:justify-start">
+                            <Link href={`/reservar?barberId=${barber.id}`} className="block w-full sm:w-auto">
+                              <Button
+                                className={`w-full sm:w-auto bg-gradient-to-r ${buttonClass} text-black hover:opacity-90 neon-glow text-base sm:text-lg px-6 sm:px-8 font-bold`}
+                              >
+                                <Calendar className="w-5 h-5 mr-2" />
+                                {t('booking.bookAppointment')}
+                              </Button>
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </CardContent>

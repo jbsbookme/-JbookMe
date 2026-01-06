@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
         facebookUrl: true,
         instagramUrl: true,
         twitterUrl: true,
+        tiktokUrl: true,
         zelleEmail: true,
         zellePhone: true,
         cashappTag: true,
