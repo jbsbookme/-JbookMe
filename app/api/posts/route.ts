@@ -196,7 +196,7 @@ export async function POST(request: NextRequest) {
       if (isServerless) {
         console.error('[POST /api/posts] S3 upload failed in serverless environment:', s3Error);
         return NextResponse.json(
-          { error: 'Error uploading media. Storage is not available right now.' },
+          { error: 'Error uploading media. Storage is not available right now.', code: 'S3_UPLOAD_FAILED' },
           { status: 500 }
         );
       }
@@ -284,8 +284,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ post }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/posts] Error creating post:', error);
+    const isProd = process.env.NODE_ENV === 'production';
     return NextResponse.json(
-      { error: 'Failed to create post', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to create post',
+        code: 'POST_CREATE_FAILED',
+        ...(isProd ? {} : { details: error instanceof Error ? error.message : 'Unknown error' }),
+      },
       { status: 500 }
     );
   }
