@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, Video, X, Upload, Loader2, ArrowLeft, User, Heart, MessageCircle, Send } from 'lucide-react';
+import { Camera, Video, X, Upload, Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
 import Image from 'next/image';
@@ -246,91 +246,6 @@ export default function BarberUploadPage() {
                   className="hidden"
                 />
               </div>
-
-              {/* Post Preview */}
-              {selectedFile && previewUrl && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="text-white font-semibold">Preview</Label>
-                    <p className="text-xs text-zinc-500">This is how it will look in the feed</p>
-                  </div>
-
-                  <Card className="bg-black border-zinc-800 overflow-hidden">
-                    <CardContent className="p-0">
-                      <div className="flex items-center gap-3 p-4">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center overflow-hidden">
-                          {session?.user?.image ? (
-                            <Image
-                              src={session.user.image}
-                              alt={session.user.name || 'Barber'}
-                              width={40}
-                              height={40}
-                              className="rounded-full object-cover"
-                            />
-                          ) : (
-                            <User className="w-5 h-5 text-white" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white font-semibold text-sm truncate">
-                            {session?.user?.name || 'Barber'}
-                          </p>
-                          <p className="text-xs text-zinc-500">Barber Work</p>
-                        </div>
-                      </div>
-
-                      <div className="relative w-full aspect-square bg-zinc-800">
-                        {fileType === 'video' ? (
-                          <video
-                            src={previewUrl}
-                            controls
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            preload="metadata"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <Image
-                            src={previewUrl}
-                            alt="Preview"
-                            fill
-                            className="object-cover"
-                          />
-                        )}
-                      </div>
-
-                      <div className="px-4 pt-3">
-                        <div className="flex items-center gap-4 text-white">
-                          <Heart className="w-6 h-6 text-white/90" />
-                          <MessageCircle className="w-6 h-6 text-white/90" />
-                          <Send className="w-6 h-6 text-white/90" />
-                        </div>
-                      </div>
-
-                      <div className="p-4 space-y-2">
-                        <p className="text-white text-sm">
-                          <span className="font-semibold mr-2">
-                            {session?.user?.name || 'Barber'}
-                          </span>
-                          {caption.trim() || '...'}
-                        </p>
-                        {hashtags.trim() && (
-                          <p className="text-xs text-cyan-400 break-words">
-                            {hashtags
-                              .split(/[\s,]+/)
-                              .map((tag) => tag.trim())
-                              .filter(Boolean)
-                              .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
-                              .join(' ')}
-                          </p>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
 
               {/* Caption */}
               <div>

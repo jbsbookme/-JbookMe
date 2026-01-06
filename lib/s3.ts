@@ -37,6 +37,25 @@ function getS3Context(): S3Context {
   return cachedContext;
 }
 
+function extractBucketRegionFromAwsError(error: unknown): string | null {
+  const anyErr = error as any;
+  const headerRegion = anyErr?.$metadata?.httpHeaders?.['x-amz-bucket-region'];
+  if (typeof headerRegion === 'string' && headerRegion.trim()) {
+    return headerRegion.trim();
+  }
+
+  const message = String(anyErr?.message || '');
+  // Common AWS message pattern:
+  // "The authorization header is malformed; the region 'us-east-1' is wrong; expecting 'us-west-2'"
+  const expectingMatch = message.match(/expecting\s*'([a-z0-9-]+)'/i);
+  if (expectingMatch?.[1]) return expectingMatch[1];
+
+  const regionHintMatch = message.match(/x-amz-bucket-region\s*:?\s*([a-z0-9-]+)/i);
+  if (regionHintMatch?.[1]) return regionHintMatch[1];
+
+  return null;
+}
+
 /**
  * Upload a file to S3
  * @param buffer - File buffer
@@ -50,7 +69,7 @@ export async function uploadFile(
   isPublic = false,
   contentType?: string
 ): Promise<string> {
-  const { s3Client, bucketName, folderPrefix } = getS3Context();
+  const { s3Client, bucketName, folderPrefix, region } = getS3Context();
   const timestamp = Date.now();
   // Preserve folder paths (/) but sanitize other characters.
   // This lets callers pass keys like: "posts/2026/01/barber_work/123.jpg".
@@ -74,8 +93,27 @@ export async function uploadFile(
     ...(contentType ? { ContentType: contentType } : {}),
   });
 
-  await s3Client.send(command);
-  return key;
+  try {
+    await s3Client.send(command);
+    return key;
+  } catch (error) {
+    const bucketRegion = extractBucketRegionFromAwsError(error);
+    if (bucketRegion && bucketRegion !== region) {
+      // Retry once with the bucket's real region.
+      process.env.AWS_REGION = bucketRegion;
+      const retryClient = createS3Client();
+      await retryClient.send(command);
+
+      cachedContext = {
+        s3Client: retryClient,
+        bucketName,
+        folderPrefix,
+        region: bucketRegion,
+      };
+      return key;
+    }
+    throw error;
+  }
 }
 
 /**

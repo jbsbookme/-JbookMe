@@ -340,7 +340,7 @@ export default function AsistentePage() {
   }
 
   return (
-    <div className="min-h-[100dvh] bg-black flex flex-col">
+    <div className="h-[100dvh] bg-black flex flex-col overflow-hidden">
       {/* Header */}
       <div
         className="sticky top-0 z-40 bg-black/90 backdrop-blur-sm border-b border-gray-800"
@@ -400,7 +400,7 @@ export default function AsistentePage() {
       </div>
 
       {/* Chat */}
-      <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full px-4 py-4 pb-28 flex flex-col gap-3">
+      <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full px-4 py-4 flex flex-col gap-3">
         <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
           <ScrollArea className="flex-1 min-h-0">
             <div className="min-h-full p-4 pt-8 space-y-4">
@@ -458,11 +458,11 @@ export default function AsistentePage() {
         </Card>
       </div>
 
-      {/* Composer (fixed) */}
-      <div className="fixed inset-x-0 bottom-0 z-50">
+      {/* Composer (anchored at bottom) */}
+      <div className="border-t border-gray-800 bg-black/90 backdrop-blur-sm">
         <div
           className="mx-auto max-w-4xl px-4"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingTop: '12px' }}
         >
           <div className="bg-gray-900/95 backdrop-blur border border-gray-800 rounded-2xl p-3">
             <div className="flex gap-2">
