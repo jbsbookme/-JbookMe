@@ -403,7 +403,7 @@ export default function AsistentePage() {
       <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full px-4 py-4 pb-28 flex flex-col gap-3">
         <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
           <ScrollArea className="flex-1 min-h-0">
-            <div className="min-h-full p-4 space-y-4 flex flex-col justify-end">
+            <div className="min-h-full p-4 pt-8 space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
