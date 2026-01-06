@@ -122,7 +122,12 @@ export default function FeedPage() {
   const [loading, setLoading] = useState(true);
   const bookingCtaRef = useRef<HTMLDivElement | null>(null);
   const [isBookingCtaInView, setIsBookingCtaInView] = useState(true);
-  const [zoomedMedia, setZoomedMedia] = useState<{ url: string; isVideo: boolean } | null>(null);
+  const [zoomedMedia, setZoomedMedia] = useState<{
+    url: string;
+    isVideo: boolean;
+    authorName?: string;
+    dateLabel?: string;
+  } | null>(null);
   const [imageScale, setImageScale] = useState(1);
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set());
   const [heartBursts, setHeartBursts] = useState<Record<string, HeartParticle[]>>({});
@@ -862,7 +867,24 @@ export default function FeedPage() {
                       {/* Media */}
                       <div 
                         className="relative w-full aspect-square bg-zinc-800 cursor-pointer"
-                        onClick={() => setZoomedMedia({ url: getMediaUrl(post.cloud_storage_path), isVideo: isVideo(post.cloud_storage_path) })}
+                        onClick={() => {
+                          const authorName =
+                            post.authorType === 'BARBER'
+                              ? post.barber?.user?.name
+                              : post.author?.name || 'User';
+
+                          const dateLabel = new Date(post.createdAt).toLocaleDateString('en', {
+                            month: 'short',
+                            day: 'numeric',
+                          });
+
+                          setZoomedMedia({
+                            url: getMediaUrl(post.cloud_storage_path),
+                            isVideo: isVideo(post.cloud_storage_path),
+                            authorName,
+                            dateLabel,
+                          });
+                        }}
                       >
                         {/* Floating hearts burst (visual) */}
                         {heartBursts[post.id]?.length ? (
@@ -886,6 +908,24 @@ export default function FeedPage() {
                                 />
                               </motion.div>
                             ))}
+                          </div>
+                        ) : null}
+
+                        {isVideo(post.cloud_storage_path) ? (
+                          <div className="pointer-events-none absolute left-3 top-3 z-20">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10">
+                              <span className="text-xs font-medium text-white leading-none">
+                                {(post.authorType === 'BARBER'
+                                  ? post.barber?.user?.name
+                                  : post.author?.name || 'User')}
+                                <span className="text-white/70">{' '}•{' '}
+                                  {new Date(post.createdAt).toLocaleDateString('en', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
+                                </span>
+                              </span>
+                            </div>
                           </div>
                         ) : null}
 
@@ -1129,16 +1169,29 @@ export default function FeedPage() {
           
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {zoomedMedia.isVideo ? (
-              <video
-                src={zoomedMedia.url}
-                controls
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              />
+              <div className="relative max-w-full max-h-full">
+                {zoomedMedia.authorName && zoomedMedia.dateLabel ? (
+                  <div className="pointer-events-none absolute left-3 top-3 z-10">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10">
+                      <span className="text-xs font-medium text-white leading-none">
+                        {zoomedMedia.authorName}
+                        <span className="text-white/70">{' '}•{' '}{zoomedMedia.dateLabel}</span>
+                      </span>
+                    </div>
+                  </div>
+                ) : null}
+
+                <video
+                  src={zoomedMedia.url}
+                  controls
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                />
+              </div>
             ) : (
               <motion.div
                 className="relative w-full h-full flex items-center justify-center"
