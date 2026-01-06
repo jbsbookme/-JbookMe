@@ -122,14 +122,9 @@ export default function BarberosPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {barbers.map((barber, index) => {
-                const isFemale = barber.gender === 'FEMALE';
-                const ringClass = isFemale
-                  ? 'border-[#ffd700]/60 from-[#ffd700]/10 to-[#ff69b4]/10'
-                  : 'border-[#00f0ff]/60 from-[#00f0ff]/10 to-[#0099cc]/10';
-                const iconClass = isFemale ? 'text-[#ffd700]/40' : 'text-[#00f0ff]/40';
-                const buttonClass = isFemale
-                  ? 'from-[#ffd700] to-[#ff69b4]'
-                  : 'from-[#00f0ff] to-[#0099cc]';
+                const ringClass = 'border-[#00f0ff]/60 from-[#00f0ff]/10 to-[#0099cc]/10';
+                const iconClass = 'text-[#00f0ff]/40';
+                const buttonClass = 'from-[#00f0ff] to-[#0099cc]';
 
                 return (
                   <Card

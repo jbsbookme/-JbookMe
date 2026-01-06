@@ -227,9 +227,12 @@ export default function InboxPage() {
   const unreadCount = receivedMessages.filter(m => !m.read).length;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-black text-white pb-24">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-[#0a0a0a]/80 backdrop-blur border-b border-gray-800">
+      <div
+        className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -237,12 +240,12 @@ export default function InboxPage() {
                 fallbackHref="/menu"
                 variant="ghost"
                 size="icon"
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-[#00f0ff] hover:bg-transparent"
               >
                 <ArrowLeft className="h-5 w-5" />
               </HistoryBackButton>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-r from-[#00f0ff] to-[#ffd700] rounded-lg">
+                <div className="w-10 h-10 rounded-full bg-[#00f0ff] flex items-center justify-center">
                   <MessageSquare className="h-6 w-6 text-black" />
                 </div>
                 <div>
@@ -253,7 +256,7 @@ export default function InboxPage() {
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]">
+                <Button className="bg-[#00f0ff] text-black font-semibold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]">
                   <Send className="h-4 w-4 mr-2" />
                   {t('inbox.compose')}
                 </Button>
@@ -344,7 +347,7 @@ export default function InboxPage() {
                   <Button
                     onClick={handleSendMessage}
                     disabled={sending || !newMessage.recipientId || !newMessage.content.trim()}
-                    className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold hover:opacity-90 disabled:opacity-50"
+                    className="bg-[#00f0ff] text-black font-semibold hover:opacity-90 disabled:opacity-50"
                   >
                     {sending ? (
                       <>
@@ -376,7 +379,7 @@ export default function InboxPage() {
                 <Badge className="ml-2 bg-red-500 text-white">{unreadCount}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="sent" className="rounded-lg data-[state=active]:bg-[#ffd700] data-[state=active]:text-black">
+            <TabsTrigger value="sent" className="rounded-lg data-[state=active]:bg-[#00f0ff] data-[state=active]:text-black">
               <Send className="h-4 w-4 mr-2" />
               {t('inbox.sent')}
             </TabsTrigger>
@@ -461,19 +464,19 @@ export default function InboxPage() {
                 {sentMessages.map((message) => (
                   <Card
                     key={message.id}
-                    className="bg-[#111111] border-gray-800 hover:border-[#ffd700] transition-colors"
+                    className="bg-[#111111] border-gray-800 hover:border-[#00f0ff] transition-colors"
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
-                        <Avatar className="h-12 w-12 border-2 border-[#ffd700]">
+                        <Avatar className="h-12 w-12 border-2 border-[#00f0ff]">
                           <AvatarImage src={message.recipient.image} />
-                          <AvatarFallback className="bg-[#ffd700] text-black">
+                          <AvatarFallback className="bg-[#00f0ff] text-black">
                             {message.recipient.name?.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center justify-between">
-                            <p className="font-semibold text-[#ffd700]">{t('inbox.to')}: {message.recipient.name}</p>
+                            <p className="font-semibold text-[#00f0ff]">{t('inbox.to')}: {message.recipient.name}</p>
                             <span className="text-sm text-gray-400">{formatDate(message.createdAt)}</span>
                           </div>
                           <p className="text-gray-300">{message.content}</p>
@@ -490,7 +493,7 @@ export default function InboxPage() {
                           {message.appointment && (
                             <div className="mt-2 p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
                               <p className="text-sm text-gray-400">{t('inbox.relatedAppointment')}:</p>
-                              <p className="text-sm font-medium text-[#ffd700]">
+                              <p className="text-sm font-medium text-[#00f0ff]">
                                 {message.appointment.service.name} - {message.appointment.date} at {message.appointment.time}
                               </p>
                             </div>
