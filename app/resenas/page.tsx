@@ -77,7 +77,7 @@ export default function ResenasPage() {
             key={star}
             className={`w-4 h-4 ${
               star <= rating
-                ? 'fill-yellow-500 text-yellow-500'
+                ? 'fill-[#00f0ff] text-[#00f0ff]'
                 : 'text-gray-600'
             }`}
           />
@@ -98,8 +98,8 @@ export default function ResenasPage() {
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800">
-        <div className="max-w-5xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="max-w-4xl mx-auto px-4 py-5">
+          <div className="flex items-center gap-4 mb-3">
               <HistoryBackButton
                 fallbackHref="/menu"
                 variant="ghost"
@@ -116,9 +116,9 @@ export default function ResenasPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Stats Overview */}
-        <Card className="bg-gray-900 border-gray-800 p-6 mb-8">
+        <Card className="bg-gray-900 border-gray-800 p-6 mb-8 rounded-2xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Average Rating */}
             <div className="text-center md:text-left">
@@ -143,7 +143,7 @@ export default function ResenasPage() {
                     <span className="text-sm text-gray-400 w-8">{rating}★</span>
                     <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-yellow-500"
+                        className="h-full bg-[#00f0ff]"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -163,7 +163,7 @@ export default function ResenasPage() {
             </Card>
           ) : (
             reviews.map((review) => (
-              <Card key={review.id} className="bg-gray-900 border-gray-800 p-6">
+              <Card key={review.id} className="bg-gray-900 border-gray-800 p-6 rounded-2xl">
                 <div className="flex items-start gap-4">
                   <Avatar className="w-12 h-12 bg-cyan-500">
                     <AvatarFallback className="bg-cyan-500 text-black font-semibold">

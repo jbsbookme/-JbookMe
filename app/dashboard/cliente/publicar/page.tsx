@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, Video, X, Upload, Loader2, Heart } from 'lucide-react';
+import { Camera, Video, X, Upload, Loader2, Heart, User, MessageCircle, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
+import Image from 'next/image';
 
 export default function ClientUploadPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const { t } = useI18n();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -176,7 +177,7 @@ export default function ClientUploadPage() {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-500 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-[#00f0ff] to-[#0099cc] bg-clip-text text-transparent">
               {t('client.shareYourStyle')}
             </CardTitle>
             <p className="text-zinc-400 text-sm">
@@ -192,19 +193,19 @@ export default function ClientUploadPage() {
                 {!selectedFile ? (
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="mt-2 border-2 border-dashed border-zinc-700 rounded-lg p-12 text-center cursor-pointer hover:border-pink-500 hover:bg-zinc-800/50 transition-all"
+                    className="mt-2 border-2 border-dashed border-zinc-700 rounded-lg p-12 text-center cursor-pointer hover:border-[#00f0ff] hover:bg-zinc-800/50 transition-all"
                   >
                     <div className="flex flex-col items-center gap-4">
                       <div className="flex gap-6">
                         <div className="flex flex-col items-center">
-                          <div className="w-16 h-16 rounded-full bg-pink-500/20 flex items-center justify-center mb-2">
-                            <Camera className="w-8 h-8 text-pink-400" />
+                          <div className="w-16 h-16 rounded-full bg-[#00f0ff]/15 flex items-center justify-center mb-2">
+                            <Camera className="w-8 h-8 text-[#00f0ff]" />
                           </div>
                           <span className="text-xs text-zinc-400">{t('client.photo')}</span>
                         </div>
                         <div className="flex flex-col items-center">
-                          <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mb-2">
-                            <Video className="w-8 h-8 text-purple-400" />
+                          <div className="w-16 h-16 rounded-full bg-[#0099cc]/15 flex items-center justify-center mb-2">
+                            <Video className="w-8 h-8 text-[#0099cc]" />
                           </div>
                           <span className="text-xs text-zinc-400">{t('client.video')}</span>
                         </div>
@@ -215,7 +216,7 @@ export default function ClientUploadPage() {
                   </div>
                 ) : (
                   <div className="mt-2 relative">
-                    <div className="w-full rounded-lg overflow-hidden bg-zinc-800 border-2 border-pink-500/30 p-4">
+                    <div className="w-full rounded-lg overflow-hidden bg-zinc-800 border-2 border-cyan-500/30 p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center">
                           {fileType === 'video' ? (
@@ -256,6 +257,91 @@ export default function ClientUploadPage() {
                   className="hidden"
                 />
               </div>
+
+              {/* Post Preview */}
+              {selectedFile && previewUrl ? (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-white font-semibold">Preview</Label>
+                    <p className="text-xs text-zinc-500">This is how it will look in the feed</p>
+                  </div>
+
+                  <Card className="bg-black border-zinc-800 overflow-hidden">
+                    <CardContent className="p-0">
+                      <div className="flex items-center gap-3 p-4">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center overflow-hidden">
+                          {session?.user?.image ? (
+                            <Image
+                              src={session.user.image}
+                              alt={session.user.name || 'User'}
+                              width={40}
+                              height={40}
+                              className="rounded-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-5 h-5 text-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white font-semibold text-sm truncate">
+                            {session?.user?.name || 'User'}
+                          </p>
+                          <p className="text-xs text-zinc-500">Client Share</p>
+                        </div>
+                      </div>
+
+                      <div className="relative w-full aspect-square bg-zinc-800">
+                        {fileType === 'video' ? (
+                          <video
+                            src={previewUrl}
+                            controls
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Image
+                            src={previewUrl}
+                            alt="Preview"
+                            fill
+                            className="object-cover"
+                          />
+                        )}
+                      </div>
+
+                      <div className="px-4 pt-3">
+                        <div className="flex items-center gap-4 text-white">
+                          <Heart className="w-6 h-6 text-white/90" />
+                          <MessageCircle className="w-6 h-6 text-white/90" />
+                          <Send className="w-6 h-6 text-white/90" />
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-2">
+                        <p className="text-white text-sm">
+                          <span className="font-semibold mr-2">
+                            {session?.user?.name || 'User'}
+                          </span>
+                          {caption.trim() || '...'}
+                        </p>
+                        {hashtags.trim() && (
+                          <p className="text-xs text-cyan-400 break-words">
+                            {hashtags
+                              .split(/[\s,]+/)
+                              .map((tag) => tag.trim())
+                              .filter(Boolean)
+                              .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
+                              .join(' ')}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              ) : null}
 
               {/* Caption */}
               <div>
@@ -302,7 +388,7 @@ export default function ClientUploadPage() {
                 <Button
                   type="submit"
                   disabled={status !== 'authenticated' || isUploading || !selectedFile || !caption.trim()}
-                  className="flex-1 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50"
                 >
                   {isUploading ? (
                     <>
@@ -320,7 +406,7 @@ export default function ClientUploadPage() {
 
               {/* Info Box */}
               <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-pink-400 mb-2 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-cyan-400 mb-2 flex items-center gap-2">
                   <Heart className="w-4 h-4" />
                   Community Guidelines
                 </h4>
