@@ -400,8 +400,8 @@ export default function AsistentePage() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-160px)]">
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1">
+            <div className="p-4 pt-8 space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
