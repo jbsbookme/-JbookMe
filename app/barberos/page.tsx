@@ -87,7 +87,7 @@ export default function BarberosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-16">
+      <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-6">
         {/* Skeleton Loading */}
         <main className="container mx-auto px-4 py-6 max-w-7xl">
           <HistoryBackButton
@@ -127,7 +127,7 @@ export default function BarberosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-16">
+    <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-6">
       <main className="container mx-auto px-4 py-6 max-w-7xl">
         <HistoryBackButton
           fallbackHref="/menu"

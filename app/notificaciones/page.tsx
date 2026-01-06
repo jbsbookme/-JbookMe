@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Bell } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bell,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  MessageCircle,
+  Star,
+  XCircle,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
@@ -29,6 +38,23 @@ export default function NotificacionesPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const getTypeBadge = (type: string, isRead: boolean) => {
+    const base = isRead
+      ? 'bg-gray-800 text-gray-300 border-gray-700'
+      : 'bg-[#00f0ff]/10 text-[#00f0ff] border-[#00f0ff]/30';
+
+    const tUpper = (type || '').toUpperCase();
+
+    if (tUpper.includes('REMINDER')) return { Icon: Clock, className: base };
+    if (tUpper.includes('CONFIRMED')) return { Icon: CheckCircle2, className: base };
+    if (tUpper.includes('CANCEL')) return { Icon: XCircle, className: base };
+    if (tUpper.includes('REVIEW')) return { Icon: Star, className: base };
+    if (tUpper.includes('MESSAGE')) return { Icon: MessageCircle, className: base };
+    if (tUpper.includes('APPOINTMENT')) return { Icon: Calendar, className: base };
+
+    return { Icon: Bell, className: base };
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -109,8 +135,18 @@ export default function NotificacionesPage() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </HistoryBackButton>
+              <div className="w-10 h-10 rounded-full bg-[#00f0ff]/15 border border-[#00f0ff]/25 flex items-center justify-center flex-shrink-0">
+                <Bell className="w-5 h-5 text-[#00f0ff]" />
+              </div>
               <div className="min-w-0">
-                <h1 className="text-white text-xl font-semibold">{t('notifications.title')}</h1>
+                <div className="flex items-center gap-2 min-w-0">
+                  <h1 className="text-white text-xl font-semibold truncate">{t('notifications.title')}</h1>
+                  {unreadCount > 0 ? (
+                    <span className="text-xs font-semibold text-black bg-[#00f0ff] px-2 py-1 rounded-full">
+                      {unreadCount}
+                    </span>
+                  ) : null}
+                </div>
                 <p className="text-gray-400 text-sm truncate">
                   {unreadCount > 0 ? `${unreadCount} ${t('notifications.unread')}` : t('notifications.allCaughtUp')}
                 </p>
@@ -119,9 +155,9 @@ export default function NotificacionesPage() {
 
             {unreadCount > 0 && (
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => markAsRead()}
-                className="text-[#00f0ff] hover:bg-transparent"
+                className="border-gray-700 bg-black/20 text-[#00f0ff] hover:bg-gray-900/40"
               >
                 {t('notifications.markAllRead')}
               </Button>
@@ -131,22 +167,28 @@ export default function NotificacionesPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
-          {loading ? (
-            <div className="p-6 text-center text-gray-400">{t('notifications.loading')}</div>
-          ) : notifications.length === 0 ? (
-            <div className="p-10 text-center text-gray-400">
-              <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>{t('notifications.emptyState')}</p>
+        {loading ? (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center text-gray-400">
+            {t('notifications.loading')}
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 text-center text-gray-400">
+            <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
+              <Bell className="w-7 h-7 opacity-70" />
             </div>
-          ) : (
-            notifications.map((notification) => {
-              const row = (
+            <p>{t('notifications.emptyState')}</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((notification) => {
+              const { Icon, className: badgeClassName } = getTypeBadge(notification.type, notification.isRead);
+
+              const content = (
                 <div
-                  className={`p-4 border-b border-gray-800 cursor-pointer transition-colors ${
+                  className={`group bg-gray-900 border border-gray-800 rounded-2xl p-4 transition-colors ${
                     notification.isRead
-                      ? 'hover:bg-gray-800/50'
-                      : 'bg-[#00f0ff]/5 hover:bg-[#00f0ff]/10'
+                      ? 'hover:bg-gray-900/70'
+                      : 'bg-gradient-to-r from-[#00f0ff]/5 to-transparent hover:from-[#00f0ff]/10'
                   }`}
                   onClick={() => {
                     if (!notification.isRead) {
@@ -154,21 +196,25 @@ export default function NotificacionesPage() {
                     }
                   }}
                 >
-                  <div className="flex items-start gap-2">
-                    {!notification.isRead && (
-                      <div className="w-2 h-2 rounded-full bg-[#00f0ff] mt-2 flex-shrink-0" />
-                    )}
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center flex-shrink-0 ${badgeClassName}`}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium text-sm">
-                        {notification.title}
-                      </p>
-                      <p className="text-gray-400 text-xs mt-1">
+                      <div className="flex items-center gap-2">
+                        {!notification.isRead ? (
+                          <span className="w-2 h-2 rounded-full bg-[#00f0ff] flex-shrink-0" />
+                        ) : null}
+                        <p className="text-white font-semibold text-sm truncate">
+                          {notification.title}
+                        </p>
+                      </div>
+                      <p className="text-gray-400 text-sm mt-1">
                         {notification.message}
                       </p>
-                      <p className="text-gray-500 text-xs mt-1">
-                        {formatDistanceToNow(new Date(notification.createdAt), {
-                          addSuffix: true,
-                        })}
+                      <p className="text-gray-500 text-xs mt-2">
+                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </p>
                     </div>
                   </div>
@@ -187,15 +233,15 @@ export default function NotificacionesPage() {
                       }
                     }}
                   >
-                    {row}
+                    {content}
                   </Link>
                 );
               }
 
-              return <div key={notification.id}>{row}</div>;
-            })
-          )}
-        </div>
+              return <div key={notification.id}>{content}</div>;
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

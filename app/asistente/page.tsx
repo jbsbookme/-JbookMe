@@ -343,7 +343,7 @@ export default function AsistentePage() {
     <div className="min-h-screen bg-black">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <HistoryBackButton
@@ -354,8 +354,8 @@ export default function AsistentePage() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </HistoryBackButton>
-              <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center">
-                <Bot className="w-6 h-6 text-black" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-cyan-500 flex items-center justify-center">
+                <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">{t('assistant.title')}</h1>
@@ -397,11 +397,11 @@ export default function AsistentePage() {
       </div>
 
       {/* Chat Container */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-160px)]">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-140px)]">
           {/* Messages */}
           <ScrollArea className="flex-1">
-            <div className="p-4 pt-12 space-y-4">
+            <div className="p-4 pt-10 space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -418,13 +418,13 @@ export default function AsistentePage() {
                   )}
 
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[80%] rounded-lg px-3 py-2 ${
                       message.role === 'user'
                         ? 'bg-cyan-500 text-black'
                         : 'bg-gray-800 text-white'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                   </div>
 
                   {message.role === 'user' && (
