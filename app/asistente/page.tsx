@@ -340,9 +340,12 @@ export default function AsistentePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-[100dvh] bg-black flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div
+        className="sticky top-0 z-40 bg-black/90 backdrop-blur-sm border-b border-gray-800"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+      >
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -364,7 +367,7 @@ export default function AsistentePage() {
                 </p>
               </div>
             </div>
-            
+
             {/* Voice controls */}
             <div className="flex items-center gap-2">
               <Button
@@ -372,15 +375,15 @@ export default function AsistentePage() {
                 size="icon"
                 onClick={() => setAutoSpeak(!autoSpeak)}
                 className={`${
-                  autoSpeak 
-                    ? 'text-[#00f0ff] hover:text-[#00d0df]' 
+                  autoSpeak
+                    ? 'text-[#00f0ff] hover:text-[#00d0df]'
                     : 'text-gray-400 hover:text-gray-300'
                 }`}
                 title={autoSpeak ? t('assistant.disableVoiceResponse') : t('assistant.enableVoiceResponse')}
               >
                 {autoSpeak ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
               </Button>
-              
+
               {isSpeaking && (
                 <Button
                   variant="ghost"
@@ -396,12 +399,11 @@ export default function AsistentePage() {
         </div>
       </div>
 
-      {/* Chat Container */}
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-140px)]">
-          {/* Messages */}
-          <ScrollArea className="flex-1">
-            <div className="h-full p-4 space-y-4 flex flex-col justify-end">
+      {/* Chat */}
+      <div className="flex-1 min-h-0 max-w-4xl mx-auto w-full px-4 py-4 flex flex-col gap-3">
+        <Card className="bg-gray-900 border-gray-800 flex flex-col flex-1 min-h-0">
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="min-h-full p-4 space-y-4 flex flex-col justify-end">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -449,50 +451,50 @@ export default function AsistentePage() {
                   </div>
                 </div>
               )}
-              
-              {/* Scroll anchor */}
+
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
-
-          {/* Input */}
-          <div className="border-t border-gray-800 p-3">
-            <div className="flex gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
-                disabled={isLoading || isListening}
-                className="flex-1 h-8 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
-              />
-              
-              {/* Voice input button */}
-              <Button
-                onClick={isListening ? stopListening : startListening}
-                disabled={isLoading}
-                variant="outline"
-                className={`${
-                  isListening 
-                    ? 'bg-red-500 hover:bg-red-600 border-red-500 animate-pulse' 
-                    : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
-                }`}
-                title={isListening ? 'Stop recording' : 'Speak'}
-              >
-                <Mic className={`w-4 h-4 ${isListening ? 'text-white' : 'text-[#00f0ff]'}`} />
-              </Button>
-              
-              {/* Send button */}
-              <Button
-                onClick={handleSend}
-                disabled={!input.trim() || isLoading}
-                className="bg-cyan-500 hover:bg-cyan-600 text-black"
-              >
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
         </Card>
+
+        {/* Composer (sticky) */}
+        <div
+          className="sticky bottom-0 z-30 bg-gray-900/95 backdrop-blur border border-gray-800 rounded-2xl p-3"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)' }}
+        >
+          <div className="flex gap-2">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
+              disabled={isLoading || isListening}
+              className="flex-1 h-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
+            />
+
+            <Button
+              onClick={isListening ? stopListening : startListening}
+              disabled={isLoading}
+              variant="outline"
+              className={`${
+                isListening
+                  ? 'bg-red-500 hover:bg-red-600 border-red-500 animate-pulse'
+                  : 'bg-gray-800 hover:bg-gray-700 border-gray-700'
+              }`}
+              title={isListening ? 'Stop recording' : 'Speak'}
+            >
+              <Mic className={`w-4 h-4 ${isListening ? 'text-white' : 'text-[#00f0ff]'}`} />
+            </Button>
+
+            <Button
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="bg-cyan-500 hover:bg-cyan-600 text-black h-9"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
