@@ -7,6 +7,7 @@ import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Star, Send } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -111,7 +112,7 @@ export default function LeaveReviewPage() {
 
   if (status === 'loading' || !appointment) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="min-h-screen bg-black">
         <DashboardNavbar />
         <div className="flex items-center justify-center py-20">
           <p className="text-white">Loading...</p>
@@ -121,20 +122,20 @@ export default function LeaveReviewPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-black pb-20">
       <DashboardNavbar />
 
-      <main className="container mx-auto px-4 py-12 max-w-2xl">
+      <main className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Leave a <span className="text-[#ffd700]">Review</span>
+            Leave a <span className="text-[#00f0ff]">Review</span>
           </h1>
           <p className="text-gray-400">
             Share your experience with {appointment.barber?.user?.name || 'the barber'}
           </p>
         </div>
 
-        <Card className="bg-[#1a1a1a] border-gray-800">
+        <Card className="bg-gray-900 border-gray-800">
           <CardHeader>
             <CardTitle className="text-white">Your feedback matters</CardTitle>
             <CardDescription className="text-gray-400">
@@ -157,9 +158,9 @@ export default function LeaveReviewPage() {
                       className="transition-transform hover:scale-110 focus:outline-none"
                     >
                       <Star
-                        className={`w-12 h-12 transition-colors ${
+                        className={`w-10 h-10 sm:w-12 sm:h-12 transition-colors ${
                           star <= (hoveredRating || rating)
-                            ? 'text-[#ffd700] fill-current'
+                            ? 'text-[#00f0ff] fill-current'
                             : 'text-gray-600'
                         }`}
                       />
@@ -167,7 +168,7 @@ export default function LeaveReviewPage() {
                   ))}
                 </div>
                 {rating > 0 && (
-                  <p className="text-center text-[#ffd700] font-semibold">
+                  <p className="text-center text-[#00f0ff] font-semibold">
                     {rating === 1 && 'Very bad'}
                     {rating === 2 && 'Bad'}
                     {rating === 3 && 'Okay'}
@@ -182,13 +183,13 @@ export default function LeaveReviewPage() {
                 <Label htmlFor="comment" className="text-gray-300">
                   Comment (optional)
                 </Label>
-                <textarea
+                <Textarea
                   id="comment"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   rows={5}
                   placeholder="Tell us about your experience..."
-                  className="w-full px-4 py-3 bg-[#0a0a0a] border border-gray-700 rounded-md text-white focus:border-[#ffd700] focus:ring-1 focus:ring-[#ffd700] outline-none resize-none"
+                  className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 resize-none focus-visible:ring-[#00f0ff] focus-visible:ring-offset-0"
                 />
               </div>
 
@@ -196,7 +197,7 @@ export default function LeaveReviewPage() {
               <Button
                 type="submit"
                 disabled={loading || rating === 0}
-                className="w-full bg-gradient-to-r from-[#ffd700] to-[#ffb700] text-black hover:opacity-90 gold-glow text-lg py-6"
+                className="w-full bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90 neon-glow text-lg py-6"
               >
                 {loading ? (
                   'Sending...'

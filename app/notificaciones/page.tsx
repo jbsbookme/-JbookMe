@@ -97,7 +97,7 @@ export default function NotificacionesPage() {
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800">
-        <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto px-4 py-5">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
               <HistoryBackButton
@@ -130,8 +130,8 @@ export default function NotificacionesPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="max-w-3xl mx-auto px-4 py-6">
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
           {loading ? (
             <div className="p-6 text-center text-gray-400">{t('notifications.loading')}</div>
           ) : notifications.length === 0 ? (

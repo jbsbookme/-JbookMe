@@ -135,13 +135,13 @@ export default function MenuPage() {
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
       <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-5 max-w-4xl">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">{t('common.menu')}</h1>
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-[#00f0ff]"
+              className="text-gray-400 hover:text-[#00f0ff] hover:bg-transparent"
               aria-label={t('common.back')}
               onClick={() => {
                 if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -157,7 +157,7 @@ export default function MenuPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className="container mx-auto px-4 py-5 space-y-5 max-w-4xl">
         {/* User */}
         {session?.user && (
           <Card className="bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10 border-[#00f0ff]/30">
