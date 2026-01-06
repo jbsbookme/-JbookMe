@@ -87,15 +87,15 @@ export default function BarberosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-6">
+      <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-2">
         {/* Skeleton Loading */}
-        <main className="container mx-auto px-4 py-6 max-w-7xl">
+        <main className="container mx-auto px-4 py-4 max-w-7xl">
           <HistoryBackButton
             fallbackHref="/menu"
             variant="ghost"
             size="icon"
             aria-label="Back"
-            className="mb-6 text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
+            className="mb-4 text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
           >
             <ArrowLeft className="w-5 h-5" />
           </HistoryBackButton>
@@ -127,14 +127,14 @@ export default function BarberosPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-6">
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
+    <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-2">
+      <main className="container mx-auto px-4 py-4 max-w-7xl">
         <HistoryBackButton
           fallbackHref="/menu"
           variant="ghost"
           size="icon"
           aria-label="Back"
-          className="mb-6 text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
+          className="mb-4 text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
         >
           <ArrowLeft className="w-5 h-5" />
         </HistoryBackButton>
