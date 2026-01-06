@@ -234,8 +234,8 @@ export default function InboxPage() {
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4 min-w-0">
               <HistoryBackButton
                 fallbackHref="/menu"
                 variant="ghost"
@@ -244,21 +244,22 @@ export default function InboxPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </HistoryBackButton>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#00f0ff] flex items-center justify-center">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-[#00f0ff] flex items-center justify-center flex-shrink-0">
                   <MessageSquare className="h-6 w-6 text-black" />
                 </div>
-                <div>
-                  <h1 className="text-2xl font-bold">{t('inbox.title')}</h1>
-                  <p className="text-sm text-gray-400">{t('inbox.subtitle')}</p>
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-bold truncate">{t('inbox.title')}</h1>
+                  <p className="text-sm text-gray-400 truncate">{t('inbox.subtitle')}</p>
                 </div>
               </div>
             </div>
+
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-[#00f0ff] text-black font-semibold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]">
-                  <Send className="h-4 w-4 mr-2" />
-                  {t('inbox.compose')}
+                <Button className="w-full sm:w-auto bg-[#00f0ff] text-black font-semibold hover:opacity-90 shadow-[0_0_20px_rgba(0,240,255,0.5)]">
+                  <Send className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('inbox.compose')}</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-[#111111] border-gray-800 text-white sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -371,7 +372,7 @@ export default function InboxPage() {
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="received" className="space-y-5">
-          <TabsList className="w-full bg-[#111111] border border-gray-800 rounded-xl p-1 grid grid-cols-2">
+          <TabsList className="w-full bg-black/40 border border-[#00f0ff]/20 rounded-xl p-1 grid grid-cols-2">
             <TabsTrigger value="received" className="rounded-lg data-[state=active]:bg-[#00f0ff] data-[state=active]:text-black">
               <Inbox className="h-4 w-4 mr-2" />
               {t('inbox.received')}
@@ -388,7 +389,7 @@ export default function InboxPage() {
           {/* Received Messages */}
           <TabsContent value="received">
             {receivedMessages.length === 0 ? (
-              <Card className="bg-[#111111] border-gray-800">
+              <Card className="bg-black/40 border border-[#00f0ff]/20">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Mail className="h-16 w-16 text-gray-600 mb-4" />
                   <p className="text-gray-400 text-center">{t('inbox.noReceivedMessages')}</p>
@@ -399,8 +400,8 @@ export default function InboxPage() {
                 {receivedMessages.map((message) => (
                   <Card
                     key={message.id}
-                    className={`bg-[#111111] border-gray-800 hover:border-[#00f0ff] transition-colors cursor-pointer ${
-                      !message.read ? 'border-[#00f0ff]/60 shadow-[0_0_0_1px_rgba(0,240,255,0.25)]' : ''
+                    className={`bg-black/40 border border-gray-800 hover:border-[#00f0ff]/60 transition-colors cursor-pointer ${
+                      !message.read ? 'border-[#00f0ff]/60 shadow-[0_0_20px_rgba(0,240,255,0.08)]' : ''
                     }`}
                     onClick={() => !message.read && markAsRead(message.id)}
                   >
@@ -434,9 +435,9 @@ export default function InboxPage() {
                             </div>
                           )}
                           {message.appointment && (
-                            <div className="mt-2 p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
+                            <div className="mt-2 p-3 bg-black/40 rounded-lg border border-[#00f0ff]/20">
                               <p className="text-sm text-gray-400">{t('inbox.relatedAppointment')}:</p>
-                              <p className="text-sm font-medium text-[#ffd700]">
+                              <p className="text-sm font-medium text-[#00f0ff]">
                                 {message.appointment.service.name} - {message.appointment.date} at {message.appointment.time}
                               </p>
                             </div>
@@ -453,7 +454,7 @@ export default function InboxPage() {
           {/* Sent Messages */}
           <TabsContent value="sent">
             {sentMessages.length === 0 ? (
-              <Card className="bg-[#111111] border-gray-800">
+              <Card className="bg-black/40 border border-[#00f0ff]/20">
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <MailOpen className="h-16 w-16 text-gray-600 mb-4" />
                   <p className="text-gray-400 text-center">{t('inbox.noSentMessages')}</p>
@@ -464,7 +465,7 @@ export default function InboxPage() {
                 {sentMessages.map((message) => (
                   <Card
                     key={message.id}
-                    className="bg-[#111111] border-gray-800 hover:border-[#00f0ff] transition-colors"
+                    className="bg-black/40 border border-gray-800 hover:border-[#00f0ff]/60 transition-colors"
                   >
                     <CardContent className="p-6">
                       <div className="flex items-start gap-4">
@@ -491,7 +492,7 @@ export default function InboxPage() {
                             </div>
                           )}
                           {message.appointment && (
-                            <div className="mt-2 p-3 bg-[#1a1a1a] rounded-lg border border-gray-700">
+                            <div className="mt-2 p-3 bg-black/40 rounded-lg border border-[#00f0ff]/20">
                               <p className="text-sm text-gray-400">{t('inbox.relatedAppointment')}:</p>
                               <p className="text-sm font-medium text-[#00f0ff]">
                                 {message.appointment.service.name} - {message.appointment.date} at {message.appointment.time}
