@@ -70,11 +70,6 @@ export default function BarberUploadPage() {
       return;
     }
 
-    if (!caption.trim()) {
-      toast.error('Please add a caption');
-      return;
-    }
-
     setIsUploading(true);
 
     try {
@@ -102,16 +97,21 @@ export default function BarberUploadPage() {
       const { uploadUrl, cloud_storage_path } = await presignRes.json();
 
       // 2) Upload directly to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': selectedFile.type,
-        },
-        body: selectedFile,
-      });
+      try {
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': selectedFile.type,
+          },
+          body: selectedFile,
+        });
 
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed (S3)');
+        if (!uploadRes.ok) {
+          throw new Error('Upload failed (S3)');
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(msg.includes('Failed to fetch') ? 'Upload blocked by browser (CORS)' : msg);
       }
 
       // 3) Create post record (no file body)

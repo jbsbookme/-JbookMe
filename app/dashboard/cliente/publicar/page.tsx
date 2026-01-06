@@ -76,11 +76,6 @@ export default function ClientUploadPage() {
       return;
     }
 
-    if (!caption.trim()) {
-      toast.error('Please add a caption');
-      return;
-    }
-
     setIsUploading(true);
 
     try {
@@ -108,16 +103,22 @@ export default function ClientUploadPage() {
       const { uploadUrl, cloud_storage_path } = await presignRes.json();
 
       // 2) Upload directly to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': selectedFile.type,
-        },
-        body: selectedFile,
-      });
+      try {
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': selectedFile.type,
+          },
+          body: selectedFile,
+        });
 
-      if (!uploadRes.ok) {
-        throw new Error('Upload failed (S3)');
+        if (!uploadRes.ok) {
+          throw new Error('Upload failed (S3)');
+        }
+      } catch (e) {
+        // Most common client-side failure here is S3 CORS blocking the PUT.
+        const msg = e instanceof Error ? e.message : String(e);
+        throw new Error(msg.includes('Failed to fetch') ? 'Upload blocked by browser (CORS)' : msg);
       }
 
       // 3) Create post record (no file body)
@@ -284,9 +285,6 @@ export default function ClientUploadPage() {
                     >
                       <X className="w-4 h-4" />
                     </Button>
-                    <div className="absolute bottom-2 left-2 bg-black/70 px-3 py-1 rounded-full text-xs text-white">
-                      {fileType === 'image' ? '📷 Photo' : '🎥 Video'}
-                    </div>
                   </div>
                 )}
                 <input
@@ -300,7 +298,7 @@ export default function ClientUploadPage() {
 
               {/* Caption */}
               <div>
-                <Label htmlFor="caption" className="text-white font-semibold">{t('client.description')} *</Label>
+                <Label htmlFor="caption" className="text-white font-semibold">{t('client.description')}</Label>
                 <Textarea
                   id="caption"
                   placeholder={t('client.descriptionPlaceholder')}
@@ -342,7 +340,7 @@ export default function ClientUploadPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={status !== 'authenticated' || isUploading || !selectedFile || !caption.trim()}
+                  disabled={status !== 'authenticated' || isUploading || !selectedFile}
                   className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 disabled:opacity-50"
                 >
                   {isUploading ? (

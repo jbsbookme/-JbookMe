@@ -6,6 +6,13 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createS3Client, getBucketConfig } from '@/lib/aws-config';
 import { isBarberOrStylist } from '@/lib/auth/role-utils';
 
+const extractRegionFromBucket = (name: string): string => {
+  const regionMatch = name.match(
+    /(us|eu|ap|sa|ca|me|af)-(north|south|east|west|central|southeast|northeast)-\d+/
+  );
+  return regionMatch ? regionMatch[0] : 'us-east-1';
+};
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -46,6 +53,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { bucketName, folderPrefix } = getBucketConfig();
+
+    // Ensure region is set for AWS SDK.
+    if (!process.env.AWS_REGION) {
+      process.env.AWS_REGION = extractRegionFromBucket(bucketName);
+    }
     const s3Client = createS3Client();
 
     const now = new Date();

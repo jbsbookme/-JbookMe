@@ -139,12 +139,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!caption || !caption.trim()) {
-      return NextResponse.json(
-        { error: 'Caption is required' },
-        { status: 400 }
-      );
-    }
+    // Caption is optional.
 
     if (file) {
       if (!file.type?.startsWith('image/') && !file.type?.startsWith('video/')) {
@@ -271,7 +266,7 @@ export async function POST(request: NextRequest) {
         authorType,
         postType,
         cloud_storage_path,
-        caption: caption.trim(),
+        caption: caption?.trim() ? caption.trim() : null,
         hashtags: hashtagsArray,
         barberId: finalBarberId || null,
         status: 'APPROVED' // Auto-approve - no moderation needed
