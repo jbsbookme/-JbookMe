@@ -97,8 +97,8 @@ export default function ResenasPage() {
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
-      <div className="border-b border-gray-800">
-        <div className="container mx-auto px-4 py-6">
+      <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800">
+        <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4 mb-4">
               <HistoryBackButton
                 fallbackHref="/menu"
@@ -116,7 +116,7 @@ export default function ResenasPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Stats Overview */}
         <Card className="bg-gray-900 border-gray-800 p-6 mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

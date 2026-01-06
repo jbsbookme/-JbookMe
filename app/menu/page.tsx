@@ -25,8 +25,6 @@ import {
   User as UserIcon,
   ChevronRight,
   Share2,
-  RefreshCw,
-  XCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -229,7 +227,7 @@ export default function MenuPage() {
                 </div>
               </Link>
 
-              <Link href="/galeria" className="block">
+              <Link href="/galeria-genero" className="block">
                 <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
@@ -259,7 +257,7 @@ export default function MenuPage() {
                     <div className="w-10 h-10 rounded-full bg-[#00f0ff]/20 flex items-center justify-center">
                       <Bell className="w-5 h-5 text-[#00f0ff]" />
                     </div>
-                      <span className="text-white">Notifications</span>
+                      <span className="text-white">{t('notifications.title')}</span>
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-500" />
                 </div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Bell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 import { Button } from '@/components/ui/button';
 import { HistoryBackButton } from '@/components/layout/history-back-button';
@@ -23,6 +24,7 @@ interface Notification {
 export default function NotificacionesPage() {
   const router = useRouter();
   const { data: session, status } = useSession() || {};
+  const { t } = useI18n();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -84,7 +86,7 @@ export default function NotificacionesPage() {
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-gray-400">Loading…</div>
+        <div className="text-gray-400">{t('notifications.loading')}</div>
       </div>
     );
   }
@@ -93,50 +95,49 @@ export default function NotificacionesPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <HistoryBackButton
-          fallbackHref="/menu"
-          variant="ghost"
-          size="icon"
-          aria-label="Back"
-          className="mb-4 text-gray-400 hover:text-white hover:bg-gray-800/50"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </HistoryBackButton>
+      {/* Header */}
+      <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <HistoryBackButton
+                fallbackHref="/menu"
+                variant="ghost"
+                size="icon"
+                aria-label={t('common.back')}
+                className="text-gray-400 hover:text-white hover:bg-gray-800/50"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </HistoryBackButton>
+              <div className="min-w-0">
+                <h1 className="text-white text-xl font-semibold">{t('notifications.title')}</h1>
+                <p className="text-gray-400 text-sm truncate">
+                  {unreadCount > 0 ? `${unreadCount} ${t('notifications.unread')}` : t('notifications.allCaughtUp')}
+                </p>
+              </div>
+            </div>
 
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#00f0ff]/20 flex items-center justify-center">
-              <Bell className="w-5 h-5 text-[#00f0ff]" />
-            </div>
-            <div>
-              <h1 className="text-white text-xl font-semibold">Notifications</h1>
-              <p className="text-gray-400 text-sm">
-                {unreadCount > 0
-                  ? `${unreadCount} unread`
-                  : 'All caught up'}
-              </p>
-            </div>
+            {unreadCount > 0 && (
+              <Button
+                variant="ghost"
+                onClick={() => markAsRead()}
+                className="text-[#00f0ff] hover:bg-transparent"
+              >
+                {t('notifications.markAllRead')}
+              </Button>
+            )}
           </div>
-
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              onClick={() => markAsRead()}
-              className="text-[#00f0ff] hover:bg-transparent"
-            >
-              Mark all as read
-            </Button>
-          )}
         </div>
+      </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
           {loading ? (
-            <div className="p-6 text-center text-gray-400">Loading…</div>
+            <div className="p-6 text-center text-gray-400">{t('notifications.loading')}</div>
           ) : notifications.length === 0 ? (
             <div className="p-10 text-center text-gray-400">
               <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p>You don’t have any notifications yet</p>
+              <p>{t('notifications.emptyState')}</p>
             </div>
           ) : (
             notifications.map((notification) => {
