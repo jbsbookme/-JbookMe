@@ -65,8 +65,8 @@ export default function UbicacionPage() {
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
-      <div className="border-b border-gray-800">
-        <div className="container mx-auto px-4 py-6">
+      <div className="border-b border-gray-800 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-5">
           <div className="flex items-center gap-4 mb-4">
             <HistoryBackButton
               fallbackHref="/menu"
@@ -77,7 +77,11 @@ export default function UbicacionPage() {
               <ArrowLeft className="w-5 h-5" />
             </HistoryBackButton>
             <div>
-              <h1 className="text-3xl font-bold text-white">{t('location.title')}</h1>
+              <h1 className="text-3xl font-bold">
+                <span className="bg-gradient-to-r from-[#00f0ff] via-[#00d4ff] to-[#0099cc] bg-clip-text text-transparent">
+                  {t('location.title')}
+                </span>
+              </h1>
             </div>
           </div>
           <p className="text-gray-400">{t('location.findEasily')}</p>
@@ -87,7 +91,7 @@ export default function UbicacionPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Map */}
-          <Card className="bg-gray-900 border-gray-800 overflow-hidden">
+          <Card className="bg-gray-900 border-gray-800 overflow-hidden rounded-2xl">
             <div className="relative aspect-video bg-gray-800">
               {settings?.latitude && settings?.longitude ? (
                 <iframe
@@ -109,7 +113,7 @@ export default function UbicacionPage() {
 
           {/* Contact Info */}
           <div className="space-y-6">
-            <Card className="bg-gray-900 border-gray-800 p-6">
+            <Card className="bg-gray-900 border-gray-800 p-6 rounded-2xl">
               <h2 className="text-2xl font-bold text-white mb-6">{t('location.contactInfo')}</h2>
               
               <div className="space-y-4">

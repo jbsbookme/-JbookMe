@@ -296,7 +296,7 @@ export default function MenuPage() {
             <button
               type="button"
               onClick={() => setContactExpanded((v) => !v)}
-              className="w-full flex items-center justify-between px-2 mb-3"
+              className="w-full flex items-center justify-between px-4 py-3 mb-3 rounded-2xl border border-gray-800 bg-gray-900/40 hover:border-[#00f0ff]/30 transition-colors"
               aria-expanded={contactExpanded}
               aria-controls="contact-panel"
             >
@@ -307,10 +307,10 @@ export default function MenuPage() {
             </button>
 
             {contactExpanded && (
-              <Card className="bg-gray-900 border-gray-800" id="contact-panel">
+              <Card className="bg-gray-900 border-gray-800 rounded-2xl" id="contact-panel">
                 <CardContent className="p-4 space-y-4">
                   <div className="flex items-start gap-3">
-                    <MapPin className="w-5 h-5 text-[#ffd700] mt-0.5" />
+                    <MapPin className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.address')}</p>
                       <p className="text-white">{settings.address || '123 Main Street, City'}</p>
@@ -318,12 +318,12 @@ export default function MenuPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Phone className="w-5 h-5 text-[#ffd700] mt-0.5" />
+                    <Phone className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.phone')}</p>
                       <a
                         href={`tel:${settings.phone || '+15551234567'}`}
-                        className="text-[#00f0ff] hover:underline"
+                        className="text-white hover:text-[#00f0ff]"
                       >
                         {settings.phone || '+1 (555) 123-4567'}
                       </a>
@@ -331,12 +331,12 @@ export default function MenuPage() {
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Mail className="w-5 h-5 text-[#ffd700] mt-0.5" />
+                    <Mail className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.email')}</p>
                       <a
                         href={`mailto:${settings.email || 'info@bookme.com'}`}
-                        className="text-[#00f0ff] hover:underline"
+                        className="text-white hover:text-[#00f0ff]"
                       >
                         {settings.email || 'info@bookme.com'}
                       </a>
@@ -353,7 +353,7 @@ export default function MenuPage() {
           <button
             type="button"
             onClick={() => setHoursExpanded((v) => !v)}
-            className="w-full flex items-center justify-between px-2 mb-3"
+            className="w-full flex items-center justify-between px-4 py-3 mb-3 rounded-2xl border border-gray-800 bg-gray-900/40 hover:border-[#00f0ff]/30 transition-colors"
             aria-expanded={hoursExpanded}
             aria-controls="hours-panel"
           >
@@ -364,10 +364,10 @@ export default function MenuPage() {
           </button>
 
           {hoursExpanded && (
-            <Card className="bg-gray-900 border-gray-800" id="hours-panel">
+            <Card className="bg-gray-900 border-gray-800 rounded-2xl" id="hours-panel">
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center gap-3 mb-3">
-                  <Clock className="w-5 h-5 text-[#ffd700]" />
+                  <Clock className="w-5 h-5 text-[#00f0ff]" />
                   <p className="text-white font-semibold">{t('common.businessHours')}</p>
                 </div>
 
