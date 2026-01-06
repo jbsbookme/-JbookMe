@@ -401,7 +401,7 @@ export default function AsistentePage() {
         <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-160px)]">
           {/* Messages */}
           <ScrollArea className="flex-1">
-            <div className="p-4 pt-8 space-y-4">
+            <div className="p-4 pt-12 space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -464,7 +464,7 @@ export default function AsistentePage() {
                 onKeyPress={handleKeyPress}
                 placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
                 disabled={isLoading || isListening}
-                className="flex-1 h-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
+                className="flex-1 h-8 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
               />
               
               {/* Voice input button */}

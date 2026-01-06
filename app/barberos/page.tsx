@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Calendar, User, Star, Facebook, Instagram, Music2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Star, Facebook, Instagram, Music2, Phone, MessageCircle } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { HistoryBackButton } from '@/components/layout/history-back-button';
 
@@ -16,11 +16,14 @@ interface Barber {
   facebookUrl?: string | null;
   instagramUrl?: string | null;
   tiktokUrl?: string | null;
+  whatsappUrl?: string | null;
+  phone?: string | null;
   avgRating?: number;
   totalReviews?: number;
   user?: {
     name?: string | null;
     image?: string | null;
+    phone?: string | null;
   };
   specialties?: string | null;
   bio?: string | null;
@@ -61,6 +64,13 @@ export default function BarberosPage() {
     return `https://${trimmed}`;
   };
 
+  const normalizePhone = (phone: string | null | undefined) => {
+    const trimmed = phone?.trim();
+    if (!trimmed) return null;
+    const cleaned = trimmed.replace(/[^\d+]/g, '');
+    return cleaned || null;
+  };
+
   const renderStars = () => {
     return (
       <div className="flex items-center gap-1">
@@ -79,7 +89,7 @@ export default function BarberosPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-16">
         {/* Skeleton Loading */}
-        <main className="container mx-auto px-4 py-12 max-w-7xl">
+        <main className="container mx-auto px-4 py-6 max-w-7xl">
           <HistoryBackButton
             fallbackHref="/menu"
             variant="ghost"
@@ -118,7 +128,7 @@ export default function BarberosPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-16">
-      <main className="container mx-auto px-4 py-12 max-w-7xl">
+      <main className="container mx-auto px-4 py-6 max-w-7xl">
         <HistoryBackButton
           fallbackHref="/menu"
           variant="ghost"
@@ -129,8 +139,8 @@ export default function BarberosPage() {
           <ArrowLeft className="w-5 h-5" />
         </HistoryBackButton>
 
-        <div className="mb-10">
-          <div className="text-center mb-10">
+        <div className="mb-6">
+          <div className="text-center mb-8">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">
               <span className="bg-gradient-to-r from-[#00f0ff] via-[#00d4ff] to-[#0099cc] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,240,255,0.5)]">
                 {t('barbers.ourTeam')}
@@ -155,6 +165,13 @@ export default function BarberosPage() {
                 const fbHref = normalizeUrl(barber.facebookUrl);
                 const igHref = normalizeUrl(barber.instagramUrl);
                 const ttHref = normalizeUrl(barber.tiktokUrl);
+
+                const phoneRaw = barber.phone || barber.user?.phone || null;
+                const phoneForLinks = normalizePhone(phoneRaw);
+                const telHref = phoneForLinks ? `tel:${phoneForLinks}` : null;
+                const chatHref = normalizeUrl(barber.whatsappUrl) || (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
+                const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
+                const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
 
                 const avg = typeof barber.avgRating === 'number' ? barber.avgRating : 0;
                 const reviews = typeof barber.totalReviews === 'number' ? barber.totalReviews : 0;
@@ -197,11 +214,7 @@ export default function BarberosPage() {
                                 <p className="text-[#00f0ff] text-sm sm:text-base mt-2 line-clamp-2">{barber.specialties}</p>
                               ) : null}
                             </div>
-                            {barber.hourlyRate ? (
-                              <div className="text-[#00f0ff] text-xl sm:text-2xl font-bold whitespace-nowrap">
-                                ${barber.hourlyRate}/hour
-                              </div>
-                            ) : null}
+                            {/* Hourly rate removed from Team cards */}
                           </div>
 
                           <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-center md:justify-start">
@@ -219,48 +232,122 @@ export default function BarberosPage() {
                             <p className="text-gray-400 mt-5 text-sm sm:text-base line-clamp-3">{barber.bio}</p>
                           ) : null}
 
-                          {(fbHref || igHref || ttHref) ? (
-                            <div className="mt-6 flex gap-2 justify-center md:justify-start">
-                              {fbHref ? (
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  size="icon"
-                                  className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                                >
-                                  <a href={fbHref} aria-label="Facebook" target="_blank" rel="noreferrer noopener">
-                                    <Facebook className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              ) : null}
+                          <div className="mt-6 flex gap-2 justify-center md:justify-start flex-wrap">
+                            {telHref ? (
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="icon"
+                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                              >
+                                <a href={telHref} aria-label="Call">
+                                  <Phone className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                disabled
+                                className="border-gray-800 bg-black/10 text-gray-600"
+                                aria-label="Call (unavailable)"
+                              >
+                                <Phone className="h-4 w-4" />
+                              </Button>
+                            )}
 
-                              {igHref ? (
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  size="icon"
-                                  className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                                >
-                                  <a href={igHref} aria-label="Instagram" target="_blank" rel="noreferrer noopener">
-                                    <Instagram className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              ) : null}
+                            {chatHref ? (
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="icon"
+                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                              >
+                                <a href={chatHref} aria-label="Message" target={chatTarget} rel={chatRel}>
+                                  <MessageCircle className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                disabled
+                                className="border-gray-800 bg-black/10 text-gray-600"
+                                aria-label="Message (unavailable)"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            )}
 
-                              {ttHref ? (
-                                <Button
-                                  asChild
-                                  variant="outline"
-                                  size="icon"
-                                  className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                                >
-                                  <a href={ttHref} aria-label="TikTok" target="_blank" rel="noreferrer noopener">
-                                    <Music2 className="h-4 w-4" />
-                                  </a>
-                                </Button>
-                              ) : null}
-                            </div>
-                          ) : null}
+                            {fbHref ? (
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="icon"
+                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                              >
+                                <a href={fbHref} aria-label="Facebook" target="_blank" rel="noreferrer noopener">
+                                  <Facebook className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                disabled
+                                className="border-gray-800 bg-black/10 text-gray-600"
+                                aria-label="Facebook (unavailable)"
+                              >
+                                <Facebook className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {igHref ? (
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="icon"
+                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                              >
+                                <a href={igHref} aria-label="Instagram" target="_blank" rel="noreferrer noopener">
+                                  <Instagram className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                disabled
+                                className="border-gray-800 bg-black/10 text-gray-600"
+                                aria-label="Instagram (unavailable)"
+                              >
+                                <Instagram className="h-4 w-4" />
+                              </Button>
+                            )}
+
+                            {ttHref ? (
+                              <Button
+                                asChild
+                                variant="outline"
+                                size="icon"
+                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
+                              >
+                                <a href={ttHref} aria-label="TikTok" target="_blank" rel="noreferrer noopener">
+                                  <Music2 className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                disabled
+                                className="border-gray-800 bg-black/10 text-gray-600"
+                                aria-label="TikTok (unavailable)"
+                              >
+                                <Music2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
 
                           <div className="mt-6 flex justify-center md:justify-start">
                             <Link href={`/reservar?barberId=${barber.id}`} className="block w-full sm:w-auto">

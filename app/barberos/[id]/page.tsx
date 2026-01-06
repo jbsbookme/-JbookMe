@@ -235,7 +235,6 @@ export default async function BarberProfilePage({ params }: Params) {
                     barberId={barber.id}
                     initialAvgRating={avgRating}
                     initialReviewCount={barber.reviews.length}
-                    hourlyRate={barber.hourlyRate}
                   />
 
                   {/* Bio */}
