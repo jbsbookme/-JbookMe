@@ -439,6 +439,12 @@ export const translations = {
       editProfile: 'Editar Perfil',
       changePassword: 'Cambiar Contraseña',
       notifications: 'Notificaciones',
+
+      // Upload / publish
+      shareYourStyle: 'Comparte tu estilo',
+      shareDescription: 'Sube una foto o video y compártelo en el feed.',
+      descriptionPlaceholder: 'Describe tu look... (ej: "Fresh fade con barba")',
+      hashtagsPlaceholder: 'fade, lineup, barberlife (separa con espacios o comas)',
     },
 
     // Appointments
@@ -1710,6 +1716,12 @@ export const translations = {
       editProfile: 'Edit Profile',
       changePassword: 'Change Password',
       notifications: 'Notifications',
+
+      // Publish (client share)
+      shareYourStyle: 'Share your style',
+      shareDescription: 'Upload a photo or video and share it in the feed.',
+      descriptionPlaceholder: 'Describe your look... (e.g., "Fresh fade with beard lineup")',
+      hashtagsPlaceholder: 'fade, lineup, barberlife (separate with spaces or commas)',
 
       // Upload / publish UI (used by some dashboards)
       clickToUpload: 'Click to upload',
