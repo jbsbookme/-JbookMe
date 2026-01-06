@@ -16,6 +16,20 @@ type Params = {
 export default async function BarberProfilePage({ params }: Params) {
   const { id } = await params;
 
+  const getMediaUrl = (cloud_storage_path: string) => {
+    if (/^https?:\/\//i.test(cloud_storage_path)) {
+      return cloud_storage_path;
+    }
+
+    if (cloud_storage_path.startsWith('/')) {
+      return cloud_storage_path;
+    }
+
+    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
+    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+  };
+
   const barber = await prisma.barber.findUnique({
     where: { id },
     include: {
@@ -82,7 +96,7 @@ export default async function BarberProfilePage({ params }: Params) {
   const galleryImagesWithUrls = galleryImages.map((img) => ({
     id: img.id,
     title: img.title,
-    imageUrl: img.cloud_storage_path,
+    imageUrl: getMediaUrl(img.cloud_storage_path),
     likes: img.likes,
   }));
 
@@ -106,20 +120,6 @@ export default async function BarberProfilePage({ params }: Params) {
     take: 12,
   });
 
-  const getMediaUrl = (cloud_storage_path: string) => {
-    if (/^https?:\/\//i.test(cloud_storage_path)) {
-      return cloud_storage_path;
-    }
-
-    if (cloud_storage_path.startsWith('/')) {
-      return cloud_storage_path;
-    }
-
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
-  };
-
   const isVideo = (path: string): boolean => {
     return /\.(mp4|webm|ogg|mov)$/i.test(path);
   };
@@ -129,19 +129,19 @@ export default async function BarberProfilePage({ params }: Params) {
   const primaryGalleryImages = galleryImagesWithUrls.slice(0, 3);
   const moreGalleryImages = galleryImagesWithUrls.slice(3);
 
-  const phoneRaw = barber.phone?.trim() || null;
-  const phoneForLinks = phoneRaw ? phoneRaw.replace(/[^\d+]/g, '') : null;
-  const telHref = phoneForLinks ? `tel:${phoneForLinks}` : null;
-  const chatHref = barber.whatsappUrl?.trim() || (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
-  const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
-  const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
-
   const normalizeUrl = (url: string | null | undefined) => {
     const trimmed = url?.trim();
     if (!trimmed) return null;
     if (/^https?:\/\//i.test(trimmed)) return trimmed;
     return `https://${trimmed}`;
   };
+
+  const phoneRaw = barber.phone?.trim() || null;
+  const phoneForLinks = phoneRaw ? phoneRaw.replace(/[^\d+]/g, '') : null;
+  const telHref = phoneForLinks ? `tel:${phoneForLinks}` : null;
+  const chatHref = normalizeUrl(barber.whatsappUrl) || (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
+  const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
+  const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
 
   const fbHref = normalizeUrl(barber.facebookUrl);
   const igHref = normalizeUrl(barber.instagramUrl);
@@ -207,7 +207,7 @@ export default async function BarberProfilePage({ params }: Params) {
                   <div className="relative w-28 h-28 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-[#00f0ff]/60 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
                     {barber.profileImage || barber.user?.image ? (
                       <Image
-                        src={barber.profileImage || barber.user?.image || ''}
+                        src={getMediaUrl(barber.profileImage || barber.user?.image || '')}
                         alt={barber.user?.name || 'Barber'}
                         fill
                         sizes="192px"
@@ -346,7 +346,7 @@ export default async function BarberProfilePage({ params }: Params) {
                     <div className="flex items-center gap-3">
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-gray-700 bg-black/20">
                         {service.image ? (
-                          <Image src={service.image} alt={service.name} fill sizes="48px" className="object-cover" />
+                          <Image src={getMediaUrl(service.image)} alt={service.name} fill sizes="48px" className="object-cover" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center">
                             <Clock className="h-6 w-6 text-gray-600" />
@@ -399,7 +399,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-gray-700 bg-black/20">
                               {service.image ? (
                                 <Image
-                                  src={service.image}
+                                  src={getMediaUrl(service.image)}
                                   alt={service.name}
                                   fill
                                   sizes="48px"
