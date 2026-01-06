@@ -456,7 +456,7 @@ export default function AsistentePage() {
           </ScrollArea>
 
           {/* Input */}
-          <div className="border-t border-gray-800 p-4">
+          <div className="border-t border-gray-800 p-3">
             <div className="flex gap-2">
               <Input
                 value={input}
@@ -464,7 +464,7 @@ export default function AsistentePage() {
                 onKeyPress={handleKeyPress}
                 placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
                 disabled={isLoading || isListening}
-                className="flex-1 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                className="flex-1 h-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 text-sm"
               />
               
               {/* Voice input button */}
