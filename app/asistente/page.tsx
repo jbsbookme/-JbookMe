@@ -342,8 +342,8 @@ export default function AsistentePage() {
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
-      <div className="border-b border-gray-800" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="container mx-auto px-4 py-6">
+      <div className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+        <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <HistoryBackButton
@@ -358,9 +358,9 @@ export default function AsistentePage() {
                 <Bot className="w-6 h-6 text-black" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">{t('assistant.virtualAssistant')}</h1>
+                <h1 className="text-2xl font-bold text-white">{t('assistant.title')}</h1>
                 <p className="text-sm text-gray-400">
-                  {isSpeaking ? t('assistant.speaking') : t('assistant.hereToHelp')}
+                  {isSpeaking ? t('assistant.speaking') : t('assistant.subtitle')}
                 </p>
               </div>
             </div>
@@ -376,7 +376,7 @@ export default function AsistentePage() {
                     ? 'text-[#00f0ff] hover:text-[#00d0df]' 
                     : 'text-gray-400 hover:text-gray-300'
                 }`}
-                title={autoSpeak ? 'Disable voice reply' : 'Enable voice reply'}
+                title={autoSpeak ? t('assistant.disableVoiceResponse') : t('assistant.enableVoiceResponse')}
               >
                 {autoSpeak ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
               </Button>
@@ -388,7 +388,7 @@ export default function AsistentePage() {
                   onClick={stopSpeaking}
                   className="text-red-400 hover:text-red-500"
                 >
-                  Stop
+                  {t('assistant.stop')}
                 </Button>
               )}
             </div>
@@ -397,7 +397,7 @@ export default function AsistentePage() {
       </div>
 
       {/* Chat Container */}
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100vh-200px)]">
           {/* Messages */}
           <ScrollArea className="flex-1 p-4">

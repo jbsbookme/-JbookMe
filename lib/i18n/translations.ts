@@ -264,6 +264,7 @@ export const translations = {
     // Gallery
     gallery: {
       title: 'Inspírate',
+      chooseWhatToExplore: 'Elige lo que quieres explorar',
       allPhotos: 'Todas las Fotos',
       male: 'Estilos Masculinos',
       female: 'Estilos Femeninos',
@@ -1204,6 +1205,7 @@ export const translations = {
     // Gallery
     gallery: {
       title: 'Get Inspired',
+      chooseWhatToExplore: 'Choose what you want to explore',
       subtitle: 'Explore our work',
       men: 'Men',
       women: 'Women',

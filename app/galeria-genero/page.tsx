@@ -5,9 +5,11 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { User, Users, ArrowLeft } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 export default function GaleriaGeneroPage() {
   const router = useRouter();
+  const { t } = useI18n();
 
   const handleGenderSelect = (gender: 'MALE' | 'FEMALE') => {
     router.push(`/galeria?gender=${gender}`);
@@ -40,8 +42,8 @@ export default function GaleriaGeneroPage() {
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold">Gallery</h1>
-                <p className="text-xs sm:text-sm text-gray-400 break-words">Choose what you want to explore</p>
+                <h1 className="text-xl sm:text-2xl font-bold">{t('gallery.title')}</h1>
+                <p className="text-xs sm:text-sm text-gray-400 break-words">{t('gallery.chooseWhatToExplore')}</p>
               </div>
             </div>
 
@@ -50,7 +52,7 @@ export default function GaleriaGeneroPage() {
               onClick={() => router.push('/galeria')}
               className="border-gray-700 text-white hover:bg-[#111111] self-start sm:self-auto"
             >
-              View all
+              {t('common.viewAll')}
             </Button>
           </div>
         </div>
