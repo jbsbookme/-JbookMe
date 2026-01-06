@@ -84,10 +84,46 @@ export default function ClientUploadPage() {
     setIsUploading(true);
 
     try {
+      // 1) Presign upload (avoids serverless body size limits)
+      const presignRes = await fetch('/api/posts/presign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: selectedFile.name,
+          fileType: selectedFile.type,
+          fileSize: selectedFile.size,
+        }),
+      });
+
+      if (!presignRes.ok) {
+        let payload: any = null;
+        try {
+          payload = await presignRes.json();
+        } catch {
+          payload = { error: await presignRes.text() };
+        }
+        throw new Error(payload?.code ? `${payload.error} (${payload.code})` : (payload?.error || 'Failed to prepare upload'));
+      }
+
+      const { uploadUrl, cloud_storage_path } = await presignRes.json();
+
+      // 2) Upload directly to S3
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': selectedFile.type,
+        },
+        body: selectedFile,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Upload failed (S3)');
+      }
+
+      // 3) Create post record (no file body)
       const formData = new FormData();
-      formData.append('file', selectedFile);
       formData.append('caption', caption.trim());
-      formData.append('postType', 'CLIENT_SHARE');
+      formData.append('cloud_storage_path', cloud_storage_path);
       
       // Add hashtags as array
       const hashtagArray = hashtags
@@ -102,8 +138,13 @@ export default function ClientUploadPage() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to upload post');
+        let payload: any = null;
+        try {
+          payload = await res.json();
+        } catch {
+          payload = { error: await res.text() };
+        }
+        throw new Error(payload?.code ? `${payload.error} (${payload.code})` : (payload?.error || 'Failed to upload post'));
       }
 
       toast.success('Post published. Preparing to share...');

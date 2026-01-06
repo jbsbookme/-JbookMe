@@ -118,6 +118,7 @@ export async function POST(request: NextRequest) {
     const caption = formData.get('caption') as string;
     const hashtagsRaw = formData.get('hashtags') as string;
     const barberId = formData.get('barberId') as string;
+    const providedCloudPath = formData.get('cloud_storage_path') as string;
 
     console.log('[POST /api/posts] Received request:', {
       fileName: file?.name,
@@ -129,7 +130,9 @@ export async function POST(request: NextRequest) {
       userRole: session.user.role
     });
 
-    if (!file) {
+    const hasProvidedCloudPath = !!providedCloudPath && !!providedCloudPath.trim();
+
+    if (!file && !hasProvidedCloudPath) {
       return NextResponse.json(
         { error: 'Media (photo or video) is required' },
         { status: 400 }
@@ -143,19 +146,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.type?.startsWith('image/') && !file.type?.startsWith('video/')) {
-      return NextResponse.json(
-        { error: 'Only images and videos are allowed' },
-        { status: 400 }
-      );
-    }
+    if (file) {
+      if (!file.type?.startsWith('image/') && !file.type?.startsWith('video/')) {
+        return NextResponse.json(
+          { error: 'Only images and videos are allowed' },
+          { status: 400 }
+        );
+      }
 
-    // 50MB max (keeps parity with /api/posts/upload)
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'File is too large (max 50MB)' },
-        { status: 400 }
-      );
+      // 50MB max (keeps parity with /api/posts/upload)
+      if (file.size > 50 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: 'File is too large (max 50MB)' },
+          { status: 400 }
+        );
+      }
+    } else {
+      const cloudPath = providedCloudPath.trim();
+      if (cloudPath.startsWith('http') || cloudPath.startsWith('/')) {
+        return NextResponse.json(
+          { error: 'Invalid cloud_storage_path', code: 'BAD_CLOUD_PATH' },
+          { status: 400 }
+        );
+      }
     }
 
     // Parse hashtags - could be JSON array or comma-separated string
@@ -179,55 +192,61 @@ export async function POST(request: NextRequest) {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const typeFolder = postType.toLowerCase(); // barber_work or client_share
 
-    // Save file to S3 (preferred). Local filesystem fallback is only supported outside serverless.
+    // If media is already uploaded (presigned flow), use providedCloudPath.
+    // Otherwise upload here (legacy flow).
     let cloud_storage_path: string;
-    const buffer = Buffer.from(await file.arrayBuffer());
-    
-    try {
-      // Try to upload to S3 first with organized path
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const key = `posts/${year}/${month}/${typeFolder}/${Date.now()}-${sanitizedFileName}`;
-      console.log('[POST /api/posts] Attempting S3 upload with key:', key);
-      cloud_storage_path = await uploadFile(buffer, key, true, file.type || undefined);
-      console.log('[POST /api/posts] S3 upload successful, path:', cloud_storage_path);
-    } catch (s3Error) {
-      // If S3 fails, only allow local save in non-serverless environments (e.g. local dev).
-      const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
-      if (isServerless) {
-        console.error('[POST /api/posts] S3 upload failed in serverless environment:', s3Error);
-        return NextResponse.json(
-          { error: 'Error uploading media. Storage is not available right now.', code: 'S3_UPLOAD_FAILED' },
-          { status: 500 }
+    if (hasProvidedCloudPath && !file) {
+      cloud_storage_path = providedCloudPath.trim();
+    } else {
+      // Save file to S3 (preferred). Local filesystem fallback is only supported outside serverless.
+      const uploadBuffer = Buffer.from(await file.arrayBuffer());
+
+      try {
+        // Try to upload to S3 first with organized path
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const key = `posts/${year}/${month}/${typeFolder}/${Date.now()}-${sanitizedFileName}`;
+        console.log('[POST /api/posts] Attempting S3 upload with key:', key);
+        cloud_storage_path = await uploadFile(uploadBuffer, key, true, file.type || undefined);
+        console.log('[POST /api/posts] S3 upload successful, path:', cloud_storage_path);
+      } catch (s3Error) {
+        // If S3 fails, only allow local save in non-serverless environments (e.g. local dev).
+        const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
+        if (isServerless) {
+          console.error('[POST /api/posts] S3 upload failed in serverless environment:', s3Error);
+          return NextResponse.json(
+            { error: 'Error uploading media. Storage is not available right now.', code: 'S3_UPLOAD_FAILED' },
+            { status: 500 }
+          );
+        }
+
+        console.log('[POST /api/posts] S3 upload failed, saving locally (non-serverless):', s3Error);
+
+        const { writeFile, mkdir } = await import('fs/promises');
+        const path = await import('path');
+
+        // Create organized directory: public/uploads/posts/YYYY/MM/TYPE/
+        const uploadsDir = path.join(
+          process.cwd(),
+          'public',
+          'uploads',
+          'posts',
+          String(year),
+          month,
+          typeFolder
         );
+        await mkdir(uploadsDir, { recursive: true });
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const localFileName = `${timestamp}-${sanitizedFileName}`;
+        const filePath = path.join(uploadsDir, localFileName);
+
+        // Save file
+        await writeFile(filePath, uploadBuffer);
+        cloud_storage_path = `/uploads/posts/${year}/${month}/${typeFolder}/${localFileName}`;
+        console.log('[POST /api/posts] File saved locally:', cloud_storage_path);
       }
-
-      console.log('[POST /api/posts] S3 upload failed, saving locally (non-serverless):', s3Error);
-
-      const { writeFile, mkdir } = await import('fs/promises');
-      const path = await import('path');
-
-      // Create organized directory: public/uploads/posts/YYYY/MM/TYPE/
-      const uploadsDir = path.join(
-        process.cwd(),
-        'public',
-        'uploads',
-        'posts',
-        String(year),
-        month,
-        typeFolder
-      );
-      await mkdir(uploadsDir, { recursive: true });
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const fileName = `${timestamp}-${sanitizedFileName}`;
-      const filePath = path.join(uploadsDir, fileName);
-
-      // Save file
-      await writeFile(filePath, buffer);
-      cloud_storage_path = `/uploads/posts/${year}/${month}/${typeFolder}/${fileName}`;
-      console.log('[POST /api/posts] File saved locally:', cloud_storage_path);
     }
 
     // Get barberId if user is a barber
