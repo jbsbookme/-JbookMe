@@ -344,7 +344,7 @@ export default function AsistentePage() {
       {/* Header */}
       <div
         className="sticky top-0 z-40 bg-black/90 backdrop-blur-sm border-b border-gray-800"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}
       >
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -361,8 +361,8 @@ export default function AsistentePage() {
                 <Bot className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">{t('assistant.title')}</h1>
-                <p className="text-sm text-gray-400">
+                <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">{t('assistant.title')}</h1>
+                <p className="text-sm text-gray-400 mt-1">
                   {isSpeaking ? t('assistant.speaking') : t('assistant.subtitle')}
                 </p>
               </div>
