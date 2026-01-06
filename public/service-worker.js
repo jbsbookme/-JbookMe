@@ -1,5 +1,5 @@
 // Service Worker for BookMe PWA
-const CACHE_NAME = 'bookme-v5';
+const CACHE_NAME = 'bookme-v6';
 const urlsToCache = [
   '/manifest.json',
   '/icon-192.png',
@@ -41,6 +41,16 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  const isSameOrigin = url.origin === self.location.origin;
+
+  // Never cache API responses; always go to the network.
+  // This avoids serving stale data (e.g. /api/version, feeds, auth/session state).
+  if (isSameOrigin && url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   const accept = request.headers.get('accept') || '';
   const isHTML = request.mode === 'navigate' || accept.includes('text/html');
