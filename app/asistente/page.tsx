@@ -401,7 +401,7 @@ export default function AsistentePage() {
         <Card className="bg-gray-900 border-gray-800 flex flex-col h-[calc(100dvh-140px)]">
           {/* Messages */}
           <ScrollArea className="flex-1">
-            <div className="p-4 pt-10 space-y-4">
+            <div className="h-full p-4 space-y-4 flex flex-col justify-end">
               {messages.map((message, index) => (
                 <div
                   key={index}
