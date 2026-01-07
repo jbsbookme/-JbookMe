@@ -284,7 +284,7 @@ export default function FeedPage() {
   const fetchData = async () => {
     try {
       // Fetch approved posts
-      const postsRes = await fetch('/api/posts?status=APPROVED');
+      const postsRes = await fetch(`/api/posts?status=APPROVED&_ts=${Date.now()}`);
       if (postsRes.ok) {
         const postsData = await postsRes.json();
         setPosts(postsData.posts?.slice(0, 12) || []); // Latest 12 posts
