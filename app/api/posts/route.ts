@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
 import { uploadFile } from '@/lib/s3';
+import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { createS3Client, getBucketConfig } from '@/lib/aws-config';
 import { PostStatus, PostType, Role } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 import { isBarberOrStylist } from '@/lib/auth/role-utils';
@@ -161,6 +163,29 @@ export async function POST(request: NextRequest) {
       if (cloudPath.startsWith('http') || cloudPath.startsWith('/')) {
         return NextResponse.json(
           { error: 'Invalid cloud_storage_path', code: 'BAD_CLOUD_PATH' },
+          { status: 400 }
+        );
+      }
+
+      // Verify the object exists (helps detect blocked browser PUTs / CORS issues).
+      // If this fails, the post would point to a missing file and won't render.
+      try {
+        const { bucketName } = getBucketConfig();
+        const s3Client = createS3Client();
+        await s3Client.send(
+          new HeadObjectCommand({
+            Bucket: bucketName,
+            Key: cloudPath,
+          })
+        );
+      } catch (e) {
+        console.error('[POST /api/posts] Uploaded object not found/accessible:', e);
+        return NextResponse.json(
+          {
+            error:
+              'Upload not found in storage. The browser upload may have been blocked (commonly CORS).',
+            code: 'UPLOAD_NOT_FOUND',
+          },
           { status: 400 }
         );
       }

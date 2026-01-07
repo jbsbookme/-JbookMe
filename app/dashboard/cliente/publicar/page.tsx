@@ -20,7 +20,6 @@ export default function ClientUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -50,18 +49,10 @@ export default function ClientUploadPage() {
 
     setSelectedFile(file);
     setFileType(file.type.startsWith('image/') ? 'image' : 'video');
-
-    // Create preview URL
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
   };
 
   const handleRemoveFile = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setSelectedFile(null);
-    setPreviewUrl('');
     setFileType(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -100,7 +91,7 @@ export default function ClientUploadPage() {
         throw new Error(payload?.code ? `${payload.error} (${payload.code})` : (payload?.error || 'Failed to prepare upload'));
       }
 
-      const { uploadUrl, cloud_storage_path } = await presignRes.json();
+      const { uploadUrl, cloud_storage_path, publicUrl } = await presignRes.json();
 
       // 2) Upload directly to S3
       try {
@@ -156,7 +147,7 @@ export default function ClientUploadPage() {
       // Try Web Share API first (works on mobile with image)
       if (navigator.share && navigator.canShare) {
         try {
-          const response = await fetch(previewUrl);
+          const response = await fetch(publicUrl);
           const blob = await response.blob();
           const file = new File([blob], 'jbookme-style.jpg', { type: blob.type });
           
@@ -173,7 +164,7 @@ export default function ClientUploadPage() {
           // Fallback: copy text and download image
           await navigator.clipboard.writeText(text);
           const a = document.createElement('a');
-          a.href = previewUrl;
+          a.href = publicUrl;
           a.download = 'jbookme-style.jpg';
           document.body.appendChild(a);
           a.click();
@@ -184,7 +175,7 @@ export default function ClientUploadPage() {
         // Desktop fallback
         await navigator.clipboard.writeText(text);
         const a = document.createElement('a');
-        a.href = previewUrl;
+        a.href = publicUrl;
         a.download = 'jbookme-style.jpg';
         document.body.appendChild(a);
         a.click();

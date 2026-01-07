@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { Camera, Video, X, Upload, Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
-import Image from 'next/image';
 import Link from 'next/link';
 
 export default function BarberUploadPage() {
@@ -20,7 +19,6 @@ export default function BarberUploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -44,18 +42,10 @@ export default function BarberUploadPage() {
 
     setSelectedFile(file);
     setFileType(file.type.startsWith('image/') ? 'image' : 'video');
-
-    // Create preview URL
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
   };
 
   const handleRemoveFile = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
     setSelectedFile(null);
-    setPreviewUrl('');
     setFileType(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -94,7 +84,7 @@ export default function BarberUploadPage() {
         throw new Error(payload?.code ? `${payload.error} (${payload.code})` : (payload?.error || 'Failed to prepare upload'));
       }
 
-      const { uploadUrl, cloud_storage_path } = await presignRes.json();
+      const { uploadUrl, cloud_storage_path, publicUrl } = await presignRes.json();
 
       // 2) Upload directly to S3
       try {
@@ -149,7 +139,7 @@ export default function BarberUploadPage() {
       // Try Web Share API first (works on mobile with image)
       if (navigator.share && navigator.canShare) {
         try {
-          const response = await fetch(previewUrl);
+          const response = await fetch(publicUrl);
           const blob = await response.blob();
           const file = new File([blob], 'jbookme-work.jpg', { type: blob.type });
           
@@ -166,7 +156,7 @@ export default function BarberUploadPage() {
           // Fallback: copy text and download image
           await navigator.clipboard.writeText(text);
           const a = document.createElement('a');
-          a.href = previewUrl;
+          a.href = publicUrl;
           a.download = 'jbookme-work.jpg';
           document.body.appendChild(a);
           a.click();
@@ -177,7 +167,7 @@ export default function BarberUploadPage() {
         // Desktop fallback
         await navigator.clipboard.writeText(text);
         const a = document.createElement('a');
-        a.href = previewUrl;
+        a.href = publicUrl;
         a.download = 'jbookme-work.jpg';
         document.body.appendChild(a);
         a.click();
@@ -247,26 +237,22 @@ export default function BarberUploadPage() {
                   </div>
                 ) : (
                   <div className="mt-2 relative">
-                    <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-zinc-800">
-                      {fileType === 'image' ? (
-                        <Image
-                          src={previewUrl}
-                          alt="Preview"
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <video
-                          src={previewUrl}
-                          controls
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload="metadata"
-                          className="w-full h-full object-cover"
-                        />
-                      )}
+                    <div className="w-full rounded-lg overflow-hidden bg-zinc-800 border-2 border-cyan-500/30 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center">
+                          {fileType === 'video' ? (
+                            <Video className="w-5 h-5 text-purple-400" />
+                          ) : (
+                            <Camera className="w-5 h-5 text-pink-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-white font-semibold truncate">{selectedFile?.name}</p>
+                          <p className="text-xs text-zinc-400">
+                            {selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : ''}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                     <Button
                       type="button"
@@ -290,7 +276,7 @@ export default function BarberUploadPage() {
 
               {/* Caption */}
               <div>
-                <Label htmlFor="caption">Caption *</Label>
+                <Label htmlFor="caption">Caption</Label>
                 <Textarea
                   id="caption"
                   placeholder="Describe your work... (e.g., 'Fresh fade with beard lineup')"
