@@ -1,374 +1,360 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Search, MapPin, Star, Clock, DollarSign, Heart, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Calendar, User, Star, Facebook, Instagram, Music2, Phone, MessageCircle } from 'lucide-react';
-import { useI18n } from '@/lib/i18n/i18n-context';
-import { HistoryBackButton } from '@/components/layout/history-back-button';
+import { Badge } from '@/components/ui/badge';
+import BottomNav from '@/components/layout/bottom-nav';
 
-interface Barber {
-  id: string;
-  profileImage?: string | null;
-  gender?: 'MALE' | 'FEMALE' | 'BOTH' | null;
-  facebookUrl?: string | null;
-  instagramUrl?: string | null;
-  tiktokUrl?: string | null;
-  whatsappUrl?: string | null;
-  phone?: string | null;
-  avgRating?: number;
-  totalReviews?: number;
-  user?: {
-    name?: string | null;
-    image?: string | null;
-    phone?: string | null;
-  };
-  specialties?: string | null;
-  bio?: string | null;
-  hourlyRate?: number | null;
+interface Barbero {
+  id: number;
+  name: string;
+  rating: number;
+  reviews: number;
+  specialties: string[];
+  price: string;
+  distance: string;
+  image: string;
+  available: boolean;
+  nextAvailable: string;
 }
 
-type BarbersApiResponse = { barbers?: Barber[] };
+const barberos: Barbero[] = [
+  {
+    id: 1,
+    name: "Carlos Martínez",
+    rating: 4.9,
+    reviews: 234,
+    specialties: ["Fade", "Beard", "Classic"],
+    price: "$$",
+    distance: "0.5 km",
+    image: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400",
+    available: true,
+    nextAvailable: "Hoy 3:00 PM"
+  },
+  {
+    id: 2,
+    name: "Luis García",
+    rating: 4.8,
+    reviews: 189,
+    specialties: ["Modern", "Design", "Color"],
+    price: "$$$",
+    distance: "1.2 km",
+    image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400",
+    available: true,
+    nextAvailable: "Hoy 4:30 PM"
+  },
+  {
+    id: 3,
+    name: "Miguel Rodríguez",
+    rating: 4.7,
+    reviews: 156,
+    specialties: ["Traditional", "Hot Towel", "Massage"],
+    price: "$$",
+    distance: "2.0 km",
+    image: "https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=400",
+    available: false,
+    nextAvailable: "Mañana 10:00 AM"
+  },
+  {
+    id: 4,
+    name: "Antonio López",
+    rating: 4.9,
+    reviews: 298,
+    specialties: ["Fade", "Line Up", "Kids"],
+    price: "$$",
+    distance: "1.8 km",
+    image: "https://images.unsplash.com/photo-1621607512214-68297480165e?w=400",
+    available: true,
+    nextAvailable: "Hoy 2:00 PM"
+  },
+  {
+    id: 5,
+    name: "David Sánchez",
+    rating: 4.6,
+    reviews: 145,
+    specialties: ["Buzz Cut", "Military", "Quick Service"],
+    price: "$",
+    distance: "3.5 km",
+    image: "https://images.unsplash.com/photo-1621605815998-e966d2f9db63?w=400",
+    available: true,
+    nextAvailable: "Hoy 1:30 PM"
+  },
+  {
+    id: 6,
+    name: "José Fernández",
+    rating: 4.8,
+    reviews: 267,
+    specialties: ["Pompadour", "Slick Back", "Vintage"],
+    price: "$$$",
+    distance: "0.8 km",
+    image: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400",
+    available: true,
+    nextAvailable: "Hoy 5:00 PM"
+  }
+];
 
 export default function BarberosPage() {
-  const { t } = useI18n();
-  const [barbers, setBarbers] = useState<Barber[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedSpecialty, setSelectedSpecialty] = useState<string | null>(null);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
-  useEffect(() => {
-    fetchBarbers();
-  }, []);
+  const allSpecialties = Array.from(
+    new Set(barberos.flatMap(b => b.specialties))
+  );
 
-  const fetchBarbers = async () => {
-    try {
-      const res = await fetch('/api/barbers');
-      const data: unknown = await res.json();
-      
-      const payload = data as BarbersApiResponse;
-      if (res.ok && Array.isArray(payload.barbers)) {
-        setBarbers(payload.barbers);
-      }
-    } catch (error) {
-      console.error('Error fetching barbers:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filteredBarberos = barberos.filter(barbero => {
+    const matchesSearch = barbero.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         barbero.specialties.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSpecialty = !selectedSpecialty || barbero.specialties.includes(selectedSpecialty);
+    return matchesSearch && matchesSpecialty;
+  });
 
-  const normalizeUrl = (url: string | null | undefined) => {
-    const trimmed = url?.trim();
-    if (!trimmed) return null;
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
-  };
-
-  const normalizePhone = (phone: string | null | undefined) => {
-    const trimmed = phone?.trim();
-    if (!trimmed) return null;
-    const cleaned = trimmed.replace(/[^\d+]/g, '');
-    return cleaned || null;
-  };
-
-  const renderStars = () => {
-    return (
-      <div className="flex items-center gap-1">
-        {Array.from({ length: 5 }).map((_, idx) => (
-          <Star
-            key={idx}
-            className="h-5 w-5 text-gray-600"
-            fill="none"
-          />
-        ))}
-      </div>
+  const toggleFavorite = (id: number) => {
+    setFavorites(prev => 
+      prev.includes(id) ? prev.filter(fav => fav !== id) : [...prev, id]
     );
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-2">
-        {/* Skeleton Loading */}
-        <main className="container mx-auto px-4 py-4 max-w-7xl">
-          <HistoryBackButton
-            fallbackHref="/menu"
-            variant="ghost"
-            size="icon"
-            aria-label="Back"
-            className="mb-4 text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </HistoryBackButton>
-
-          <div className="mb-16">
-            <div className="text-center mb-12">
-              <div className="h-12 bg-gray-800 rounded-lg w-64 mx-auto mb-4 animate-pulse"></div>
-              <div className="h-6 bg-gray-800 rounded-lg w-96 mx-auto animate-pulse"></div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Card key={i} className="bg-[#1a1a1a] border-gray-800">
-                  <CardContent className="space-y-4 p-6">
-                    <div className="relative w-24 h-24 mx-auto rounded-full overflow-hidden bg-gray-800 animate-pulse"></div>
-                    <div className="h-6 bg-gray-800 rounded w-3/4 mx-auto animate-pulse"></div>
-                    <div className="h-4 bg-gray-800 rounded w-5/6 mx-auto animate-pulse"></div>
-                    <div className="h-6 bg-gray-800 rounded w-1/2 animate-pulse"></div>
-                    <div className="h-4 bg-gray-800 rounded w-full animate-pulse"></div>
-                    <div className="h-10 bg-gray-800 rounded w-full animate-pulse"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pb-24 pt-2">
-      <main className="container mx-auto px-4 py-4 max-w-7xl">
-        <HistoryBackButton
-          fallbackHref="/menu"
-          variant="ghost"
-          size="icon"
-          aria-label="Back"
-          className="mb-4 text-gray-400 hover:text-white hover:bg-[#1a1a1a]"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </HistoryBackButton>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="text-4xl font-bold mb-2">Encuentra tu Barbero</h1>
+            <p className="text-blue-100">Los mejores profesionales cerca de ti</p>
+          </motion.div>
+        </div>
+      </div>
 
-        <div className="mb-6">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="bg-gradient-to-r from-[#00f0ff] via-[#00d4ff] to-[#0099cc] bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(0,240,255,0.5)]">
-                {t('barbers.ourTeam')}
-              </span>
-            </h1>
-            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-              {t('barbers.ourTeamSubtitle')}
-            </p>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Search and Filter Section */}
+        <div className="mb-8 space-y-4">
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="Buscar por nombre o especialidad..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 py-6 text-lg"
+              />
+            </div>
+            <Button variant="outline" size="lg" className="px-6">
+              <Filter className="w-5 h-5 mr-2" />
+              Filtros
+            </Button>
           </div>
 
-          {barbers.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-gray-400 text-lg">{t('barbers.noBarbers')}</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {barbers.map((barber, index) => {
-                const ringClass = 'border-[#00f0ff]/60 from-[#00f0ff]/10 to-[#0099cc]/10';
-                const iconClass = 'text-[#00f0ff]/40';
-                const buttonClass = 'from-[#00f0ff] to-[#0099cc]';
-
-                const fbHref = normalizeUrl(barber.facebookUrl);
-                const igHref = normalizeUrl(barber.instagramUrl);
-                const ttHref = normalizeUrl(barber.tiktokUrl);
-
-                const phoneRaw = barber.phone || barber.user?.phone || null;
-                const phoneForLinks = normalizePhone(phoneRaw);
-                const telHref = phoneForLinks ? `tel:${phoneForLinks}` : null;
-                const chatHref = normalizeUrl(barber.whatsappUrl) || (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
-                const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
-                const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
-
-                const avg = typeof barber.avgRating === 'number' ? barber.avgRating : 0;
-                const reviews = typeof barber.totalReviews === 'number' ? barber.totalReviews : 0;
-
-                return (
-                  <Card
-                    key={barber.id}
-                    className="bg-[#1a1a1a] border-gray-800 hover:border-[#00f0ff]/40 transition-colors"
-                    style={{ animationDelay: `${index * 60}ms` }}
-                  >
-                    <CardContent className="p-6 sm:p-8">
-                      <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-center md:text-left">
-                        <div className="flex-shrink-0">
-                          <div
-                            className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 bg-gradient-to-br ${ringClass}`}
-                          >
-                            {barber.profileImage || barber.user?.image ? (
-                              <Image
-                                src={barber.profileImage || barber.user?.image || ''}
-                                alt={barber.user?.name || t('barbers.barber')}
-                                fill
-                                sizes="128px"
-                                className="object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
-                                <User className={`w-10 h-10 ${iconClass}`} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex-1 w-full">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                            <div className="min-w-0">
-                              <h2 className="text-white text-2xl font-bold leading-tight truncate">
-                                {barber.user?.name || t('barbers.barber')}
-                              </h2>
-                              {barber.specialties ? (
-                                <p className="text-[#00f0ff] text-sm sm:text-base mt-2 line-clamp-2">{barber.specialties}</p>
-                              ) : null}
-                            </div>
-                            {/* Hourly rate removed from Team cards */}
-                          </div>
-
-                          <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-center md:justify-start">
-                            <div className="flex items-center gap-2 justify-center md:justify-start">
-                              <Star className="h-6 w-6 text-[#ffd700]" fill="currentColor" />
-                              <span className="text-[#ffd700] text-2xl font-bold">{avg.toFixed(1)}</span>
-                            </div>
-                            <div className="flex items-center justify-center md:justify-start gap-3">
-                              {renderStars()}
-                              <span className="text-gray-400 text-lg">({reviews} reviews)</span>
-                            </div>
-                          </div>
-
-                          {barber.bio ? (
-                            <p className="text-gray-400 mt-5 text-sm sm:text-base line-clamp-3">{barber.bio}</p>
-                          ) : null}
-
-                          <div className="mt-6 flex gap-2 justify-center md:justify-start flex-wrap">
-                            {telHref ? (
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="icon"
-                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                              >
-                                <a href={telHref} aria-label="Call">
-                                  <Phone className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                className="border-gray-800 bg-black/10 text-gray-600"
-                                aria-label="Call (unavailable)"
-                              >
-                                <Phone className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            {chatHref ? (
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="icon"
-                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                              >
-                                <a href={chatHref} aria-label="Message" target={chatTarget} rel={chatRel}>
-                                  <MessageCircle className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                className="border-gray-800 bg-black/10 text-gray-600"
-                                aria-label="Message (unavailable)"
-                              >
-                                <MessageCircle className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            {fbHref ? (
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="icon"
-                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                              >
-                                <a href={fbHref} aria-label="Facebook" target="_blank" rel="noreferrer noopener">
-                                  <Facebook className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                className="border-gray-800 bg-black/10 text-gray-600"
-                                aria-label="Facebook (unavailable)"
-                              >
-                                <Facebook className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            {igHref ? (
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="icon"
-                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                              >
-                                <a href={igHref} aria-label="Instagram" target="_blank" rel="noreferrer noopener">
-                                  <Instagram className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                className="border-gray-800 bg-black/10 text-gray-600"
-                                aria-label="Instagram (unavailable)"
-                              >
-                                <Instagram className="h-4 w-4" />
-                              </Button>
-                            )}
-
-                            {ttHref ? (
-                              <Button
-                                asChild
-                                variant="outline"
-                                size="icon"
-                                className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
-                              >
-                                <a href={ttHref} aria-label="TikTok" target="_blank" rel="noreferrer noopener">
-                                  <Music2 className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                disabled
-                                className="border-gray-800 bg-black/10 text-gray-600"
-                                aria-label="TikTok (unavailable)"
-                              >
-                                <Music2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-
-                          <div className="mt-6 flex justify-center md:justify-start">
-                            <Link href={`/reservar?barberId=${barber.id}`} className="block w-full sm:w-auto">
-                              <Button
-                                className={`w-full sm:w-auto bg-gradient-to-r ${buttonClass} text-black hover:opacity-90 neon-glow text-base sm:text-lg px-6 sm:px-8 font-bold`}
-                              >
-                                <Calendar className="w-5 h-5 mr-2" />
-                                {t('booking.bookAppointment')}
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+          {/* Specialty Filter Pills */}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={selectedSpecialty === null ? "default" : "outline"}
+              onClick={() => setSelectedSpecialty(null)}
+              className="rounded-full"
+            >
+              Todos
+            </Button>
+            {allSpecialties.map(specialty => (
+              <Button
+                key={specialty}
+                variant={selectedSpecialty === specialty ? "default" : "outline"}
+                onClick={() => setSelectedSpecialty(specialty)}
+                className="rounded-full"
+              >
+                {specialty}
+              </Button>
+            ))}
+          </div>
         </div>
-      </main>
+
+        {/* Stats */}
+        <div className="mb-6 text-gray-600">
+          <p className="text-lg">
+            Mostrando <span className="font-semibold text-gray-900">{filteredBarberos.length}</span> barberos disponibles
+          </p>
+        </div>
+
+        {/* Barberos Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredBarberos.map((barbero, index) => (
+            <motion.div
+              key={barbero.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+            >
+              <Card className="overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+                <div className="relative">
+                  <img
+                    src={barbero.image}
+                    alt={barbero.name}
+                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`absolute top-2 right-2 bg-white/90 hover:bg-white ${
+                      favorites.includes(barbero.id) ? 'text-red-500' : 'text-gray-400'
+                    }`}
+                    onClick={() => toggleFavorite(barbero.id)}
+                  >
+                    <Heart className={`w-5 h-5 ${favorites.includes(barbero.id) ? 'fill-current' : ''}`} />
+                  </Button>
+                  {barbero.available && (
+                    <Badge className="absolute top-2 left-2 bg-green-500">
+                      Disponible
+                    </Badge>
+                  )}
+                </div>
+
+                <CardContent className="p-4">
+                  <div className="mb-2">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">{barbero.name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span>{barbero.distance}</span>
+                      <span className="mx-1">•</span>
+                      <span>{barbero.price}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold">{barbero.rating}</span>
+                    </div>
+                    <span className="text-gray-600 text-sm">({barbero.reviews} reseñas)</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {barbero.specialties.map(specialty => (
+                      <Badge key={specialty} variant="secondary" className="text-xs">
+                        {specialty}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                    <Clock className="w-4 h-4" />
+                    <span>Próximo: {barbero.nextAvailable}</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button className="flex-1" variant="outline">
+                      Ver Perfil
+                    </Button>
+                    <Button 
+                      className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                      disabled={!barbero.available}
+                    >
+                      {barbero.available ? 'Reservar' : 'No Disponible'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filteredBarberos.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-16"
+          >
+            <div className="text-gray-400 mb-4">
+              <Search className="w-16 h-16 mx-auto" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">No se encontraron barberos</h3>
+            <p className="text-gray-600 mb-6">
+              Intenta ajustar tu búsqueda o filtros
+            </p>
+            <Button onClick={() => { setSearchTerm(''); setSelectedSpecialty(null); }}>
+              Limpiar Filtros
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Info Section */}
+        <div className="mt-16 grid md:grid-cols-3 gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="text-center"
+          >
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Star className="w-8 h-8 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Barberos Verificados</h3>
+            <p className="text-gray-600">
+              Todos nuestros profesionales están certificados y verificados
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-center"
+          >
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Reserva Instantánea</h3>
+            <p className="text-gray-600">
+              Confirma tu cita en segundos y recibe notificaciones
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="text-center"
+          >
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <DollarSign className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Mejores Precios</h3>
+            <p className="text-gray-600">
+              Encuentra servicios de calidad a precios competitivos
+            </p>
+          </motion.div>
+        </div>
+
+        {/* CTA Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mt-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center text-white"
+        >
+          <h2 className="text-3xl font-bold mb-4">¿Eres Barbero?</h2>
+          <p className="text-xl mb-6 text-blue-100">
+            Únete a nuestra plataforma y llega a más clientes
+          </p>
+          <Button size="lg" variant="secondary" className="text-lg px-8">
+            Registrarme como Barbero
+          </Button>
+        </motion.div>
+      </div>
+      <BottomNav />
     </div>
   );
 }
