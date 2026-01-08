@@ -31,6 +31,9 @@ export default function BottomNav() {
   const isAuthenticated = status === 'authenticated' && !!session;
   const isSessionLoading = status === 'loading';
   const authHrefFor = (callbackUrl: string) => `/auth?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  
+  // Determinar si es barbero
+  const isBarber = session?.user?.role === 'BARBER';
 
   const navItems = [
     {
@@ -54,8 +57,11 @@ export default function BottomNav() {
       id: 'post',
       name: t('nav.post'),
       icon: Plus,
-      href: isAuthenticated ? '/dashboard/cliente/publicar' : authHrefFor('/dashboard/cliente/publicar'),
-      active: pathname === '/dashboard/cliente/publicar',
+      // Barberos van a su página de publicar, clientes a la suya
+      href: isAuthenticated 
+        ? (isBarber ? '/dashboard/barbero/publicar-simple' : '/dashboard/cliente/publicar')
+        : authHrefFor('/dashboard/cliente/publicar'),
+      active: pathname === '/dashboard/cliente/publicar' || pathname === '/dashboard/barbero/publicar-simple' || pathname === '/dashboard/barbero/publicar',
       isCreate: true
     },
     {
@@ -68,10 +74,13 @@ export default function BottomNav() {
     },
     {
       id: 'profile',
-      name: t('nav.profile'),
+      name: isBarber ? 'Dashboard' : t('nav.profile'),
       icon: User,
-      href: isAuthenticated ? '/perfil' : authHrefFor('/perfil'),
-      active: pathname === '/perfil' || pathname === '/dashboard/cliente',
+      // Barberos van a dashboard, clientes a perfil
+      href: isAuthenticated 
+        ? (isBarber ? '/dashboard/barbero' : '/perfil')
+        : authHrefFor('/perfil'),
+      active: pathname === '/perfil' || pathname === '/dashboard/cliente' || pathname === '/dashboard/barbero',
       isCreate: false
     }
   ];

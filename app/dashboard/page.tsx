@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     case 'ADMIN':
       redirect('/dashboard/admin');
     case 'BARBER':
-      redirect('/dashboard/barbero');
+      redirect('/feed'); // Barberos también ven el feed social
     case 'CLIENT':
       redirect('/feed'); // Redirigir clientes al feed tipo Instagram
     default:

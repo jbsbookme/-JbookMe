@@ -33,12 +33,8 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (isBarberOrAdmin(role)) {
-      url.pathname = '/dashboard/barbero';
-      return NextResponse.redirect(url);
-    }
-
-    if (isClient(role)) {
+    // Barberos y clientes van al feed social
+    if (isBarberOrAdmin(role) || isClient(role)) {
       url.pathname = '/feed';
       return NextResponse.redirect(url);
     }
