@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createS3Client, getBucketConfig } from '@/lib/aws-config';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
 
-    const postTypeFolder = isBarberOrStylist(session.user.role) ? 'barber_work' : 'client_share';
+    const postTypeFolder = isBarberOrAdmin(session.user.role) ? 'barber_work' : 'client_share';
 
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
     const relativeKey = `posts/${year}/${month}/${postTypeFolder}/${Date.now()}-${sanitizedFileName}`;

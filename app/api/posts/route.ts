@@ -7,7 +7,7 @@ import { HeadObjectCommand } from '@aws-sdk/client-s3';
 import { createS3Client, getBucketConfig } from '@/lib/aws-config';
 import { PostStatus, PostType, Role } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 // GET - Fetch posts (all approved for public, or user's own posts)
 export async function GET(request: NextRequest) {
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     console.log('[POST /api/posts] Parsed hashtags:', hashtagsArray);
 
     // Determine post type first (needed for folder structure)
-    const postType: PostType = isBarberOrStylist(session.user.role) ? 'BARBER_WORK' : 'CLIENT_SHARE';
+    const postType: PostType = isBarberOrAdmin(session.user.role) ? 'BARBER_WORK' : 'CLIENT_SHARE';
 
     // Create organized folder structure: posts/YYYY/MM/TYPE/
     const now = new Date();
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
 
     // Get barberId if user is a barber
     let finalBarberId = barberId;
-    if (isBarberOrStylist(session.user.role) && !barberId) {
+    if (isBarberOrAdmin(session.user.role) && !barberId) {
       // If the author is a barber, find their barber record
       const barberRecord = await prisma.barber.findUnique({
         where: { userId: session.user.id },
@@ -283,8 +283,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create post - Auto-approve all posts
-    // Keep authorType as 'BARBER' for both BARBER and STYLIST (UI currently expects BARBER vs CLIENT).
-    const authorType: Role = isBarberOrStylist(session.user.role) ? 'BARBER' : 'CLIENT';
+    // Keep authorType as 'BARBER' for both BARBER and ADMIN (UI currently expects BARBER vs CLIENT).
+    const authorType: Role = isBarberOrAdmin(session.user.role) ? 'BARBER' : 'CLIENT';
     const post = await prisma.post.create({
       data: {
         authorId: session.user.id,

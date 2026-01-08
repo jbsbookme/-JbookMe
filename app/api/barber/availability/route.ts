@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 type DayOfWeek =
   | 'MONDAY'
@@ -25,7 +25,7 @@ export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can view their availability.' },
         { status: 401 }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can update their availability.' },
         { status: 401 }

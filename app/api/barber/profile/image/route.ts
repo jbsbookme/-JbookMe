@@ -5,13 +5,13 @@ import { prisma } from '@/lib/db';
 import { uploadFile, getFileUrl } from '@/lib/s3';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }

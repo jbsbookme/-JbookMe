@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { uploadFile, getFileUrl } from '@/lib/s3';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,9 +11,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    if (!isBarberOrStylist(session.user.role)) {
-      return NextResponse.json({ error: 'Solo barberos pueden subir posts' }, { status: 403 });
-    }
+    // Allow all authenticated users to upload (BARBER, CLIENT, ADMIN)
+    // The post creation endpoint will handle role permissions
 
     const formData = await request.formData();
     const file = formData.get('file') as File;

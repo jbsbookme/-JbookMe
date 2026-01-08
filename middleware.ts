@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
-import { isAdmin, isBarberOrStylist, isClient } from '@/lib/auth/role-utils';
+import { isAdmin, isBarberOrAdmin, isClient } from '@/lib/auth/role-utils';
 
 function redirectToAuth(req: NextRequest) {
   const url = req.nextUrl.clone();
@@ -33,7 +33,7 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (isBarberOrStylist(role)) {
+    if (isBarberOrAdmin(role)) {
       url.pathname = '/dashboard/barbero';
       return NextResponse.redirect(url);
     }
@@ -108,7 +108,7 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isDashboardBarber || isApiBarber) {
-    if (!isBarberOrStylist(role) && !isAdmin(role)) {
+    if (!isBarberOrAdmin(role) && !isAdmin(role)) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }

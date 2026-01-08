@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
 import { uploadFile, getFileUrl } from '@/lib/s3';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 // GET /api/barber/media - Get barber's media gallery
 export async function GET(req: NextRequest) {
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     // Otherwise, require barber authentication
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can view their gallery.' },
         { status: 401 }
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can add media.' },
         { status: 401 }

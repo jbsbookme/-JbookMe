@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 // GET /api/barber/days-off - Get barber's days off
 export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can view their days off.' },
         { status: 401 }
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can add days off.' },
         { status: 401 }
@@ -131,7 +131,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !isBarberOrStylist(session.user.role)) {
+    if (!session || !isBarberOrAdmin(session.user.role)) {
       return NextResponse.json(
         { error: 'Unauthorized. Only barbers can delete days off.' },
         { status: 401 }

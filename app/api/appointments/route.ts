@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
 import { AppointmentStatus } from '@prisma/client';
 import { sendAppointmentCreatedNotifications } from '@/lib/notifications';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Filter based on user role
     if (session.user.role === 'CLIENT') {
       where.clientId = session.user.id;
-    } else if (isBarberOrStylist(session.user.role) && session.user.barberId) {
+    } else if (isBarberOrAdmin(session.user.role) && session.user.barberId) {
       where.barberId = session.user.barberId;
     }
     // ADMIN sees all

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { isBarberOrStylist } from '@/lib/auth/role-utils';
+import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 import { AppointmentStatus } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Filter by barber if specified or if user is a barber
     if (barberId) {
       appointmentWhere.barberId = barberId;
-    } else if (isBarberOrStylist(session.user.role) && session.user.barberId) {
+    } else if (isBarberOrAdmin(session.user.role) && session.user.barberId) {
       appointmentWhere.barberId = session.user.barberId;
     }
 
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
     let avgRating = 0;
     let totalReviews = 0;
 
-    if (barberId || (isBarberOrStylist(session.user.role) && session.user.barberId)) {
+    if (barberId || (isBarberOrAdmin(session.user.role) && session.user.barberId)) {
       const barberIdToUse = barberId || session.user.barberId!;
       const reviews = await prisma.review.findMany({
         where: { barberId: barberIdToUse },
