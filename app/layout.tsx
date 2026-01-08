@@ -9,6 +9,7 @@ import BottomNav from '@/components/layout/bottom-nav-wrapper';
 import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { TopMenuHeader } from '@/components/layout/top-menu-header';
+import SocialBar from '@/components/layout/social-bar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -88,6 +89,7 @@ export default function RootLayout({
             <UserProvider>
               <I18nProvider>
                 <TopMenuHeader />
+                <SocialBar />
                 {children}
                 <Footer />
                 <BottomNav />

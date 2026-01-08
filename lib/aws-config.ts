@@ -2,11 +2,17 @@ import { S3Client } from '@aws-sdk/client-s3';
 
 // Get bucket configuration from environment variables
 export function getBucketConfig() {
-  const bucketName = process.env.AWS_BUCKET_NAME || process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
+  const bucketName =
+    process.env.AWS_BUCKET_NAME ||
+    process.env.NEXT_PUBLIC_AWS_BUCKET_NAME ||
+    process.env.S3_BUCKET_NAME ||
+    process.env.AWS_S3_BUCKET_NAME;
   const folderPrefix = process.env.AWS_FOLDER_PREFIX || '';
 
   if (!bucketName) {
-    throw new Error('AWS bucket is not configured (set AWS_BUCKET_NAME)');
+    throw new Error(
+      'AWS bucket is not configured (set AWS_BUCKET_NAME or NEXT_PUBLIC_AWS_BUCKET_NAME or S3_BUCKET_NAME)'
+    );
   }
 
   return {

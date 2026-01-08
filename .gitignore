@@ -33,3 +33,4 @@ pnpm-debug.log*
 
 # Uploads (usually runtime data)
 public/uploads/
+.vercel

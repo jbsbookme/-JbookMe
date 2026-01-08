@@ -71,14 +71,17 @@ export default function BarberosPage() {
     return cleaned || null;
   };
 
-  const renderStars = () => {
+  const renderStars = (rating: number) => {
+    const safeRating = Number.isFinite(rating) ? rating : 0;
+    const filledStars = Math.max(0, Math.min(5, Math.round(safeRating)));
+
     return (
       <div className="flex items-center gap-1">
         {Array.from({ length: 5 }).map((_, idx) => (
           <Star
             key={idx}
-            className="h-5 w-5 text-gray-600"
-            fill="none"
+            className={`h-4 w-4 ${idx < filledStars ? 'text-[#ffd700]' : 'text-gray-700'}`}
+            fill={idx < filledStars ? 'currentColor' : 'none'}
           />
         ))}
       </div>
@@ -218,13 +221,14 @@ export default function BarberosPage() {
                           </div>
 
                           <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-center md:justify-start">
-                            <div className="flex items-center gap-2 justify-center md:justify-start">
-                              <Star className="h-6 w-6 text-[#ffd700]" fill="currentColor" />
-                              <span className="text-[#ffd700] text-2xl font-bold">{avg.toFixed(1)}</span>
-                            </div>
                             <div className="flex items-center justify-center md:justify-start gap-3">
-                              {renderStars()}
-                              <span className="text-gray-400 text-lg">({reviews} reviews)</span>
+                              {renderStars(avg)}
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-[#ffd700] text-2xl font-bold tabular-nums">{avg.toFixed(1)}</span>
+                                <span className="text-gray-400 text-sm sm:text-base">
+                                  ({reviews} {t('barbers.reviews')})
+                                </span>
+                              </div>
                             </div>
                           </div>
 

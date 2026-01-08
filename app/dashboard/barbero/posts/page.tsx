@@ -183,8 +183,9 @@ export default function BarberPostsPage() {
       return cloud_storage_path;
     }
 
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
+    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
     const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    if (!bucketName) return cloud_storage_path;
     return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
   };
 

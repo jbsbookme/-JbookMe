@@ -25,8 +25,21 @@ export default async function BarberProfilePage({ params }: Params) {
       return cloud_storage_path;
     }
 
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    const bucketName =
+      process.env.AWS_BUCKET_NAME ||
+      process.env.NEXT_PUBLIC_AWS_BUCKET_NAME ||
+      process.env.S3_BUCKET_NAME ||
+      '';
+    const region =
+      process.env.AWS_REGION ||
+      process.env.AWS_DEFAULT_REGION ||
+      process.env.NEXT_PUBLIC_AWS_REGION ||
+      'us-east-1';
+
+    if (!bucketName) {
+      return cloud_storage_path;
+    }
+
     return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
   };
 

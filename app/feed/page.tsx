@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { ShareFAB } from '@/components/share-fab';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
 import PromotionsCarousel from '@/components/promotions-carousel';
+import { CommentSection } from '@/components/posts/comment-section';
 
 interface Comment {
   id: string;
@@ -466,8 +467,9 @@ export default function FeedPage() {
     }
     
     // Si no, es una ruta de S3
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
+    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
     const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
+    if (!bucketName) return cloud_storage_path;
     return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
   };
 
@@ -981,19 +983,6 @@ export default function FeedPage() {
                             <span className="text-white font-semibold text-sm">{post.likes} likes</span>
                           </motion.button>
 
-                          {/* Comment Button */}
-                          <motion.button
-                            onClick={() => toggleComments(post.id)}
-                            className="flex items-center gap-2"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <MessageCircle className="w-6 h-6 text-white hover:text-cyan-400 smooth-transition" />
-                            <span className="text-white font-semibold text-sm">
-                              {post.comments?.length || 0} comments
-                            </span>
-                          </motion.button>
-
                           {(session?.user?.role === 'ADMIN' || post.author?.id === session?.user?.id) && (
                             <motion.button
                               onClick={() => handleDeletePost(post.id)}
@@ -1035,82 +1024,10 @@ export default function FeedPage() {
                         <p className="text-xs text-zinc-500">{post.viewCount} views</p>
 
                         {/* Comments Section */}
-                        {showComments.has(post.id) && (
-                          <div className="mt-4 border-t border-zinc-700 pt-4 space-y-3">
-                            {/* Comment Input */}
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Add a comment..."
-                                value={commentText[post.id] || ''}
-                                onChange={(e) => setCommentText(prev => ({ 
-                                  ...prev, 
-                                  [post.id]: e.target.value 
-                                }))}
-                                onKeyPress={(e) => {
-                                  if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleAddComment(post.id);
-                                  }
-                                }}
-                                className="flex-1 bg-zinc-800 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                              />
-                              <motion.button
-                                onClick={() => handleAddComment(post.id)}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-cyan-600 hover:to-cyan-700 smooth-transition"
-                              >
-                                <Send className="w-4 h-4" />
-                              </motion.button>
-                            </div>
-
-                            {/* Comments List */}
-                            <div className="space-y-3 max-h-60 overflow-y-auto">
-                              {post.comments && post.comments.length > 0 ? (
-                                post.comments.map((comment) => (
-                                  <div key={comment.id} className="flex gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                                      {comment.author.image ? (
-                                        <Image
-                                          src={comment.author.image}
-                                          alt={comment.author.name}
-                                          width={32}
-                                          height={32}
-                                          className="rounded-full object-cover"
-                                        />
-                                      ) : (
-                                        <User className="w-4 h-4 text-white" />
-                                      )}
-                                    </div>
-                                    <div className="flex-1">
-                                      <div className="bg-zinc-800 rounded-lg p-3">
-                                        <p className="text-white font-semibold text-xs">
-                                          {comment.author.name}
-                                        </p>
-                                        <p className="text-gray-300 text-sm mt-1">
-                                          {comment.content}
-                                        </p>
-                                      </div>
-                                      <p className="text-xs text-zinc-500 mt-1">
-                                        {new Date(comment.createdAt).toLocaleDateString('en-US', {
-                                          month: 'short',
-                                          day: 'numeric',
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <p className="text-center text-gray-400 text-sm py-4">
-                                  No comments yet. Be the first to comment!
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        <CommentSection 
+                          postId={post.id} 
+                          initialCommentCount={post.comments?.length || 0}
+                        />
                       </div>
                     </CardContent>
                   </Card>

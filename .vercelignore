@@ -1,0 +1,22 @@
+# Build cache
+.build/
+.next/
+
+# Backups
+*.sql
+
+# Node modules
+node_modules/
+
+# Logs
+*.log
+
+# Local env files
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
