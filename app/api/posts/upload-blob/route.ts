@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({
-      cloud_storage_path: blob.pathname,
+      cloud_storage_path: blob.url, // Use full URL for Vercel Blob
       fileUrl: blob.url,
       message: 'Archivo subido exitosamente',
     });

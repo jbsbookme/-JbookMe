@@ -160,34 +160,40 @@ export async function POST(request: NextRequest) {
       }
     } else {
       const cloudPath = providedCloudPath.trim();
-      if (cloudPath.startsWith('http') || cloudPath.startsWith('/')) {
+      
+      // Check if it's a Vercel Blob URL (starts with https://...)
+      const isVercelBlobUrl = cloudPath.startsWith('https://') && cloudPath.includes('.public.blob.vercel-storage.com');
+      
+      if (!isVercelBlobUrl && (cloudPath.startsWith('http') || cloudPath.startsWith('/'))) {
         return NextResponse.json(
           { error: 'Invalid cloud_storage_path', code: 'BAD_CLOUD_PATH' },
           { status: 400 }
         );
       }
 
-      // Verify the object exists (helps detect blocked browser PUTs / CORS issues).
-      // If this fails, the post would point to a missing file and won't render.
-      try {
-        const { bucketName } = getBucketConfig();
-        const s3Client = createS3Client();
-        await s3Client.send(
-          new HeadObjectCommand({
-            Bucket: bucketName,
-            Key: cloudPath,
-          })
-        );
-      } catch (e) {
-        console.error('[POST /api/posts] Uploaded object not found/accessible:', e);
-        return NextResponse.json(
-          {
-            error:
-              'Upload not found in storage. The browser upload may have been blocked (commonly CORS).',
-            code: 'UPLOAD_NOT_FOUND',
-          },
-          { status: 400 }
-        );
+      // Skip S3 verification for Vercel Blob URLs
+      if (!isVercelBlobUrl) {
+        // Verify the object exists in S3 (helps detect blocked browser PUTs / CORS issues).
+        try {
+          const { bucketName } = getBucketConfig();
+          const s3Client = createS3Client();
+          await s3Client.send(
+            new HeadObjectCommand({
+              Bucket: bucketName,
+              Key: cloudPath,
+            })
+          );
+        } catch (e) {
+          console.error('[POST /api/posts] Uploaded object not found/accessible:', e);
+          return NextResponse.json(
+            {
+              error:
+                'Upload not found in storage. The browser upload may have been blocked (commonly CORS).',
+              code: 'UPLOAD_NOT_FOUND',
+            },
+            { status: 400 }
+          );
+        }
       }
     }
 
