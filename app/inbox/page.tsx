@@ -77,22 +77,16 @@ export default function InboxPage() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/messages/recipients');
       if (response.ok) {
         const data = await response.json();
-        // Filter out current user and get only barbers/stylists for clients, or clients for barbers
-        const filteredUsers = data.filter((user: User) => {
-          if (user.id === session?.user?.id) return false;
-          if (session?.user?.role === 'client') {
-            return user.role === 'barber' || user.role === 'stylist';
-          } else {
-            return user.role === 'client';
-          }
-        });
-        setUsers(filteredUsers);
+        // Ensure data is an array
+        const usersList = Array.isArray(data) ? data : [];
+        setUsers(usersList);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
+      setUsers([]);
     }
   };
 
