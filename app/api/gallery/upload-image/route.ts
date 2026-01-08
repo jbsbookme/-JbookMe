@@ -1,98 +1,76 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth/auth-options'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { uploadFile, getFileUrl } from '@/lib/s3'
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { v2 as cloudinary } from 'cloudinary';
 
-export async function POST(request: NextRequest) {
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+export async function POST(req: NextRequest) {
   try {
-    // Verify admin authentication/permissions
-    const session = await getServerSession(authOptions)
-    if (!session?.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
+    // Check if user has ADMIN, BARBER, or STYLIST role
+    const userRole = session.user.role;
+    if (userRole !== 'ADMIN' && userRole !== 'BARBER' && userRole !== 'STYLIST') {
+      return NextResponse.json(
+        { error: 'Forbidden - Only ADMIN, BARBER, and STYLIST roles can upload images' },
+        { status: 403 }
+      );
+    }
 
-    console.log('[Upload] FormData keys:', Array.from(formData.keys()))
-    console.log('[Upload] File received:', file ? { name: file.name, type: file.type, size: file.size } : 'null')
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
 
     if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate it is an image
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json(
-        { error: 'File must be an image' },
-        { status: 400 }
-      )
-    }
+    // Convert file to base64
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64 = buffer.toString('base64');
+    const dataUri = `data:${file.type};base64,${base64}`;
 
-    // Validate size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: 'Image must not exceed 10MB' },
-        { status: 400 }
-      )
-    }
+    // Upload to Cloudinary
+    const uploadResponse = await cloudinary.uploader.upload(dataUri, {
+      folder: 'gallery',
+      resource_type: 'auto',
+    });
 
-    // Convert to Buffer
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    // Save to database
+    const galleryImage = await db.galleryImage.create({
+      data: {
+        title: title || 'Untitled',
+        description: description || '',
+        imageUrl: uploadResponse.secure_url,
+        publicId: uploadResponse.public_id,
+        uploadedById: session.user.id,
+      },
+    });
 
-    // Generate unique filename
-    const timestamp = Date.now()
-    const ext = file.name.split('.').pop()
-    const fileName = `${timestamp}.${ext}`
-
-    // Prefer S3 when available
-    try {
-      console.log('[Upload] Attempting S3 upload...')
-      const cloud_storage_path = await uploadFile(buffer, `gallery/${fileName}`, true)
-      const publicUrl = await getFileUrl(cloud_storage_path, true)
-      console.log('[Upload] S3 upload successful:', publicUrl)
-
-      return NextResponse.json({
-        success: true,
-        url: publicUrl,
-        cloud_storage_path
-      })
-    } catch (s3Error) {
-      console.log('[Upload] S3 failed, saving locally:', s3Error)
-    }
-
-    // Create directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'gallery')
-    await mkdir(uploadDir, { recursive: true })
-
-    // Save file
-    const filePath = join(uploadDir, fileName)
-    await writeFile(filePath, buffer)
-
-    // Public URL
-    const publicUrl = `/uploads/gallery/${fileName}`
-
-    console.log('[Upload] Image saved:', publicUrl)
-
-    return NextResponse.json({
-      success: true,
-      url: publicUrl,
-      cloud_storage_path: publicUrl
-    })
+    return NextResponse.json(
+      {
+        message: 'Image uploaded successfully',
+        image: galleryImage,
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error('Error uploading gallery image:', error)
+    console.error('Error uploading image:', error);
     return NextResponse.json(
       { error: 'Failed to upload image' },
       { status: 500 }
-    )
+    );
   }
 }
