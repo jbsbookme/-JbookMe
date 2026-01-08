@@ -73,11 +73,11 @@ export default function SimpleUploadPage() {
     setIsUploading(true);
 
     try {
-      // Step 1: Upload file
+      // Step 1: Upload file using Vercel Blob
       const uploadFormData = new FormData();
       uploadFormData.append('file', selectedFile);
 
-      const uploadRes = await fetch('/api/posts/upload', {
+      const uploadRes = await fetch('/api/posts/upload-blob', {
         method: 'POST',
         body: uploadFormData,
       });

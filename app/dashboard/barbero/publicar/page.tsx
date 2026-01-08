@@ -63,48 +63,25 @@ export default function BarberUploadPage() {
     setIsUploading(true);
 
     try {
-      // 1) Presign upload (avoids serverless body size limits)
-      const presignRes = await fetch('/api/posts/presign', {
+      // Upload directly using Vercel Blob (simpler, no presign needed)
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', selectedFile);
+
+      const uploadRes = await fetch('/api/posts/upload-blob', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-          fileSize: selectedFile.size,
-        }),
+        body: uploadFormData,
       });
 
-      if (!presignRes.ok) {
-        let payload: any = null;
-        try {
-          payload = await presignRes.json();
-        } catch {
-          payload = { error: await presignRes.text() };
-        }
-        throw new Error(payload?.code ? `${payload.error} (${payload.code})` : (payload?.error || 'Failed to prepare upload'));
+      if (!uploadRes.ok) {
+        const errorData = await uploadRes.json();
+        throw new Error(errorData.error || 'Failed to upload file');
       }
 
-      const { uploadUrl, cloud_storage_path, publicUrl } = await presignRes.json();
+      const { cloud_storage_path, fileUrl } = await uploadRes.json();
+      
+      toast.success('File uploaded! Creating post...');
 
-      // 2) Upload directly to S3
-      try {
-        const uploadRes = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': selectedFile.type,
-          },
-          body: selectedFile,
-        });
-
-        if (!uploadRes.ok) {
-          throw new Error('Upload failed (S3)');
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        throw new Error(msg.includes('Failed to fetch') ? 'Upload blocked by browser (CORS)' : msg);
-      }
-
-      // 3) Create post record (no file body)
+      // Create post record
       const formData = new FormData();
       formData.append('caption', caption.trim());
       formData.append('cloud_storage_path', cloud_storage_path);
@@ -139,7 +116,7 @@ export default function BarberUploadPage() {
       // Try Web Share API first (works on mobile with image)
       if (navigator.share && navigator.canShare) {
         try {
-          const response = await fetch(publicUrl);
+          const response = await fetch(fileUrl);
           const blob = await response.blob();
           const file = new File([blob], 'jbookme-work.jpg', { type: blob.type });
           
@@ -156,7 +133,7 @@ export default function BarberUploadPage() {
           // Fallback: copy text and download image
           await navigator.clipboard.writeText(text);
           const a = document.createElement('a');
-          a.href = publicUrl;
+          a.href = fileUrl;
           a.download = 'jbookme-work.jpg';
           document.body.appendChild(a);
           a.click();
@@ -167,7 +144,7 @@ export default function BarberUploadPage() {
         // Desktop fallback
         await navigator.clipboard.writeText(text);
         const a = document.createElement('a');
-        a.href = publicUrl;
+        a.href = fileUrl;
         a.download = 'jbookme-work.jpg';
         document.body.appendChild(a);
         a.click();

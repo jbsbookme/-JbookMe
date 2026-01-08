@@ -43,55 +43,37 @@ export default function TestUploadPage() {
       return;
     }
 
-    setStatus('Step 1: Getting presigned URL...');
+    setStatus('Uploading to Vercel Blob...');
     setError('');
 
     try {
-      // Step 1: Get presigned URL
-      const presignRes = await fetch('/api/posts/presign', {
+      // Upload using Vercel Blob
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const uploadRes = await fetch('/api/posts/upload-blob', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-          fileSize: selectedFile.size,
-        }),
-      });
-
-      if (!presignRes.ok) {
-        const errorData = await presignRes.json();
-        setError(`Presign failed: ${JSON.stringify(errorData, null, 2)}`);
-        return;
-      }
-
-      const { uploadUrl, cloud_storage_path, publicUrl } = await presignRes.json();
-      setStatus(`Step 2: Uploading to S3...\nPath: ${cloud_storage_path}`);
-
-      // Step 2: Upload to S3
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': selectedFile.type,
-        },
-        body: selectedFile,
+        body: formData,
       });
 
       if (!uploadRes.ok) {
-        setError(`S3 upload failed: ${uploadRes.status} ${uploadRes.statusText}`);
+        const errorData = await uploadRes.json();
+        setError(`Upload failed: ${JSON.stringify(errorData, null, 2)}`);
         return;
       }
 
-      setStatus(`Step 3: Creating post record...`);
+      const { cloud_storage_path, fileUrl } = await uploadRes.json();
+      setStatus(`Step 2: Creating post record...\nFile URL: ${fileUrl}`);
 
       // Step 3: Create post
-      const formData = new FormData();
-      formData.append('caption', 'Test upload');
-      formData.append('cloud_storage_path', cloud_storage_path);
-      formData.append('hashtags', JSON.stringify(['test']));
+      const postFormData = new FormData();
+      postFormData.append('caption', 'Test upload');
+      postFormData.append('cloud_storage_path', cloud_storage_path);
+      postFormData.append('hashtags', JSON.stringify(['test']));
 
       const postRes = await fetch('/api/posts', {
         method: 'POST',
-        body: formData,
+        body: postFormData,
       });
 
       if (!postRes.ok) {
@@ -101,7 +83,7 @@ export default function TestUploadPage() {
       }
 
       const postData = await postRes.json();
-      setStatus(`✅ SUCCESS!\n\nPost created: ${postData.post?.id}\nPublic URL: ${publicUrl}`);
+      setStatus(`✅ SUCCESS!\n\nPost created: ${postData.post?.id}\nFile URL: ${fileUrl}`);
 
     } catch (err: any) {
       setError(`Error: ${err.message}\n${err.stack || ''}`);
