@@ -31,15 +31,55 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'El archivo es demasiado grande (máx 50MB)' }, { status: 400 });
     }
 
-    // Upload file to S3
+    // Create organized folder structure
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const roleFolder = session.user.role === 'BARBER' ? 'barber_work' : 'client_share';
+
+    // Prepare file for upload
     const fileName = file.name.replace(/\s+/g, '-');
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const cloud_storage_path = await uploadFile(buffer, fileName, true, file.type || undefined);
+    let cloud_storage_path: string;
+    let fileUrl: string;
 
-    // Get the public URL
-    const fileUrl = await getFileUrl(cloud_storage_path, true);
+    try {
+      // Try S3 upload first
+      const key = `posts/${year}/${month}/${roleFolder}/${Date.now()}-${fileName}`;
+      cloud_storage_path = await uploadFile(buffer, key, true, file.type || undefined);
+      fileUrl = await getFileUrl(cloud_storage_path, true);
+    } catch (s3Error) {
+      console.error('S3 upload failed, using local storage:', s3Error);
+      
+      // Fallback to local storage
+      const { writeFile, mkdir } = await import('fs/promises');
+      const path = await import('path');
+
+      const uploadsDir = path.join(
+        process.cwd(),
+        'public',
+        'uploads',
+        'posts',
+        String(year),
+        month,
+        roleFolder
+      );
+      
+      await mkdir(uploadsDir, { recursive: true });
+
+      const timestamp = Date.now();
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const localFileName = `${timestamp}-${sanitizedFileName}`;
+      const filePath = path.join(uploadsDir, localFileName);
+
+      await writeFile(filePath, buffer);
+      cloud_storage_path = `/uploads/posts/${year}/${month}/${roleFolder}/${localFileName}`;
+      fileUrl = cloud_storage_path;
+      
+      console.log('File saved locally:', cloud_storage_path);
+    }
 
     return NextResponse.json({
       cloud_storage_path,
