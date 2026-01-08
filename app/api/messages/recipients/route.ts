@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { authOptions } from "@/lib/auth/auth-options";
+import { prisma } from "@/lib/db";
 
 export async function GET() {
   try {
@@ -14,7 +14,7 @@ export async function GET() {
     const userId = session.user.id;
     const userRole = session.user.role;
 
-    let recipients;
+    let recipients: any[];
 
     // Role-based filtering
     switch (userRole) {
@@ -40,12 +40,10 @@ export async function GET() {
         break;
 
       case "CLIENT":
-        // CLIENT only sees BARBER and STYLIST users
+        // CLIENT only sees BARBER users
         recipients = await prisma.user.findMany({
           where: {
-            role: {
-              in: ["BARBER", "STYLIST"],
-            },
+            role: "BARBER",
           },
           select: {
             id: true,
@@ -61,14 +59,12 @@ export async function GET() {
         break;
 
       case "BARBER":
-      case "STYLIST":
-        // BARBER/STYLIST only sees their clients (users who have appointments with them)
+        // BARBER sees all CLIENTS
         recipients = await prisma.user.findMany({
           where: {
-            appointments: {
-              some: {
-                barberId: userId,
-              },
+            role: "CLIENT",
+            id: {
+              not: userId,
             },
           },
           select: {

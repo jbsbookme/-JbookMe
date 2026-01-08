@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { db } from '@/lib/db';
+import { authOptions } from '@/lib/auth/auth-options';
+import { prisma } from '@/lib/db';
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
@@ -49,13 +49,11 @@ export async function POST(req: NextRequest) {
     });
 
     // Save to database
-    const galleryImage = await db.galleryImage.create({
+    const galleryImage = await prisma.galleryImage.create({
       data: {
         title: title || 'Untitled',
         description: description || '',
-        imageUrl: uploadResponse.secure_url,
-        publicId: uploadResponse.public_id,
-        uploadedById: session.user.id,
+        cloud_storage_path: uploadResponse.secure_url,
       },
     });
 
