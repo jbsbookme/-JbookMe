@@ -51,9 +51,26 @@ export async function POST(request: NextRequest) {
       cloud_storage_path = await uploadFile(buffer, key, true, file.type || undefined);
       fileUrl = await getFileUrl(cloud_storage_path, true);
     } catch (s3Error) {
-      console.error('S3 upload failed, using local storage:', s3Error);
+      console.error('S3 upload failed:', s3Error);
       
-      // Fallback to local storage
+      // Check if we're in serverless environment (Vercel)
+      const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
+      
+      if (isServerless) {
+        // In serverless, we MUST use S3 - filesystem is ephemeral
+        console.error('Cannot use local storage in serverless environment');
+        return NextResponse.json(
+          { 
+            error: 'Storage configuration error. S3 credentials are required in production.',
+            code: 'S3_REQUIRED',
+            details: 'Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in Vercel environment variables.'
+          },
+          { status: 500 }
+        );
+      }
+      
+      // Fallback to local storage (only in development)
+      console.log('Using local storage fallback (development only)');
       const { writeFile, mkdir } = await import('fs/promises');
       const path = await import('path');
 
