@@ -100,7 +100,7 @@ export default function PublicarPage() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto p-6">
+    <div className="container max-w-2xl mx-auto p-6 pb-32">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Crear Publicación</h1>
         <p className="text-muted-foreground">
