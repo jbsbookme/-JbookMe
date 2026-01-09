@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,7 +105,6 @@ export default function FacturasPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
-        <DashboardNavbar />
         <div className="container mx-auto px-4 py-8">
           <p className="text-white text-center">Loading invoices...</p>
         </div>
@@ -116,7 +114,6 @@ export default function FacturasPage() {
 
   return (
     <div className="min-h-screen bg-black pb-20">
-      <DashboardNavbar />
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

@@ -60,24 +60,42 @@ export default function PublicarPage() {
     setIsUploading(true);
 
     try {
-      // Create FormData with file and post data
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-      formData.append("caption", caption.trim());
-      formData.append("hashtags", hashtags.trim());
+      // Step 1: Upload file to Vercel Blob
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", selectedFile);
 
-      // POST directly to /api/posts
-      const response = await fetch("/api/posts", {
+      const uploadResponse = await fetch("/api/posts/upload-blob", {
         method: "POST",
-        body: formData,
+        body: uploadFormData,
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Error al crear la publicación");
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        throw new Error(error.message || "Error al subir archivo");
       }
 
-      const result = await response.json();
+      const uploadData = await uploadResponse.json();
+      const cloudPath = uploadData.cloud_storage_path || uploadData.fileUrl;
+
+      if (!cloudPath) {
+        throw new Error("No se recibió URL del archivo");
+      }
+
+      // Step 2: Create post record with Vercel Blob URL
+      const postFormData = new FormData();
+      postFormData.append("cloud_storage_path", cloudPath);
+      postFormData.append("caption", caption.trim());
+      postFormData.append("hashtags", hashtags.trim());
+
+      const postResponse = await fetch("/api/posts", {
+        method: "POST",
+        body: postFormData,
+      });
+
+      if (!postResponse.ok) {
+        const error = await postResponse.json();
+        throw new Error(error.message || "Error al crear la publicación");
+      }
 
       // Show success message
       toast.success("¡Publicación creada exitosamente!");
@@ -100,30 +118,31 @@ export default function PublicarPage() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto p-6 pb-32">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Crear Publicación</h1>
-        <p className="text-muted-foreground">
-          Comparte tus momentos con la comunidad
-        </p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black">
+      <div className="container max-w-2xl mx-auto p-6 pb-32">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 text-white">Crear Publicación</h1>
+          <p className="text-zinc-400">
+            Comparte tus momentos con la comunidad
+          </p>
+        </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Image Upload Section */}
-        <Card>
+        <Card className="glass border-cyan-500/20">
           <CardContent className="pt-6">
             {!previewUrl ? (
               <label
                 htmlFor="file-upload"
-                className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted/70 transition-colors"
+                className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-cyan-500/30 rounded-lg cursor-pointer bg-gradient-to-br from-zinc-900/80 to-black/60 hover:from-zinc-800/80 hover:to-black/80 transition-all duration-300"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="w-12 h-12 mb-4 text-muted-foreground" />
-                  <p className="mb-2 text-sm text-muted-foreground">
+                  <Upload className="w-12 h-12 mb-4 text-cyan-400" />
+                  <p className="mb-2 text-sm text-zinc-300">
                     <span className="font-semibold">Click para subir</span> o
                     arrastra y suelta
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-zinc-500">
                     PNG, JPG, GIF hasta 10MB
                   </p>
                 </div>
@@ -160,7 +179,7 @@ export default function PublicarPage() {
 
         {/* Caption Section */}
         <div className="space-y-2">
-          <label htmlFor="caption" className="text-sm font-medium">
+          <label htmlFor="caption" className="text-sm font-medium text-white">
             Descripción
           </label>
           <Textarea
@@ -168,14 +187,14 @@ export default function PublicarPage() {
             placeholder="Escribe una descripción para tu publicación..."
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
-            className="min-h-[100px]"
+            className="min-h-[100px] bg-black/40 border-zinc-700 text-white placeholder:text-zinc-500"
             disabled={isUploading}
           />
         </div>
 
         {/* Hashtags Section */}
         <div className="space-y-2">
-          <label htmlFor="hashtags" className="text-sm font-medium">
+          <label htmlFor="hashtags" className="text-sm font-medium text-white">
             Hashtags
           </label>
           <Input
@@ -183,9 +202,10 @@ export default function PublicarPage() {
             placeholder="#viajes #fotografia #naturaleza"
             value={hashtags}
             onChange={(e) => setHashtags(e.target.value)}
+            className="bg-black/40 border-zinc-700 text-white placeholder:text-zinc-500"
             disabled={isUploading}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-zinc-500">
             Separa los hashtags con espacios
           </p>
         </div>
@@ -194,7 +214,7 @@ export default function PublicarPage() {
         <div className="flex gap-4">
           <Button
             type="submit"
-            className="flex-1"
+            className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
             disabled={isUploading || !selectedFile || !caption.trim()}
           >
             {isUploading ? (
@@ -212,6 +232,7 @@ export default function PublicarPage() {
           <Button
             type="button"
             variant="outline"
+            className="border-zinc-700 text-white hover:bg-zinc-800"
             onClick={() => router.push("/feed")}
             disabled={isUploading}
           >
@@ -219,6 +240,7 @@ export default function PublicarPage() {
           </Button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

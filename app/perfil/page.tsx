@@ -5,7 +5,6 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/lib/i18n/i18n-context';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -370,8 +369,6 @@ export default function PerfilPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24 overflow-x-hidden">
-      <DashboardNavbar />
-
       <div className="container mx-auto px-4 pt-10 pb-8 sm:pt-8">
         <motion.div
           initial={{ opacity: 0, y: 8 }}

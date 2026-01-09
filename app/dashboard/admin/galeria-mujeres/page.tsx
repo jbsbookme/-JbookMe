@@ -8,7 +8,6 @@ import { motion } from 'framer-motion';
 import { Upload, Trash2, Image as ImageIcon, Loader2, ImagePlus, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { toast } from 'sonner';
 
 interface GalleryImage {
@@ -173,7 +172,6 @@ export default function GaleriaMujeresPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
       
       <div className="container mx-auto px-4 pt-8">
         <motion.div

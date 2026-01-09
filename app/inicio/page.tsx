@@ -20,7 +20,6 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShareFAB } from '@/components/share-fab';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useEffect, useState } from 'react';
 
@@ -216,8 +215,6 @@ export default function InicioPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
-      
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[#00f0ff]/10 via-black to-black"></div>
         

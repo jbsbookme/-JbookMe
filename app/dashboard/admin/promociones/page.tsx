@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -270,7 +269,6 @@ export default function PromotionsPage() {
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white">
-      <DashboardNavbar />
       
       <div className="max-w-7xl mx-auto p-6 mt-20">
         {/* Header */}

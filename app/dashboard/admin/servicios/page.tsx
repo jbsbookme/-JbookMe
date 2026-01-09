@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -410,7 +409,6 @@ export default function AdminServiciosPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <DashboardNavbar />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Botón volver */}

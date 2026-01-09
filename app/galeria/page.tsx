@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ShareFAB } from '@/components/share-fab';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface GalleryImage {
@@ -201,8 +200,6 @@ export default function GaleriaPage() {
   if (showGenderSelection) {
     return (
       <div className="min-h-screen bg-black pb-24">
-        <DashboardNavbar />
-        
         <div className="container mx-auto px-4 py-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -271,8 +268,6 @@ export default function GaleriaPage() {
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Navbar con logo JBookMe */}
-      <DashboardNavbar />
-      
       {/* Título y Filtros */}
       <div className="bg-black/95 backdrop-blur-sm border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">

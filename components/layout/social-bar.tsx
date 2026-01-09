@@ -45,7 +45,7 @@ export default function SocialBar() {
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className="sticky top-0 z-40 bg-black/90 backdrop-blur-md border-b border-gray-800"
+      className="w-full bg-black/90 backdrop-blur-md border-b border-gray-800"
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-center gap-6 py-3">

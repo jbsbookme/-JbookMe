@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -456,7 +455,6 @@ export default function ContabilidadBarbero() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}

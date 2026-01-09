@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { uploadFile, getFileUrl } from '@/lib/s3';
+import { put } from '@vercel/blob';
 
 // GET - Fetch messages (inbox)
 export async function GET(request: Request) {
@@ -61,13 +61,7 @@ export async function GET(request: Request) {
     // Get signed URLs for attachments
     const messagesWithUrls = await Promise.all(
       messages.map(async (message) => {
-        let attachmentUrl = null;
-        if (message.cloud_storage_path) {
-          attachmentUrl = await getFileUrl(
-            message.cloud_storage_path,
-            message.isPublic
-          );
-        }
+        const attachmentUrl = message.cloud_storage_path || null;
         return {
           ...message,
           attachmentUrl,
@@ -134,9 +128,14 @@ export async function POST(request: Request) {
     // Handle attachment upload
     let cloud_storage_path = null;
     if (attachment) {
-      const buffer = Buffer.from(await attachment.arrayBuffer());
-      const fileName = `messages/${Date.now()}-${attachment.name}`;
-      cloud_storage_path = await uploadFile(buffer, fileName, false); // Private file
+      const safeName = attachment.name
+        ? attachment.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+        : 'attachment';
+      const blob = await put(`messages/${Date.now()}-${safeName}`, attachment, {
+        access: 'public',
+        contentType: attachment.type || undefined,
+      });
+      cloud_storage_path = blob.url;
     }
 
     // Create message
@@ -148,7 +147,7 @@ export async function POST(request: Request) {
         subject,
         appointmentId,
         cloud_storage_path,
-        isPublic: false,
+        isPublic: true,
       },
       include: {
         sender: {

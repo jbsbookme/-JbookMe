@@ -8,8 +8,7 @@ import { Toaster } from 'react-hot-toast';
 import BottomNav from '@/components/layout/bottom-nav-wrapper';
 import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { TopMenuHeader } from '@/components/layout/top-menu-header';
-import SocialBar from '@/components/layout/social-bar';
+import { GlobalHeader } from '@/components/layout/global-header';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -88,8 +87,7 @@ export default function RootLayout({
           <SessionProviderWrapper>
             <UserProvider>
               <I18nProvider>
-                <TopMenuHeader />
-                <SocialBar />
+                <GlobalHeader />
                 {children}
                 <Footer />
                 <BottomNav />

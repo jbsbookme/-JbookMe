@@ -29,7 +29,6 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { addDays, format } from 'date-fns';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { enUS } from 'date-fns/locale';
 
 // Types
@@ -1613,9 +1612,6 @@ export default function ReservarPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      {/* Navbar with JBookMe logo */}
-      <DashboardNavbar />
-      
       {/* Progress indicator and Back button */}
       <div className="container mx-auto px-4 mt-8 mb-8">
         <Button

@@ -58,12 +58,12 @@ export function TopMenuHeader() {
       className={`sticky top-0 z-50 w-full bg-black ${hasSecondaryStickyHeader ? 'border-b border-transparent' : 'border-b border-gray-800'}`}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="container mx-auto flex h-14 sm:h-16 items-center justify-between px-4 max-w-7xl">
+      <div className="container mx-auto flex h-12 sm:h-16 items-center justify-between px-4 max-w-7xl">
         <Link href={dashboardHref} className="flex items-center space-x-2 sm:space-x-3">
-          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
+          <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
             <Image src="/logo.png" alt="JBookMe Logo" fill className="object-contain" priority />
           </div>
-          <span className="text-base sm:text-xl font-bold leading-none">
+          <span className="text-sm sm:text-xl font-bold leading-none">
             <span className="text-[#00f0ff]">JBook</span>
             <span className="text-[#ffd700]">Me</span>
           </span>
@@ -74,7 +74,7 @@ export function TopMenuHeader() {
           aria-label={t('nav.menu')}
           className="inline-flex items-center text-[#4dd0e1] drop-shadow-[0_0_6px_rgba(77,208,225,0.4)] font-bold"
         >
-          <Menu className="w-6 h-6" />
+          <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
         </Link>
       </div>
     </header>

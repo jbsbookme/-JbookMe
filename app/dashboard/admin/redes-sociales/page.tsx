@@ -11,7 +11,6 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import Link from 'next/link'
-import { DashboardNavbar } from '@/components/dashboard/navbar'
 
 interface Settings {
   facebook?: string
@@ -261,7 +260,6 @@ export default function SocialMediaManagement() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
       
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}

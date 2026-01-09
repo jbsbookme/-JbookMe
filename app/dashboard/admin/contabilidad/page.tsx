@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -664,7 +663,6 @@ export default function ContabilidadPage() {
   if (loading || status === 'loading') {
     return (
       <div className="min-h-screen bg-black">
-        <DashboardNavbar />
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
         </div>
@@ -674,7 +672,6 @@ export default function ContabilidadPage() {
 
   return (
     <div className="min-h-screen bg-black">
-      <DashboardNavbar />
       
       <div className="container mx-auto p-6 space-y-6">
         <div className="mb-6">

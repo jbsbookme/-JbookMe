@@ -48,7 +48,7 @@ export default function BottomNav() {
       id: 'explore',
       name: t('nav.explore'),
       icon: Sparkles,
-      href: isSessionLoading ? '#' : (isAuthenticated ? '/galeria-genero' : authHrefFor('/galeria-genero')),
+      href: isAuthenticated ? '/galeria-genero' : authHrefFor('/galeria-genero'),
       active: pathname === '/galeria-genero' || pathname === '/galeria',
       isCreate: false,
       disabled: isSessionLoading

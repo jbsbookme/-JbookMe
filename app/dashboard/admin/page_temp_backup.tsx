@@ -3,7 +3,6 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { AdminDashboardHeader } from '@/components/admin-dashboard-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, User, Calendar, DollarSign, Star, TrendingUp, Scissors, Wallet, FileText, Image as ImageIcon, MapPin, Share2, Bot, ShieldCheck, BarChart3 } from 'lucide-react';
@@ -91,7 +90,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
-      <DashboardNavbar />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}

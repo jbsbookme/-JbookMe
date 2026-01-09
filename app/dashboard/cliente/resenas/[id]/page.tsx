@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useParams } from 'next/navigation';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -113,7 +112,6 @@ export default function LeaveReviewPage() {
   if (status === 'loading' || !appointment) {
     return (
       <div className="min-h-screen bg-black">
-        <DashboardNavbar />
         <div className="flex items-center justify-center py-20">
           <p className="text-white">Loading...</p>
         </div>
@@ -123,7 +121,6 @@ export default function LeaveReviewPage() {
 
   return (
     <div className="min-h-screen bg-black pb-20">
-      <DashboardNavbar />
 
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         <div className="text-center mb-8">

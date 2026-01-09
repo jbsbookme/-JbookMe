@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import {
   User,
   Instagram,
@@ -143,7 +142,6 @@ export default function BarberProfilePage() {
 
   return (
     <div className="min-h-screen bg-black pb-24 overflow-x-hidden">
-      <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header */}

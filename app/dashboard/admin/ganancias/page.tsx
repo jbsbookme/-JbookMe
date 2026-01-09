@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, Users, TrendingUp, ArrowLeft, Award, TrendingDown, CreditCard, PieChart, BarChart3, Target, Download } from 'lucide-react';
@@ -198,7 +197,6 @@ export default function AdminEarningsPage() {
 
   return (
     <>
-      <DashboardNavbar />
       <div className="container mx-auto p-6 space-y-6 pb-24">
         {/* Header */}
         <div className="flex flex-col gap-4">

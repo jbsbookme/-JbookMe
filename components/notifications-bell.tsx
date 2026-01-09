@@ -109,11 +109,11 @@ export function NotificationsBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative hover:bg-transparent"
+          className="relative hover:bg-transparent h-7 w-7 sm:h-8 sm:w-8 p-0"
         >
-          <Bell className="w-5 h-5 text-[#00f0ff] drop-shadow-[0_0_12px_rgba(0,240,255,0.9)]" />
+          <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-[#00f0ff] drop-shadow-[0_0_12px_rgba(0,240,255,0.9)]" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center font-bold animate-pulse">
+            <span className="absolute top-0 right-0 sm:-top-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-red-500 rounded-full text-white text-[10px] sm:text-xs flex items-center justify-center font-bold animate-pulse">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}

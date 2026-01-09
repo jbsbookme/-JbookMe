@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import {
   Camera,
   X,
@@ -199,7 +198,6 @@ export default function BarberPostsPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

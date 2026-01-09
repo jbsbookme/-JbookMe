@@ -17,6 +17,11 @@ type Props = {
 };
 
 export function DashboardNavbar({ showQuickBook = false }: Props) {
+  // Deprecated: header must live ONLY in app/layout.tsx (GlobalHeader).
+  // Keeping this component as a no-op prevents legacy pages from rendering a second header.
+  void showQuickBook;
+  return null;
+
   const { data: session } = useSession() || {};
   const pathname = usePathname();
   const { user } = useUser();
@@ -78,22 +83,22 @@ export function DashboardNavbar({ showQuickBook = false }: Props) {
   // TopMenuHeader includes safe-area padding; match it here to avoid 1px seams on iOS.
   const topClass = isTopHeaderHidden
     ? 'top-0'
-    : 'top-[calc(3.5rem+env(safe-area-inset-top))] sm:top-[calc(4rem+env(safe-area-inset-top))]';
+    : 'top-[calc(3rem+env(safe-area-inset-top))] sm:top-[calc(4rem+env(safe-area-inset-top))]';
 
   return (
     <nav
       className={`sticky ${topClass} z-50 w-full border-b border-gray-800 bg-black`}
       style={isTopHeaderHidden ? { paddingTop: 'env(safe-area-inset-top)' } : undefined}
     >
-      <div className="container mx-auto flex h-16 items-center justify-end px-4 max-w-7xl">
-        <div className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3">
+      <div className="container mx-auto flex h-14 sm:h-16 items-center justify-end px-4 max-w-7xl">
+        <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3">
           {showQuickBook ? (
             <Link href="/reservar" aria-label="Book">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-8 px-2.5 border-[#00f0ff]/30 bg-[#00f0ff]/10 text-[#00f0ff] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.18)] inline-flex items-center gap-1.5"
+                className="h-7 sm:h-8 px-2.5 border-[#00f0ff]/30 bg-[#00f0ff]/10 text-[#00f0ff] hover:bg-[#00f0ff]/15 hover:border-[#00f0ff]/40 shadow-[0_0_10px_rgba(0,240,255,0.18)] inline-flex items-center gap-1.5"
               >
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#00f0ff]" />
                 <span className="text-[11px] font-semibold tracking-wide">BOOK</span>
@@ -106,7 +111,7 @@ export function DashboardNavbar({ showQuickBook = false }: Props) {
             size="sm"
             onClick={handleShare}
             aria-label="Share"
-            className="border-transparent bg-white/5 text-white hover:bg-white/10 hover:text-white h-8 w-8 p-0"
+            className="border-transparent bg-white/5 text-white hover:bg-white/10 hover:text-white h-7 w-7 sm:h-8 sm:w-8 p-0"
           >
             <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>

@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Camera, Video, X, Upload, Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { toast } from 'sonner';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import Link from 'next/link';
 
 export default function BarberUploadPage() {
@@ -173,7 +172,6 @@ export default function BarberUploadPage() {
 
   return (
     <div className="min-h-screen bg-black pb-32">
-      <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <Link href="/dashboard/barbero">

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star, MessageSquare, User, Calendar, TrendingUp, ArrowLeft, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -115,7 +114,6 @@ export default function BarberReviewsPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}

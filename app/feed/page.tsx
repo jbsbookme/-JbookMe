@@ -18,15 +18,16 @@ import {
   User,
   MessageCircle,
   Send,
+  Share2,
   Trash2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ShareFAB } from '@/components/share-fab';
+import { BookFAB } from '@/components/book-fab';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
 import PromotionsCarousel from '@/components/promotions-carousel';
-import { CommentSection } from '@/components/posts/comment-section';
+import { CommentsModal } from '@/components/posts/comments-modal';
 
 interface Comment {
   id: string;
@@ -65,6 +66,9 @@ interface Post {
     };
   };
   comments?: Comment[];
+  _count?: {
+    comments: number;
+  };
 }
 
 interface Barber {
@@ -121,6 +125,7 @@ export default function FeedPage() {
   const [showComments, setShowComments] = useState<Set<string>>(new Set());
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
+  const [commentsModalOpen, setCommentsModalOpen] = useState<string | null>(null);
   const bookingCtaRef = useRef<HTMLDivElement | null>(null);
   const [isBookingCtaInView, setIsBookingCtaInView] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState<{
@@ -474,7 +479,29 @@ export default function FeedPage() {
   };
 
   const isVideo = (path: string): boolean => {
-    return /\.(mp4|webm|ogg|mov)$/i.test(path);
+    // Check file extension
+    if (/\.(mp4|webm|ogg|mov|avi|mkv|flv)$/i.test(path)) {
+      return true;
+    }
+    
+    // Check if URL contains video indicators (for Vercel Blob or other CDNs)
+    const lowerPath = path.toLowerCase();
+    if (lowerPath.includes('video') || lowerPath.includes('.mp4') || lowerPath.includes('.mov')) {
+      return true;
+    }
+    
+    // Check URL parameters for content type
+    try {
+      const url = new URL(path);
+      const contentType = url.searchParams.get('content-type') || url.searchParams.get('contentType');
+      if (contentType && contentType.startsWith('video/')) {
+        return true;
+      }
+    } catch {
+      // Not a valid URL, continue with file extension check
+    }
+    
+    return false;
   };
 
   const incrementViewCount = useCallback(async (postId: string) => {
@@ -540,8 +567,6 @@ export default function FeedPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar showQuickBook={!isBookingCtaInView} />
-      
       {/* Mensaje de bienvenida */}
       <div className="hidden sm:block bg-gradient-to-b from-gray-900/50 to-transparent border-b border-gray-800">
         <div className="container mx-auto px-4 py-6">
@@ -936,9 +961,9 @@ export default function FeedPage() {
                             src={getMediaUrl(post.cloud_storage_path)}
                             autoPlay
                             muted
-                            loop
                             playsInline
                             preload="metadata"
+                            controls
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -980,7 +1005,41 @@ export default function FeedPage() {
                                 }`}
                               />
                             </motion.div>
-                            <span className="text-white font-semibold text-sm">{post.likes} likes</span>
+                            <span className="text-white font-semibold text-sm">{post.likes}</span>
+                          </motion.button>
+
+                          {/* Comment Button */}
+                          <motion.button
+                            onClick={() => setCommentsModalOpen(post.id)}
+                            className="flex items-center gap-2"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <MessageCircle className="w-6 h-6 text-white hover:text-cyan-400 smooth-transition" />
+                            <span className="text-white font-semibold text-sm">
+                              {post._count?.comments || 0}
+                            </span>
+                          </motion.button>
+
+                          {/* Share Button */}
+                          <motion.button
+                            onClick={() => {
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: `Post by ${post.author?.name || 'JBookMe'}`,
+                                  text: post.caption || 'Check out this post!',
+                                  url: `${window.location.origin}/feed?post=${post.id}`
+                                }).catch(() => {});
+                              } else {
+                                navigator.clipboard.writeText(`${window.location.origin}/feed?post=${post.id}`);
+                                toast.success('Link copied to clipboard!');
+                              }
+                            }}
+                            className="flex items-center gap-2"
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <Share2 className="w-6 h-6 text-white hover:text-pink-400 smooth-transition" />
                           </motion.button>
 
                           {(session?.user?.role === 'ADMIN' || post.author?.id === session?.user?.id) && (
@@ -1022,12 +1081,6 @@ export default function FeedPage() {
 
                         {/* View Count */}
                         <p className="text-xs text-zinc-500">{post.viewCount} views</p>
-
-                        {/* Comments Section */}
-                        <CommentSection 
-                          postId={post.id} 
-                          initialCommentCount={post.comments?.length || 0}
-                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -1103,7 +1156,6 @@ export default function FeedPage() {
                   controls
                   autoPlay
                   muted
-                  loop
                   playsInline
                   preload="metadata"
                   className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
@@ -1166,11 +1218,15 @@ export default function FeedPage() {
         </motion.div>
       )}
 
-      {/* Persistent mobile booking button (stays visible while scrolling) */}
-      {/* Quick BOOK now lives in the header (next to notifications) */}
+      {/* Comments Modal */}
+      <CommentsModal 
+        postId={commentsModalOpen || ''}
+        isOpen={!!commentsModalOpen}
+        onClose={() => setCommentsModalOpen(null)}
+      />
 
-      {/* FAB Buttons */}
-      <ShareFAB />
+      {/* FAB Button - Single action: BOOK */}
+      <BookFAB />
     </div>
   );
 }

@@ -162,7 +162,8 @@ export async function POST(request: NextRequest) {
       const cloudPath = providedCloudPath.trim();
       
       // Check if it's a Vercel Blob URL (starts with https://...)
-      const isVercelBlobUrl = cloudPath.startsWith('https://') && cloudPath.includes('.public.blob.vercel-storage.com');
+      const isVercelBlobUrl = cloudPath.startsWith('https://') && 
+        (cloudPath.includes('.blob.vercel-storage.com') || cloudPath.includes('.public.blob.vercel-storage.com'));
       
       if (!isVercelBlobUrl && (cloudPath.startsWith('http') || cloudPath.startsWith('/'))) {
         return NextResponse.json(
@@ -291,6 +292,10 @@ export async function POST(request: NextRequest) {
     // Create post - Auto-approve all posts
     // Keep authorType as 'BARBER' for both BARBER and ADMIN (UI currently expects BARBER vs CLIENT).
     const authorType: Role = isBarberOrAdmin(session.user.role) ? 'BARBER' : 'CLIENT';
+    
+    console.log('[POST /api/posts] Creating post with cloud_storage_path:', cloud_storage_path);
+    console.log('[POST /api/posts] File type:', file?.type);
+    
     const post = await prisma.post.create({
       data: {
         authorId: session.user.id,

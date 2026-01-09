@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Camera, Video, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -134,7 +133,6 @@ export default function SimpleUploadPage() {
 
   return (
     <div className="min-h-screen bg-black pb-32">
-      <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="mb-6">
@@ -174,7 +172,7 @@ export default function SimpleUploadPage() {
                 {!selectedFile ? (
                   <label
                     htmlFor="file-input"
-                    className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-cyan-500/30 rounded-lg cursor-pointer bg-black/20 hover:bg-black/40 transition-colors"
+                    className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-cyan-500/30 rounded-lg cursor-pointer bg-gradient-to-br from-zinc-900/80 to-black/60 hover:from-zinc-800/80 hover:to-black/80 transition-all duration-300"
                   >
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       {fileType === 'image' ? (

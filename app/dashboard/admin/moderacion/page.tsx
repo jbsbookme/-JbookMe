@@ -14,7 +14,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { DashboardNavbar } from '@/components/dashboard/navbar';
 import { CheckCircle2, XCircle, Clock, Eye, User, Scissors, Image as ImageIcon, Video, AlertCircle, ArrowLeft, RefreshCw, Search, Heart, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -281,7 +280,6 @@ export default function AdminModerationPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <DashboardNavbar />
 
       <div className="container mx-auto px-4 py-8 space-y-6">
         {/* Header */}
