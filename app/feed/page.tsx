@@ -230,6 +230,52 @@ export default function FeedPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const observed = new WeakSet<Element>();
+
+    const ensureObserved = (el: Element) => {
+      if (observed.has(el)) return;
+      observed.add(el);
+      intersectionObserver.observe(el);
+    };
+
+    const intersectionObserver = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const video = entry.target as HTMLVideoElement;
+          // If the video is mostly out of view, pause it so audio doesn't continue.
+          if (!entry.isIntersecting || entry.intersectionRatio < 0.25) {
+            try {
+              if (!video.paused) video.pause();
+            } catch {
+              // ignore
+            }
+          }
+        }
+      },
+      {
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
+      }
+    );
+
+    const observeAll = () => {
+      const videos = Array.from(document.querySelectorAll('video[data-feed-video="true"]'));
+      for (const video of videos) ensureObserved(video);
+    };
+
+    observeAll();
+
+    const mutationObserver = new MutationObserver(() => observeAll());
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      mutationObserver.disconnect();
+      intersectionObserver.disconnect();
+    };
+  }, []);
+
   const toggleVideoPlayback = useCallback((video: HTMLVideoElement) => {
     if (video.paused) {
       void video.play().catch(() => {
@@ -1139,6 +1185,7 @@ export default function FeedPage() {
                           <div className="relative w-full h-full">
                             <video
                               src={`/api/posts/${post.id}/media`}
+                              data-feed-video="true"
                               autoPlay
                               loop
                               muted
