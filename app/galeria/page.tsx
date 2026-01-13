@@ -516,7 +516,7 @@ export default function GaleriaPage() {
       {/* Image Zoom Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex flex-col"
+          className="fixed inset-0 z-50 bg-black/95"
           onClick={() => setSelectedImage(null)}
         >
           <button
@@ -527,7 +527,10 @@ export default function GaleriaPage() {
             <X className="w-6 h-6 text-white" />
           </button>
 
-          <div className="flex-1 w-full flex items-center justify-center p-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="absolute inset-0 flex items-center justify-center p-4 pb-40 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
             <TransformWrapper
               initialScale={1}
               minScale={0.5}
@@ -554,7 +557,7 @@ export default function GaleriaPage() {
           </div>
 
           {/* Image Info */}
-          <div className="w-full bg-black/90 p-6 text-white">
+          <div className="absolute bottom-0 left-0 right-0 bg-black/90 p-6 text-white">
             <h3 className="text-xl font-bold mb-2">{selectedImage.title}</h3>
             {selectedImage.barber?.user?.name && (
               <p className="text-[#00f0ff] text-sm mb-2">
