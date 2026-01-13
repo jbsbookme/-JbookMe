@@ -1062,7 +1062,11 @@ export default function FeedPage() {
 
                       {/* Media */}
                       <div 
-                        className={`relative w-full ${isVideo(post.cloud_storage_path) ? 'aspect-[4/5]' : 'aspect-square'} bg-zinc-800 cursor-pointer`}
+                        className={`relative w-full ${
+                          isVideo(post.cloud_storage_path)
+                            ? 'h-[78vh] md:h-[70vh] lg:h-[620px]'
+                            : 'aspect-square'
+                        } bg-zinc-800 cursor-pointer`}
                         onClick={() => {
                           // Prevent background audio/video from continuing when opening modal.
                           pauseAllVideos();
