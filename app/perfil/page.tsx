@@ -585,6 +585,8 @@ export default function PerfilPage() {
                           <video
                             src={src}
                             className="h-full w-full object-cover"
+                            autoPlay
+                            loop
                             muted
                             playsInline
                             preload="metadata"

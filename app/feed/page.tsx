@@ -221,7 +221,17 @@ export default function FeedPage() {
 
   const toggleVideoPlayback = useCallback((video: HTMLVideoElement) => {
     if (video.paused) {
-      void video.play();
+      void video.play().catch(() => {
+        // Some browsers require muted playback even on user gesture.
+        try {
+          video.muted = true;
+        } catch {
+          // ignore
+        }
+        return video.play().catch(() => {
+          // ignore
+        });
+      });
     } else {
       video.pause();
     }
@@ -1095,6 +1105,8 @@ export default function FeedPage() {
                           <div className="relative w-full h-full">
                             <video
                               src={post.imageUrl || getMediaUrl(post.cloud_storage_path)}
+                              autoPlay
+                              loop
                               muted
                               playsInline
                               preload="metadata"
@@ -1318,6 +1330,9 @@ export default function FeedPage() {
                 <div className="relative">
                   <video
                     src={zoomedMedia.url}
+                    controls
+                    autoPlay
+                    loop
                     muted
                     playsInline
                     preload="metadata"
