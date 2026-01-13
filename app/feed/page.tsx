@@ -1049,7 +1049,9 @@ export default function FeedPage() {
                             day: 'numeric',
                           });
 
-                          const mediaUrl = post.imageUrl || getMediaUrl(post.cloud_storage_path);
+                          const mediaUrl = isVideo(post.cloud_storage_path)
+                            ? `/api/posts/${post.id}/media`
+                            : post.imageUrl || getMediaUrl(post.cloud_storage_path);
                           setZoomedMedia({
                             url: mediaUrl,
                             isVideo: isVideo(post.cloud_storage_path),
@@ -1104,7 +1106,7 @@ export default function FeedPage() {
                         {isVideo(post.cloud_storage_path) ? (
                           <div className="relative w-full h-full">
                             <video
-                              src={post.imageUrl || getMediaUrl(post.cloud_storage_path)}
+                              src={`/api/posts/${post.id}/media`}
                               autoPlay
                               loop
                               muted

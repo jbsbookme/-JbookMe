@@ -564,8 +564,8 @@ export default function PerfilPage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-1">
                   {myPosts.map((post) => {
-                    const src = getMediaUrl(post.cloud_storage_path);
                     const video = isVideo(post.cloud_storage_path);
+                    const src = video ? `/api/posts/${post.id}/media` : getMediaUrl(post.cloud_storage_path);
                     return (
                       <div
                         key={post.id}
