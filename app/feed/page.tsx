@@ -216,6 +216,18 @@ export default function FeedPage() {
     dateLabel?: string;
   } | null>(null);
 
+  const [feedAudioEnabled, setFeedAudioEnabled] = useState(false);
+  const feedAudioEnabledRef = useRef(false);
+  const zoomedMediaRef = useRef<typeof zoomedMedia>(null);
+
+  useEffect(() => {
+    feedAudioEnabledRef.current = feedAudioEnabled;
+  }, [feedAudioEnabled]);
+
+  useEffect(() => {
+    zoomedMediaRef.current = zoomedMedia;
+  }, [zoomedMedia]);
+
   const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
   const [isZoomVideoPlaying, setIsZoomVideoPlaying] = useState(false);
 
@@ -234,6 +246,7 @@ export default function FeedPage() {
     if (typeof window === 'undefined') return;
 
     const observed = new WeakSet<Element>();
+    const ratios = new WeakMap<Element, number>();
 
     const ensureObserved = (el: Element) => {
       if (observed.has(el)) return;
@@ -243,30 +256,75 @@ export default function FeedPage() {
 
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) {
-          const video = entry.target as HTMLVideoElement;
-          // If the video is mostly out of view, pause it so audio doesn't continue.
-          if (!entry.isIntersecting || entry.intersectionRatio < 0.25) {
+        // While zoom modal is open, never auto-start background videos.
+        if (zoomedMediaRef.current) {
+          const videos = Array.from(document.querySelectorAll('video[data-feed-video="true"]')) as HTMLVideoElement[];
+          for (const v of videos) {
             try {
-              if (!video.paused) video.pause();
+              v.pause();
             } catch {
               // ignore
             }
-            continue;
           }
+          return;
+        }
 
-          // If the video is mostly in view and still muted, auto-play it (IG-style).
-          // Never auto-play unmuted video (avoid surprise audio).
-          if (entry.intersectionRatio >= 0.6 && video.muted && video.paused) {
+        for (const entry of entries) {
+          ratios.set(entry.target, entry.intersectionRatio);
+        }
+
+        const videos = Array.from(document.querySelectorAll('video[data-feed-video="true"]')) as HTMLVideoElement[];
+        let bestVideo: HTMLVideoElement | null = null;
+        let bestRatio = 0;
+
+        for (const v of videos) {
+          const ratio = ratios.get(v) ?? 0;
+          if (ratio >= 0.6 && ratio > bestRatio) {
+            bestRatio = ratio;
+            bestVideo = v;
+          }
+        }
+
+        // Pause everything that isn't the primary visible video.
+        for (const v of videos) {
+          const ratio = ratios.get(v) ?? 0;
+          const shouldPause = v !== bestVideo || ratio < 0.25;
+          if (shouldPause) {
             try {
-              void video.play().catch(() => {
-                // ignore
-              });
+              if (!v.paused) v.pause();
             } catch {
               // ignore
             }
           }
         }
+
+        if (!bestVideo) return;
+
+        const wantAudio = feedAudioEnabledRef.current;
+
+        // Start playback muted first (max compatibility), then unmute if user enabled audio.
+        const ensurePlaying = async () => {
+          if (bestVideo && bestVideo.paused) {
+            try {
+              bestVideo.muted = true;
+              bestVideo.loop = true;
+              await bestVideo.play();
+            } catch {
+              // ignore
+            }
+          }
+
+          if (bestVideo && wantAudio) {
+            try {
+              bestVideo.muted = false;
+              bestVideo.volume = 1;
+            } catch {
+              // ignore
+            }
+          }
+        };
+
+        void ensurePlaying();
       },
       {
         threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
@@ -313,10 +371,9 @@ export default function FeedPage() {
       if (video.muted) {
         video.muted = false;
         video.volume = 1;
-        // If user explicitly enables sound, don't loop endlessly.
+        setFeedAudioEnabled(true);
         try {
-          video.loop = false;
-          (video as any).autoplay = false;
+          video.loop = true;
         } catch {
           // ignore
         }
