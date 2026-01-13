@@ -252,6 +252,19 @@ export default function FeedPage() {
             } catch {
               // ignore
             }
+            continue;
+          }
+
+          // If the video is mostly in view and still muted, auto-play it (IG-style).
+          // Never auto-play unmuted video (avoid surprise audio).
+          if (entry.intersectionRatio >= 0.6 && video.muted && video.paused) {
+            try {
+              void video.play().catch(() => {
+                // ignore
+              });
+            } catch {
+              // ignore
+            }
           }
         }
       },
