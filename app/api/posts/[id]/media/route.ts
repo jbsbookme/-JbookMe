@@ -56,7 +56,11 @@ export async function GET(
       );
     }
 
-    const upstream = await fetch(sourceUrl);
+    // Forward Range requests for proper streaming support (especially on iOS/Safari).
+    const range = request.headers.get('range');
+    const upstream = await fetch(sourceUrl, {
+      headers: range ? { range } : undefined,
+    });
 
     if (!upstream.ok || !upstream.body) {
       return NextResponse.json(
@@ -66,15 +70,25 @@ export async function GET(
     }
 
     const headers = new Headers();
-    const contentType = upstream.headers.get('content-type');
-    if (contentType) headers.set('content-type', contentType);
+
+    const passthroughHeaders = [
+      'content-type',
+      'content-length',
+      'accept-ranges',
+      'content-range',
+    ];
+
+    for (const header of passthroughHeaders) {
+      const value = upstream.headers.get(header);
+      if (value) headers.set(header, value);
+    }
 
     // Short cache for public media to reduce repeated downloads.
     // Private media is still protected by auth and should not be cached publicly.
     headers.set('cache-control', post.isPublic ? 'public, max-age=300' : 'private, max-age=0, no-store');
 
     return new NextResponse(upstream.body, {
-      status: 200,
+      status: upstream.status,
       headers,
     });
   } catch (error) {
