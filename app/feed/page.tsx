@@ -18,6 +18,8 @@ import {
   User,
   MessageCircle,
   Send,
+  Facebook,
+  Instagram,
   Share2,
   Trash2,
   Link2,
@@ -205,6 +207,44 @@ export default function FeedPage() {
       }
     } catch {
       // user cancelled
+    }
+  }, [t]);
+
+  const shareToFacebook = useCallback((post: Post) => {
+    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const shareToWhatsApp = useCallback((post: Post) => {
+    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const barbershopName = "JB's Barbershop";
+    const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}\n${shareUrl}` : `${barbershopName}\n${shareUrl}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const shareToInstagram = useCallback(async (post: Post) => {
+    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const barbershopName = "JB's Barbershop";
+    const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
+
+    // Instagram does not support a reliable web-based "share" URL for arbitrary links.
+    // Best-effort: use Web Share (mobile), otherwise copy link.
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: barbershopName, text, url: shareUrl });
+        return;
+      }
+    } catch {
+      // user cancelled / not supported
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success(t('common.linkCopied'));
+    } catch {
+      // ignore
     }
   }, [t]);
   const bookingCtaRef = useRef<HTMLDivElement | null>(null);
@@ -1341,8 +1381,8 @@ export default function FeedPage() {
                                 className="flex items-center gap-2"
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.9 }}
-                                aria-label="Share"
-                                title="Share"
+                                aria-label={t('feed.share')}
+                                title={t('feed.share')}
                               >
                                 <Share2 className="w-6 h-6 text-white hover:text-pink-400 smooth-transition" />
                               </motion.button>
@@ -1352,20 +1392,55 @@ export default function FeedPage() {
                               align="end"
                               className="border-white/10 bg-black/85 backdrop-blur-md text-white"
                             >
-                              <DropdownMenuItem
-                                onClick={() => sharePost(post)}
-                                className="cursor-pointer gap-2 rounded-md px-3 py-2 text-sm text-white/90 focus:bg-white/10 focus:text-white"
-                              >
-                                <ImageIcon className="h-4 w-4 text-white/70" />
-                                Compartir foto/video
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => sharePostLinkOnly(post)}
-                                className="cursor-pointer gap-2 rounded-md px-3 py-2 text-sm text-white/90 focus:bg-white/10 focus:text-white"
-                              >
-                                <Link2 className="h-4 w-4 text-white/70" />
-                                Compartir link público
-                              </DropdownMenuItem>
+                              <div className="px-3 py-2">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => shareToFacebook(post)}
+                                    className="h-10 w-10 rounded-full border border-white/10 bg-white/0 hover:bg-white/10 transition-colors flex items-center justify-center"
+                                    aria-label={t('feed.shareToFacebook')}
+                                    title={t('feed.shareToFacebook')}
+                                  >
+                                    <Facebook className="h-5 w-5 text-white/80" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void shareToInstagram(post)}
+                                    className="h-10 w-10 rounded-full border border-white/10 bg-white/0 hover:bg-white/10 transition-colors flex items-center justify-center"
+                                    aria-label={t('feed.shareToInstagram')}
+                                    title={t('feed.shareToInstagram')}
+                                  >
+                                    <Instagram className="h-5 w-5 text-white/80" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => shareToWhatsApp(post)}
+                                    className="h-10 w-10 rounded-full border border-white/10 bg-white/0 hover:bg-white/10 transition-colors flex items-center justify-center"
+                                    aria-label={t('feed.shareToWhatsApp')}
+                                    title={t('feed.shareToWhatsApp')}
+                                  >
+                                    <Send className="h-5 w-5 text-white/80" />
+                                  </button>
+                                </div>
+
+                                <div className="mt-2 flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => sharePost(post)}
+                                    className="text-xs text-white/80 hover:text-white transition-colors"
+                                  >
+                                    {t('feed.share')}
+                                  </button>
+                                  <span className="text-white/20">•</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => sharePostLinkOnly(post)}
+                                    className="text-xs text-white/80 hover:text-white transition-colors"
+                                  >
+                                    {t('feed.copyLink')}
+                                  </button>
+                                </div>
+                              </div>
                             </DropdownMenuContent>
                           </DropdownMenu>
 
@@ -1375,8 +1450,8 @@ export default function FeedPage() {
                               className="ml-auto"
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.9 }}
-                              aria-label="Delete post"
-                              title="Delete post"
+                              aria-label={t('feed.deletePostAria')}
+                              title={t('feed.deletePostTitle')}
                             >
                               <Trash2 className="w-6 h-6 text-white hover:text-red-400 smooth-transition" />
                             </motion.button>

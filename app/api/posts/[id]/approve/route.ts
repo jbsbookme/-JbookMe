@@ -52,6 +52,29 @@ export async function POST(
       }
     });
 
+    // If we just transitioned into APPROVED, create an admin notification to share it.
+    if (action === 'approve' && !wasApproved) {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+
+      if (admins.length > 0) {
+        const shareLink = `/feed?post=${post.id}`;
+
+        await prisma.notification.createMany({
+          data: admins.map((u) => ({
+            userId: u.id,
+            type: 'POST_APPROVED',
+            title: 'Listo para compartir / Ready to share',
+            message: 'Abrí el post y compártelo en Facebook/Instagram/WhatsApp. / Open the post and share it to Facebook/Instagram/WhatsApp.',
+            link: shareLink,
+            postId: post.id,
+          })),
+        });
+      }
+    }
+
     // Optional: auto-publish to Facebook only when transitioning into APPROVED.
     if (action === 'approve' && !wasApproved) {
       try {
@@ -79,10 +102,12 @@ export async function POST(
       data: {
         userId: post.authorId,
         type: action === 'approve' ? 'POST_APPROVED' : 'POST_REJECTED',
-        title: action === 'approve' ? 'Post Approved! 🎉' : 'Post Not Approved',
-        message: action === 'approve' 
-          ? 'Your post has been approved and is now visible to everyone!'
-          : `Your post was not approved. ${reason || 'No reason provided'}`,
+        title: action === 'approve'
+          ? 'Publicación aprobada / Post approved'
+          : 'Publicación rechazada / Post rejected',
+        message: action === 'approve'
+          ? 'Tu publicación fue aprobada y ya es visible para todos. / Your post was approved and is now visible to everyone.'
+          : `Tu publicación no fue aprobada. ${reason || 'Sin motivo.'} / Your post was not approved. ${reason || 'No reason provided.'}`,
         link: `/feed`,
         postId: post.id
       }

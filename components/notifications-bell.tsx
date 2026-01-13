@@ -29,9 +29,10 @@ export function NotificationsBell() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Start baseline at mount time so we don't beep for old notifications,
-  // but we DO beep for the first new one even if it arrives before the first poll.
-  const lastNotifAtRef = useRef<number>(Date.now());
+  // Baseline is initialized from the server's timestamps on the first poll.
+  // This avoids client/server clock skew causing us to miss "new" notifications.
+  const lastNotifAtRef = useRef<number>(0);
+  const hasBaselineRef = useRef(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioUnlockedRef = useRef(false);
@@ -136,6 +137,24 @@ export function NotificationsBell() {
     }
   };
 
+  const notifySystemPostReady = () => {
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        document.visibilityState !== 'visible'
+      ) {
+        new Notification('Listo para compartir', {
+          body: 'Hay un post nuevo listo para compartir.',
+          icon: '/icon-192.png',
+        });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     if (session && open) {
       fetchNotifications();
@@ -181,14 +200,31 @@ export function NotificationsBell() {
             return Number.isFinite(t) && t > max ? t : max;
           }, 0);
 
+          // First successful poll: establish baseline from server data and do not beep.
+          if (!hasBaselineRef.current) {
+            hasBaselineRef.current = true;
+            lastNotifAtRef.current = maxAt;
+            setNotifications(list);
+            return;
+          }
+
           const since = lastNotifAtRef.current;
           const newOnes = list.filter((n) => new Date(n.createdAt).getTime() > since);
           lastNotifAtRef.current = Math.max(since, maxAt);
 
           const newMessages = newOnes.filter((n) => n.type === 'NEW_MESSAGE');
-          if (newMessages.length > 0) {
+          const newPostApproved = newOnes.filter((n) => n.type === 'POST_APPROVED');
+
+          // Beep for new messages and for "ready to share" approved posts.
+          if (newMessages.length > 0 || newPostApproved.length > 0) {
             void playBeep();
+          }
+
+          // System notifications (only when tab is not visible)
+          if (newMessages.length > 0) {
             notifySystem();
+          } else if (newPostApproved.length > 0) {
+            notifySystemPostReady();
           }
 
           // Keep a fresh cache so opening the popover is instant.

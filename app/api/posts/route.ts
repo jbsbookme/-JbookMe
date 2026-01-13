@@ -269,6 +269,30 @@ export async function POST(request: NextRequest) {
 
     console.log('[POST /api/posts] Post created successfully:', post.id);
 
+    // Notify admins so the business can quickly share the post without any social API permissions.
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN' },
+        select: { id: true },
+      });
+
+      if (admins.length > 0) {
+        const shareLink = `/feed?post=${post.id}`;
+        await prisma.notification.createMany({
+          data: admins.map((u) => ({
+            userId: u.id,
+            type: 'POST_APPROVED',
+            title: 'Listo para compartir / Ready to share',
+            message: 'Abrí el post y compártelo en Facebook/Instagram/WhatsApp. / Open the post and share it to Facebook/Instagram/WhatsApp.',
+            link: shareLink,
+            postId: post.id,
+          })),
+        });
+      }
+    } catch (error) {
+      console.log('[POST /api/posts] Admin share notification failed (non-blocking):', error);
+    }
+
     // Optional: auto-publish to the barber shop Facebook Page (best effort).
     // This is controlled by env vars and will never block post creation.
     try {
