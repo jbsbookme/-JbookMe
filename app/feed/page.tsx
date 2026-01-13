@@ -219,6 +219,17 @@ export default function FeedPage() {
   const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
   const [isZoomVideoPlaying, setIsZoomVideoPlaying] = useState(false);
 
+  const pauseAllVideos = useCallback(() => {
+    const videos = Array.from(document.querySelectorAll('video'));
+    for (const video of videos) {
+      try {
+        video.pause();
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
   const toggleVideoPlayback = useCallback((video: HTMLVideoElement) => {
     if (video.paused) {
       void video.play().catch(() => {
@@ -243,6 +254,13 @@ export default function FeedPage() {
       if (video.muted) {
         video.muted = false;
         video.volume = 1;
+        // If user explicitly enables sound, don't loop endlessly.
+        try {
+          video.loop = false;
+          (video as any).autoplay = false;
+        } catch {
+          // ignore
+        }
         if (video.paused) {
           void video.play();
         }
@@ -253,6 +271,13 @@ export default function FeedPage() {
     },
     [toggleVideoPlayback]
   );
+
+  useEffect(() => {
+    return () => {
+      // Ensure no video keeps playing after leaving the feed.
+      pauseAllVideos();
+    };
+  }, [pauseAllVideos]);
   const [imageScale, setImageScale] = useState(1);
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set());
   const [heartBursts, setHeartBursts] = useState<Record<string, HeartParticle[]>>({});
@@ -1039,6 +1064,9 @@ export default function FeedPage() {
                       <div 
                         className="relative w-full aspect-square bg-zinc-800 cursor-pointer"
                         onClick={() => {
+                          // Prevent background audio/video from continuing when opening modal.
+                          pauseAllVideos();
+
                           const authorName =
                             post.authorType === 'BARBER'
                               ? post.barber?.user?.name
@@ -1277,6 +1305,7 @@ export default function FeedPage() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
           onClick={() => {
+            pauseAllVideos();
             setZoomedMedia(null);
             resetZoom();
           }}
@@ -1284,6 +1313,7 @@ export default function FeedPage() {
           <motion.button
             className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
             onClick={() => {
+              pauseAllVideos();
               setZoomedMedia(null);
               resetZoom();
             }}
@@ -1333,16 +1363,9 @@ export default function FeedPage() {
                   <video
                     src={zoomedMedia.url}
                     controls
-                    autoPlay
-                    loop
-                    muted
                     playsInline
                     preload="metadata"
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleVideoTap(e.currentTarget);
-                    }}
                     onPlay={() => setIsZoomVideoPlaying(true)}
                     onPause={() => setIsZoomVideoPlaying(false)}
                     onEnded={() => setIsZoomVideoPlaying(false)}
