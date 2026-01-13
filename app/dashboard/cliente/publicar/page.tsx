@@ -18,22 +18,27 @@ export default function PublicarPage() {
   const [hashtags, setHashtags] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  const isVideo = !!selectedFile?.type?.startsWith("video/");
+  const isVideo =
+    !!selectedFile &&
+    (selectedFile.type.startsWith('video/') ||
+      /\.(mp4|mov|m4v|webm|ogg)$/i.test(selectedFile.name));
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const isImageFile = file.type.startsWith("image/");
-      const isVideoFile = file.type.startsWith("video/");
+      const isImageFile =
+        file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+      const isVideoFile =
+        file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
 
       if (!isImageFile && !isVideoFile) {
         toast.error("Por favor selecciona una imagen o video válido");
         return;
       }
 
-      // Keep parity with /api/posts/upload-blob (50MB max)
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error("El archivo no debe superar los 50MB");
+      // Keep parity with /api/blob/upload (200MB max)
+      if (file.size > 200 * 1024 * 1024) {
+        toast.error("El archivo no debe superar los 200MB");
         return;
       }
 
@@ -85,7 +90,7 @@ export default function PublicarPage() {
       postFormData.append("hashtags", hashtags.trim());
 
       const postController = new AbortController();
-      const postTimeout = setTimeout(() => postController.abort(), 30_000);
+      const postTimeout = setTimeout(() => postController.abort(), 60_000);
 
       const postResponse = await fetch("/api/posts", {
         method: "POST",
@@ -150,7 +155,7 @@ export default function PublicarPage() {
                     arrastra y suelta
                   </p>
                   <p className="text-xs text-zinc-500">
-                    Imágenes o videos (máx 50MB)
+                    Imágenes o videos (máx 200MB)
                   </p>
                 </div>
                 <input

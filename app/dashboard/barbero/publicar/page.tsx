@@ -29,19 +29,24 @@ export default function BarberUploadPage() {
     if (!file) return;
 
     // Validate file type
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+    const isImageFile =
+      file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+    const isVideoFile =
+      file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
+
+    if (!isImageFile && !isVideoFile) {
       toast.error('Please select an image or video file');
       return;
     }
 
-    // Validate file size (50MB max)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('File size must be less than 50MB');
+    // Validate file size (200MB max)
+    if (file.size > 200 * 1024 * 1024) {
+      toast.error('File size must be less than 200MB');
       return;
     }
 
     setSelectedFile(file);
-    setFileType(file.type.startsWith('image/') ? 'image' : 'video');
+    setFileType(isVideoFile ? 'video' : 'image');
   };
 
   const handleRemoveFile = () => {
@@ -108,21 +113,31 @@ export default function BarberUploadPage() {
       
       // Auto-share after successful upload
       const text = `${caption.trim()}\n\n${hashtagArray.map(tag => `#${tag}`).join(' ')}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
+      const isVideoUpload =
+        selectedFile.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(selectedFile.name);
       
       // Try Web Share API first (works on mobile with image)
       if (navigator.share && navigator.canShare) {
         try {
-          const response = await fetch(fileUrl);
-          const blob = await response.blob();
-          const file = new File([blob], 'jbookme-work.jpg', { type: blob.type });
-          
-          const shareData = {
-            text: text,
-            files: [file]
-          };
-          
-          if (navigator.canShare(shareData)) {
-            await navigator.share(shareData);
+          // For videos, avoid re-downloading the entire file just to attach it.
+          // Share text + link instead.
+          if (isVideoUpload) {
+            await navigator.share({ text, url: fileUrl });
+          } else {
+            const response = await fetch(fileUrl);
+            const blob = await response.blob();
+            const file = new File([blob], 'jbookme-work.jpg', { type: blob.type });
+
+            const shareData = {
+              text: text,
+              files: [file],
+            };
+
+            if (navigator.canShare(shareData)) {
+              await navigator.share(shareData);
+            } else {
+              await navigator.share({ text, url: fileUrl });
+            }
           }
         } catch (error) {
           console.log('Web Share failed, using fallback');
@@ -204,7 +219,7 @@ export default function BarberUploadPage() {
                         <Video className="w-10 h-10 text-zinc-500" />
                       </div>
                       <p className="text-zinc-400">Click to upload photo or video</p>
-                      <p className="text-xs text-zinc-600">Max size: 50MB</p>
+                      <p className="text-xs text-zinc-600">Max size: 200MB</p>
                     </div>
                   </div>
                 ) : (

@@ -20,8 +20,11 @@ export async function POST(request: NextRequest) {
     request,
     onBeforeGenerateToken: async () => {
       return {
-        allowedContentTypes: ['image/*', 'video/*'],
-        maximumSizeInBytes: 50 * 1024 * 1024,
+        // Some mobile browsers provide an empty/unknown MIME type for videos.
+        // Allow octet-stream so uploads don't fail purely due to missing content-type.
+        allowedContentTypes: ['image/*', 'video/*', 'application/octet-stream'],
+        // Allow larger videos from mobile devices.
+        maximumSizeInBytes: 200 * 1024 * 1024,
         tokenPayload: JSON.stringify({
           userId: session.user.id,
           role: session.user.role,

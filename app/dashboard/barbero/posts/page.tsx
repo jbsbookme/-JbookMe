@@ -82,13 +82,18 @@ export default function BarberPostsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+    const isImageFile =
+      file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+    const isVideoFile =
+      file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
+
+    if (!isImageFile && !isVideoFile) {
       toast.error('Please select an image or video file');
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('File size must be less than 50MB');
+    if (file.size > 200 * 1024 * 1024) {
+      toast.error('File size must be less than 200MB');
       return;
     }
 
@@ -98,7 +103,7 @@ export default function BarberPostsPage() {
     }
 
     setUploadFile(file);
-    setUploadFileType(file.type.startsWith('video/') ? 'video' : 'image');
+    setUploadFileType(isVideoFile ? 'video' : 'image');
     setUploadPreview(URL.createObjectURL(file));
   };
 
