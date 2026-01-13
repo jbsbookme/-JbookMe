@@ -70,14 +70,23 @@ export default function PublicarPage() {
       const uploadFormData = new FormData();
       uploadFormData.append("file", selectedFile);
 
+      const uploadController = new AbortController();
+      const uploadTimeout = setTimeout(() => uploadController.abort(), 60_000);
+
       const uploadResponse = await fetch("/api/posts/upload-blob", {
         method: "POST",
         body: uploadFormData,
-      });
+        signal: uploadController.signal,
+      }).finally(() => clearTimeout(uploadTimeout));
 
       if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.message || "Error al subir archivo");
+        let payload: any = null;
+        try {
+          payload = await uploadResponse.json();
+        } catch {
+          payload = { error: await uploadResponse.text() };
+        }
+        throw new Error(payload?.message || payload?.error || "Error al subir archivo");
       }
 
       const uploadData = await uploadResponse.json();
@@ -93,14 +102,23 @@ export default function PublicarPage() {
       postFormData.append("caption", caption.trim());
       postFormData.append("hashtags", hashtags.trim());
 
+      const postController = new AbortController();
+      const postTimeout = setTimeout(() => postController.abort(), 30_000);
+
       const postResponse = await fetch("/api/posts", {
         method: "POST",
         body: postFormData,
-      });
+        signal: postController.signal,
+      }).finally(() => clearTimeout(postTimeout));
 
       if (!postResponse.ok) {
-        const error = await postResponse.json();
-        throw new Error(error.message || "Error al crear la publicación");
+        let payload: any = null;
+        try {
+          payload = await postResponse.json();
+        } catch {
+          payload = { error: await postResponse.text() };
+        }
+        throw new Error(payload?.message || payload?.error || "Error al crear la publicación");
       }
 
       // Show success message
@@ -115,6 +133,12 @@ export default function PublicarPage() {
       router.push("/feed");
     } catch (error) {
       console.error("Error uploading post:", error);
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        toast.error('La subida tardó demasiado. Intenta otra vez.');
+        return;
+      }
+
       toast.error(
         error instanceof Error ? error.message : "Error al subir la publicación"
       );

@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { put } from '@vercel/blob';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
     const blob = await put(key, file, {
       access: 'public',
       addRandomSuffix: false,
+      contentType: file.type || undefined,
     });
 
     const cloud_storage_path = blob.url;
