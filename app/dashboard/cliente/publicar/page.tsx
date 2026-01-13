@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { upload } from "@vercel/blob/client";
 import { Upload, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,35 +67,16 @@ export default function PublicarPage() {
     setIsUploading(true);
 
     try {
-      // Step 1: Upload file to Vercel Blob
-      const uploadFormData = new FormData();
-      uploadFormData.append("file", selectedFile);
+      // Step 1: Upload file directly to Vercel Blob (prevents serverless upload hangs)
+      const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+      const pathname = `posts/client_share/${Date.now()}-${sanitizedFileName}`;
 
-      const uploadController = new AbortController();
-      const uploadTimeout = setTimeout(() => uploadController.abort(), 60_000);
+      const blob = await upload(pathname, selectedFile, {
+        access: "public",
+        handleUploadUrl: "/api/blob/upload",
+      });
 
-      const uploadResponse = await fetch("/api/posts/upload-blob", {
-        method: "POST",
-        body: uploadFormData,
-        signal: uploadController.signal,
-      }).finally(() => clearTimeout(uploadTimeout));
-
-      if (!uploadResponse.ok) {
-        let payload: any = null;
-        try {
-          payload = await uploadResponse.json();
-        } catch {
-          payload = { error: await uploadResponse.text() };
-        }
-        throw new Error(payload?.message || payload?.error || "Error al subir archivo");
-      }
-
-      const uploadData = await uploadResponse.json();
-      const cloudPath = uploadData.cloud_storage_path || uploadData.fileUrl;
-
-      if (!cloudPath) {
-        throw new Error("No se recibió URL del archivo");
-      }
+      const cloudPath = blob.url;
 
       // Step 2: Create post record with Vercel Blob URL
       const postFormData = new FormData();
@@ -133,11 +115,6 @@ export default function PublicarPage() {
       router.push("/feed");
     } catch (error) {
       console.error("Error uploading post:", error);
-
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        toast.error('La subida tardó demasiado. Intenta otra vez.');
-        return;
-      }
 
       toast.error(
         error instanceof Error ? error.message : "Error al subir la publicación"

@@ -20,6 +20,7 @@ import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { resolvePublicMediaUrl } from '@/lib/utils';
+import { upload } from '@vercel/blob/client';
 
 interface Post {
   id: string;
@@ -110,24 +111,17 @@ export default function BarberPostsPage() {
     try {
       setUploading(true);
 
-      // Upload file
-      const formData = new FormData();
-      formData.append('file', uploadFile);
+      const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const pathname = `posts/barber_work/${Date.now()}-${sanitizedFileName}`;
 
-      const uploadRes = await fetch('/api/posts/upload-blob', {
-        method: 'POST',
-        body: formData,
+      const blob = await upload(pathname, uploadFile, {
+        access: 'public',
+        handleUploadUrl: '/api/blob/upload',
       });
-
-      if (!uploadRes.ok) {
-        throw new Error('Failed to upload file');
-      }
-
-      const uploadData = await uploadRes.json();
 
       // Create post
       const postFormData = new FormData();
-      postFormData.append('cloud_storage_path', uploadData.cloud_storage_path);
+      postFormData.append('cloud_storage_path', blob.url);
       if (caption?.trim()) {
         postFormData.append('caption', caption.trim());
       }

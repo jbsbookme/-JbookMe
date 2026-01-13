@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Camera, Video, X, Upload, Loader2, ArrowLeft, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { upload } from '@vercel/blob/client';
 
 export default function BarberUploadPage() {
   const { data: session } = useSession();
@@ -62,21 +63,17 @@ export default function BarberUploadPage() {
     setIsUploading(true);
 
     try {
-      // Upload directly using Vercel Blob (simpler, no presign needed)
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', selectedFile);
+      // Upload directly to Vercel Blob (avoids serverless upload hangs)
+      const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const pathname = `posts/barber_work/${Date.now()}-${sanitizedFileName}`;
 
-      const uploadRes = await fetch('/api/posts/upload-blob', {
-        method: 'POST',
-        body: uploadFormData,
+      const blob = await upload(pathname, selectedFile, {
+        access: 'public',
+        handleUploadUrl: '/api/blob/upload',
       });
 
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        throw new Error(errorData.error || 'Failed to upload file');
-      }
-
-      const { cloud_storage_path, fileUrl } = await uploadRes.json();
+      const cloud_storage_path = blob.url;
+      const fileUrl = blob.url;
       
       toast.success('File uploaded! Creating post...');
 
