@@ -37,6 +37,7 @@ export default function BarberPostsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [uploadFileType, setUploadFileType] = useState<'image' | 'video' | null>(null);
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
 
@@ -90,12 +91,14 @@ export default function BarberPostsPage() {
       return;
     }
 
+    // Avoid FileReader.readAsDataURL for videos (can freeze the UI).
+    if (uploadPreview) {
+      URL.revokeObjectURL(uploadPreview);
+    }
+
     setUploadFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setUploadPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    setUploadFileType(file.type.startsWith('video/') ? 'video' : 'image');
+    setUploadPreview(URL.createObjectURL(file));
   };
 
   const handleCreatePost = async () => {
@@ -111,7 +114,7 @@ export default function BarberPostsPage() {
       const formData = new FormData();
       formData.append('file', uploadFile);
 
-      const uploadRes = await fetch('/api/posts/upload', {
+      const uploadRes = await fetch('/api/posts/upload-blob', {
         method: 'POST',
         body: formData,
       });
@@ -123,15 +126,15 @@ export default function BarberPostsPage() {
       const uploadData = await uploadRes.json();
 
       // Create post
+      const postFormData = new FormData();
+      postFormData.append('cloud_storage_path', uploadData.cloud_storage_path);
+      if (caption?.trim()) {
+        postFormData.append('caption', caption.trim());
+      }
+
       const postRes = await fetch('/api/posts', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          cloud_storage_path: uploadData.cloud_storage_path,
-          caption: caption || undefined,
-        }),
+        body: postFormData,
       });
 
       if (!postRes.ok) {
@@ -140,8 +143,14 @@ export default function BarberPostsPage() {
 
       toast.success('Post created successfully!');
       setShowCreateModal(false);
+
+      if (uploadPreview) {
+        URL.revokeObjectURL(uploadPreview);
+      }
+
       setUploadFile(null);
       setUploadPreview(null);
+      setUploadFileType(null);
       setCaption('');
       fetchPosts();
     } catch (error) {
@@ -324,18 +333,32 @@ export default function BarberPostsPage() {
                   <label className="block text-white mb-2">Photo/Video *</label>
                   {uploadPreview ? (
                     <div className="relative aspect-video bg-gray-800 rounded-lg overflow-hidden">
-                      <Image
-                        src={uploadPreview}
-                        alt="Preview"
-                        fill
-                        className="object-contain"
-                      />
+                      {uploadFileType === 'video' ? (
+                        <video
+                          src={uploadPreview}
+                          className="w-full h-full object-contain"
+                          controls
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <Image
+                          src={uploadPreview}
+                          alt="Preview"
+                          fill
+                          className="object-contain"
+                        />
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => {
+                          if (uploadPreview) {
+                            URL.revokeObjectURL(uploadPreview);
+                          }
                           setUploadFile(null);
                           setUploadPreview(null);
+                          setUploadFileType(null);
                         }}
                         className="absolute top-2 right-2 bg-red-500/80 hover:bg-red-600 text-white"
                       >
