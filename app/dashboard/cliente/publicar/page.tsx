@@ -17,16 +17,22 @@ export default function PublicarPage() {
   const [hashtags, setHashtags] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
+  const isVideo = !!selectedFile?.type?.startsWith("video/");
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Por favor selecciona una imagen válida");
+      const isImageFile = file.type.startsWith("image/");
+      const isVideoFile = file.type.startsWith("video/");
+
+      if (!isImageFile && !isVideoFile) {
+        toast.error("Por favor selecciona una imagen o video válido");
         return;
       }
 
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("La imagen no debe superar los 10MB");
+      // Keep parity with /api/posts/upload-blob (50MB max)
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error("El archivo no debe superar los 50MB");
         return;
       }
 
@@ -36,7 +42,7 @@ export default function PublicarPage() {
     }
   };
 
-  const handleRemoveImage = () => {
+  const handleRemoveMedia = () => {
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -48,7 +54,7 @@ export default function PublicarPage() {
     e.preventDefault();
 
     if (!selectedFile) {
-      toast.error("Por favor selecciona una imagen");
+      toast.error("Por favor selecciona una imagen o video");
       return;
     }
 
@@ -101,7 +107,7 @@ export default function PublicarPage() {
       toast.success("¡Publicación creada exitosamente!");
 
       // Clean up and redirect
-      handleRemoveImage();
+      handleRemoveMedia();
       setCaption("");
       setHashtags("");
       
@@ -143,31 +149,41 @@ export default function PublicarPage() {
                     arrastra y suelta
                   </p>
                   <p className="text-xs text-zinc-500">
-                    PNG, JPG, GIF hasta 10MB
+                    Imágenes o videos (máx 50MB)
                   </p>
                 </div>
                 <input
                   id="file-upload"
                   type="file"
                   className="hidden"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   onChange={handleFileSelect}
                   disabled={isUploading}
                 />
               </label>
             ) : (
               <div className="relative">
-                <img
-                  src={previewUrl}
-                  alt="Preview"
-                  className="w-full h-auto rounded-lg"
-                />
+                {isVideo ? (
+                  <video
+                    src={previewUrl}
+                    className="w-full h-auto rounded-lg"
+                    controls
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-auto rounded-lg"
+                  />
+                )}
                 <Button
                   type="button"
                   variant="destructive"
                   size="icon"
                   className="absolute top-2 right-2"
-                  onClick={handleRemoveImage}
+                  onClick={handleRemoveMedia}
                   disabled={isUploading}
                 >
                   <X className="h-4 w-4" />
