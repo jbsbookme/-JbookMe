@@ -1783,34 +1783,17 @@ export default function ReservarPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24 flex flex-col">
-      {/* Progress indicator and Back button */}
-      <div className="container mx-auto px-4 mt-4 mb-4 sm:mt-8 sm:mb-8">
+      {/* Back button */}
+      <div className="container mx-auto px-4 mt-4 mb-2 sm:mt-6 sm:mb-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={handleBack}
-          className="text-gray-400 hover:text-[#00f0ff] active:text-[#00f0ff] mb-4"
+          className="text-gray-400 hover:text-[#00f0ff] active:text-[#00f0ff] mb-2"
           aria-label={t('common.back')}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-
-        {/* Progress indicator */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {['gender', 'services', 'barbers', 'barber-profile', 'datetime', 'payment'].map((step, index) => (
-            <div
-              key={step}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                currentStep === step
-                  ? 'w-12 bg-gradient-to-r from-[#00f0ff] to-[#ffd700]'
-                  : index <
-                    ['gender', 'services', 'barbers', 'barber-profile', 'datetime', 'payment'].indexOf(currentStep)
-                  ? 'w-8 bg-[#00f0ff]'
-                  : 'w-8 bg-gray-700'
-              }`}
-            />
-          ))}
-        </div>
       </div>
 
       {/* Main content */}
