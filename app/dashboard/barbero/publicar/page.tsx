@@ -20,9 +20,9 @@ export default function BarberUploadPage() {
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [caption, setCaption] = useState('');
-  const [hashtags, setHashtags] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
+  const [uploadProgressPct, setUploadProgressPct] = useState(0);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -66,6 +66,7 @@ export default function BarberUploadPage() {
     }
 
     setIsUploading(true);
+    setUploadProgressPct(0);
 
     try {
       // Upload directly to Vercel Blob (avoids serverless upload hangs)
@@ -75,6 +76,14 @@ export default function BarberUploadPage() {
       const blob = await upload(pathname, selectedFile, {
         access: 'public',
         handleUploadUrl: '/api/blob/upload',
+        onUploadProgress: (progressEvent: any) => {
+          const pct =
+            typeof progressEvent === 'number'
+              ? progressEvent
+              : (progressEvent?.percentage ?? progressEvent?.progress ?? progressEvent?.percent ?? 0);
+          const normalized = Math.max(0, Math.min(100, Number(pct) || 0));
+          setUploadProgressPct(normalized);
+        },
       });
 
       const cloud_storage_path = blob.url;
@@ -86,13 +95,6 @@ export default function BarberUploadPage() {
       const formData = new FormData();
       formData.append('caption', caption.trim());
       formData.append('cloud_storage_path', cloud_storage_path);
-      
-      // Add hashtags as array
-      const hashtagArray = hashtags
-        .split(/[,\s]+/)
-        .map(tag => tag.trim().replace(/^#/, ''))
-        .filter(tag => tag.length > 0);
-      formData.append('hashtags', JSON.stringify(hashtagArray));
 
       const res = await fetch('/api/posts', {
         method: 'POST',
@@ -112,7 +114,7 @@ export default function BarberUploadPage() {
       toast.success('✅ Published successfully. Preparing to share...');
       
       // Auto-share after successful upload
-      const text = `${caption.trim()}\n\n${hashtagArray.map(tag => `#${tag}`).join(' ')}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
+      const text = `${caption.trim()}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
       const isVideoUpload =
         selectedFile.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(selectedFile.name);
       
@@ -166,7 +168,6 @@ export default function BarberUploadPage() {
       // Reset form
       handleRemoveFile();
       setCaption('');
-      setHashtags('');
       
       // Redirect to dashboard after sharing
       setTimeout(() => {
@@ -277,20 +278,20 @@ export default function BarberUploadPage() {
                 </p>
               </div>
 
-              {/* Hashtags */}
-              <div>
-                <Label htmlFor="hashtags">Hashtags (Optional)</Label>
-                <Input
-                  id="hashtags"
-                  placeholder="fade, lineup, barberlife (separate with spaces or commas)"
-                  value={hashtags}
-                  onChange={(e) => setHashtags(e.target.value)}
-                  className="mt-2 bg-zinc-800 border-zinc-700"
-                />
-                <p className="text-xs text-zinc-500 mt-1">
-                  {hashtags.split(/[,\s]+/).filter(t => t.length > 0).length} tags
-                </p>
-              </div>
+              {isUploading ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-zinc-400">
+                    <span>Uploading media...</span>
+                    <span>{Math.round(uploadProgressPct)}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded bg-zinc-800 overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-500"
+                      style={{ width: `${uploadProgressPct}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               {/* Submit Button */}
               <div className="flex gap-3">

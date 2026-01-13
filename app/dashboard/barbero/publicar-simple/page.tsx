@@ -22,9 +22,9 @@ export default function SimpleUploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
-  const [hashtags, setHashtags] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
+  const [uploadProgressPct, setUploadProgressPct] = useState(0);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,6 +76,7 @@ export default function SimpleUploadPage() {
     }
 
     setIsUploading(true);
+    setUploadProgressPct(0);
 
     try {
       // Step 1: Upload file directly to Vercel Blob
@@ -85,6 +86,14 @@ export default function SimpleUploadPage() {
       const blob = await upload(pathname, selectedFile, {
         access: 'public',
         handleUploadUrl: '/api/blob/upload',
+        onUploadProgress: (progressEvent: any) => {
+          const pct =
+            typeof progressEvent === 'number'
+              ? progressEvent
+              : (progressEvent?.percentage ?? progressEvent?.progress ?? progressEvent?.percent ?? 0);
+          const normalized = Math.max(0, Math.min(100, Number(pct) || 0));
+          setUploadProgressPct(normalized);
+        },
       });
 
       const cloud_storage_path = blob.url;
@@ -96,12 +105,6 @@ export default function SimpleUploadPage() {
       const postFormData = new FormData();
       postFormData.append('caption', caption.trim());
       postFormData.append('cloud_storage_path', cloud_storage_path);
-      
-      const hashtagArray = hashtags
-        .split(/[,\s]+/)
-        .map(tag => tag.trim().replace(/^#/, ''))
-        .filter(tag => tag.length > 0);
-      postFormData.append('hashtags', JSON.stringify(hashtagArray));
 
       const postRes = await fetch('/api/posts', {
         method: 'POST',
@@ -118,7 +121,6 @@ export default function SimpleUploadPage() {
       // Reset form
       handleRemoveFile();
       setCaption('');
-      setHashtags('');
 
       // Redirect
       setTimeout(() => {
@@ -222,6 +224,21 @@ export default function SimpleUploadPage() {
                 <Label htmlFor="caption" className="text-white mb-2 block">
                   Caption
                 </Label>
+
+                {isUploading ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>Uploading media...</span>
+                      <span>{Math.round(uploadProgressPct)}%</span>
+                    </div>
+                    <div className="h-2 w-full rounded bg-zinc-800 overflow-hidden">
+                      <div
+                        className="h-full bg-cyan-500"
+                        style={{ width: `${uploadProgressPct}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : null}
                 <Textarea
                   id="caption"
                   placeholder="Write a caption..."
@@ -229,23 +246,6 @@ export default function SimpleUploadPage() {
                   onChange={(e) => setCaption(e.target.value)}
                   className="bg-black/40 border-gray-700 text-white placeholder:text-gray-500 min-h-[100px]"
                 />
-              </div>
-
-              {/* Hashtags */}
-              <div>
-                <Label htmlFor="hashtags" className="text-white mb-2 block">
-                  Hashtags
-                </Label>
-                <Input
-                  id="hashtags"
-                  placeholder="#barber #fade #haircut"
-                  value={hashtags}
-                  onChange={(e) => setHashtags(e.target.value)}
-                  className="bg-black/40 border-gray-700 text-white placeholder:text-gray-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Separate with spaces or commas
-                </p>
               </div>
 
               {/* Submit Button */}

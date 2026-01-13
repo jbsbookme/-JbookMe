@@ -6,7 +6,6 @@ import { upload } from "@vercel/blob/client";
 import { Upload, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
@@ -15,8 +14,8 @@ export default function PublicarPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [caption, setCaption] = useState("");
-  const [hashtags, setHashtags] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgressPct, setUploadProgressPct] = useState(0);
 
   const isVideo =
     !!selectedFile &&
@@ -70,6 +69,7 @@ export default function PublicarPage() {
     }
 
     setIsUploading(true);
+    setUploadProgressPct(0);
 
     try {
       // Step 1: Upload file directly to Vercel Blob (prevents serverless upload hangs)
@@ -79,6 +79,14 @@ export default function PublicarPage() {
       const blob = await upload(pathname, selectedFile, {
         access: "public",
         handleUploadUrl: "/api/blob/upload",
+        onUploadProgress: (progressEvent: any) => {
+          const pct =
+            typeof progressEvent === 'number'
+              ? progressEvent
+              : (progressEvent?.percentage ?? progressEvent?.progress ?? progressEvent?.percent ?? 0);
+          const normalized = Math.max(0, Math.min(100, Number(pct) || 0));
+          setUploadProgressPct(normalized);
+        },
       });
 
       const cloudPath = blob.url;
@@ -87,7 +95,6 @@ export default function PublicarPage() {
       const postFormData = new FormData();
       postFormData.append("cloud_storage_path", cloudPath);
       postFormData.append("caption", caption.trim());
-      postFormData.append("hashtags", hashtags.trim());
 
       const postController = new AbortController();
       const postTimeout = setTimeout(() => postController.abort(), 60_000);
@@ -114,7 +121,6 @@ export default function PublicarPage() {
       // Clean up and redirect
       handleRemoveMedia();
       setCaption("");
-      setHashtags("");
       
       // Redirect to feed
       router.push("/feed");
@@ -214,23 +220,20 @@ export default function PublicarPage() {
           />
         </div>
 
-        {/* Hashtags Section */}
-        <div className="space-y-2">
-          <label htmlFor="hashtags" className="text-sm font-medium text-white">
-            Hashtags
-          </label>
-          <Input
-            id="hashtags"
-            placeholder="#viajes #fotografia #naturaleza"
-            value={hashtags}
-            onChange={(e) => setHashtags(e.target.value)}
-            className="bg-black/40 border-zinc-700 text-white placeholder:text-zinc-500"
-            disabled={isUploading}
-          />
-          <p className="text-xs text-zinc-500">
-            Separa los hashtags con espacios
-          </p>
-        </div>
+        {isUploading ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-zinc-400">
+              <span>Subiendo archivo...</span>
+              <span>{Math.round(uploadProgressPct)}%</span>
+            </div>
+            <div className="h-2 w-full rounded bg-zinc-800 overflow-hidden">
+              <div
+                className="h-full bg-cyan-500"
+                style={{ width: `${uploadProgressPct}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {/* Action Buttons */}
         <div className="flex gap-4">
