@@ -20,6 +20,8 @@ export async function GET(
       select: {
         id: true,
         isPublic: true,
+        isActive: true,
+        status: true,
         authorId: true,
         cloud_storage_path: true,
       },
@@ -29,12 +31,25 @@ export async function GET(
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     }
 
+    // Always block soft-deleted posts.
+    if (!post.isActive) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
     if (!post.isPublic) {
       const session = await getServerSession(authOptions);
       if (!session) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
-      if (session.user.role !== 'ADMIN' && session.user.id !== post.authorId) {
+
+      // Match feed visibility rules:
+      // - Admin can view anything active
+      // - Regular users can view APPROVED posts, plus their own
+      const isAdmin = session.user.role === 'ADMIN';
+      const isAuthor = session.user.id === post.authorId;
+      const isApproved = post.status === 'APPROVED';
+
+      if (!isAdmin && !isAuthor && !isApproved) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
