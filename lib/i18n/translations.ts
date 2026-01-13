@@ -64,7 +64,6 @@ export const translations = {
       go: 'Ir',
       latestPosts: 'Últimas Publicaciones',
       client: 'Cliente',
-      user: 'Usuario',
       new: 'Nuevo',
       menu: 'Menú',
       contact: 'Contacto',
@@ -1978,9 +1977,7 @@ export const translations = {
       go: 'Go',
       latestPosts: 'Latest Posts',
       client: 'Client',
-      user: 'User',
       new: 'New',
-      welcomeTo: 'Welcome to JBookMe',
     },
 
     // Navigation
@@ -2375,8 +2372,6 @@ export const translations = {
       tryAnotherDate: 'Try another date',
       slots: 'slots',
       selectTimeAria: 'Select time {time}',
-      notes: 'Notes',
-      notesPlaceholder: 'Any preferences or special requests...',
       appointmentSummary: 'Appointment Summary',
       paymentSubtitle: "Select how you'd like to pay",
       acceptedPaymentMethods: 'Accepted payment methods',

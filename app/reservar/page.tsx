@@ -408,14 +408,14 @@ export default function ReservarPage() {
       if (res.ok) {
         // Ensure data is an array
         const servicesArray = Array.isArray(data) ? data : (data.services || []);
-        const normalized = servicesArray.filter((s: Service) => s);
+        const normalized = (servicesArray as Service[]).filter((s) => Boolean(s));
 
         // If NO barber selected yet, the API returns services for multiple barbers.
         // Deduplicate by (gender + name + duration + price) so UI doesn't show repeats.
         const nextServices = selectedBarberId
           ? normalized
           : Array.from(
-              new Map(normalized.map((s) => [getServiceKey(s), s])).values()
+              new Map(normalized.map((s: Service) => [getServiceKey(s), s])).values()
             );
 
         setServices(nextServices);
@@ -449,10 +449,10 @@ export default function ReservarPage() {
       if (!res.ok) return;
 
       const servicesArray = Array.isArray(data) ? data : (data.services || []);
-      const normalized = servicesArray.filter((s: Service) => s);
+      const normalized = (servicesArray as Service[]).filter((s) => Boolean(s));
 
       const key = getServiceKey(selectedService);
-      const match = normalized.find((s) => getServiceKey(s) === key);
+      const match = normalized.find((s: Service) => getServiceKey(s) === key);
 
       if (match && match.id !== selectedService.id) {
         setSelectedService(match);
