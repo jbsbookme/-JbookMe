@@ -2,7 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { deleteFile, getFileUrl } from '@/lib/s3';
+
+function resolveMediaUrl(requestUrl: string, value: string) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (trimmed.startsWith('/')) return new URL(trimmed, requestUrl).toString();
+  const publicUploadsIdx = trimmed.indexOf('public/uploads/');
+  if (publicUploadsIdx >= 0) {
+    const path = `/${trimmed.slice(publicUploadsIdx + 'public/'.length)}`;
+    return new URL(path, requestUrl).toString();
+  }
+  if (trimmed.startsWith('uploads/')) return new URL(`/${trimmed}`, requestUrl).toString();
+  return '';
+}
 
 // GET - Fetch single post
 export async function GET(
@@ -74,8 +87,7 @@ export async function GET(
       );
     }
 
-    // Get signed URL for the image
-    const imageUrl = await getFileUrl(post.cloud_storage_path, post.isPublic);
+    const imageUrl = resolveMediaUrl(request.url, post.cloud_storage_path);
 
     // Increment view count
     await prisma.post.update({

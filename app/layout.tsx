@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { SessionProviderWrapper } from '@/components/providers/session-provider-wrapper';
+import { ThemeProvider } from '@/components/theme-provider';
 import { I18nProvider } from '@/lib/i18n/i18n-context';
 import { UserProvider } from '@/contexts/user-context';
 import { Toaster } from 'react-hot-toast';
@@ -9,6 +10,7 @@ import BottomNav from '@/components/layout/bottom-nav-wrapper';
 import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { GlobalHeader } from '@/components/layout/global-header';
+import { PauseVideosOnHide } from '@/components/pause-videos-on-hide';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,9 +26,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXTAUTH_URL || 'http://localhost:3000'),
-  title: 'JBookMe - Booking System',
-  description: 'JBookMe - Professional booking and management system for barbershops. Book your appointment online and manage your business easily.',
+  metadataBase: new URL('https://www.jbsbookme.com'),
+  title: 'JBookMe – Booking | JB’s Barbershop',
+  description: 'Book your appointment with JBookMe',
   applicationName: 'JBookMe',
   appleWebApp: {
     capable: true,
@@ -53,9 +55,17 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   openGraph: {
     type: 'website',
-    title: 'JBookMe - Booking System',
-    description: 'Professional booking and management system for barbershops',
-    images: ['/logo.png'],
+    title: 'JBookMe - Booking',
+    description: 'by JB’s Barbershop\n\nBook your appointment\nFast • Secure • Professional',
+    url: 'https://www.jbsbookme.com',
+    siteName: "JB's Barbershop",
+    images: ['/opengraph-image'],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'JBookMe - Booking',
+    description: 'by JB’s Barbershop\n\nBook your appointment\nFast • Secure • Professional',
+    images: ['/twitter-image'],
   },
 };
 
@@ -65,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="shortcut icon" href="/favicon.png" type="image/png" />
@@ -84,17 +94,20 @@ export default function RootLayout({
       </head>
       <body className={inter.className} suppressHydrationWarning>
         <ErrorBoundary>
-          <SessionProviderWrapper>
-            <UserProvider>
-              <I18nProvider>
-                <GlobalHeader />
-                {children}
-                <Footer />
-                <BottomNav />
-                <Toaster position="top-right" />
-              </I18nProvider>
-            </UserProvider>
-          </SessionProviderWrapper>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+            <SessionProviderWrapper>
+              <UserProvider>
+                <I18nProvider>
+                  <GlobalHeader />
+                  <PauseVideosOnHide />
+                  {children}
+                  <Footer />
+                  <BottomNav />
+                  <Toaster position="top-right" />
+                </I18nProvider>
+              </UserProvider>
+            </SessionProviderWrapper>
+          </ThemeProvider>
         </ErrorBoundary>
       </body>
     </html>

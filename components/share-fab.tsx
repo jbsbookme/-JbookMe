@@ -3,12 +3,15 @@
 import { Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 export function ShareFAB() {
+  const { t } = useI18n();
+
   const handleShare = async () => {
     const shareData = {
       title: 'JBookMe - by @jbsbook',
-      text: 'Book your appointment on JBookMe! Follow @jbsbook for more content.',
+      text: t('common.shareText'),
       url: window.location.origin,
     };
 
@@ -16,11 +19,11 @@ export function ShareFAB() {
       // Check if Web Share API is available
       if (navigator.share) {
         await navigator.share(shareData);
-        toast.success('Thanks for sharing! 🎉');
+        toast.success(t('common.shareSuccess'));
       } else {
         // Fallback: Copy link to clipboard
         await navigator.clipboard.writeText(window.location.origin);
-        toast.success('Link copied to clipboard! 📋');
+        toast.success(t('common.linkCopied'));
       }
     } catch (error: unknown) {
       const errorName =
@@ -34,9 +37,9 @@ export function ShareFAB() {
         // Try clipboard as final fallback
         try {
           await navigator.clipboard.writeText(window.location.origin);
-          toast.success('Link copied to clipboard! 📋');
+          toast.success(t('common.linkCopied'));
         } catch {
-          toast.error('Unable to share');
+          toast.error(t('common.shareError'));
         }
       }
     }
@@ -65,7 +68,7 @@ export function ShareFAB() {
       
       {/* Tooltip */}
       <div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-black/90 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-        Share JBookMe
+        {t('common.shareApp')}
         <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90" />
       </div>
     </motion.button>

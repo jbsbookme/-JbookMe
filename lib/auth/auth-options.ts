@@ -67,9 +67,20 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role;
         token.barberId = user.barberId;
+        // NextAuth uses `picture` for the user's avatar in the JWT.
+        // Keep it in sync with our DB `user.image`.
+        if ((user as any).image) {
+          (token as any).picture = (user as any).image;
+        }
       }
       if (trigger === 'update' && session) {
+        // `update()` merges the provided object into the JWT token.
+        // We also map `image` -> `picture` so session.user.image updates everywhere.
         token = { ...token, ...session };
+        const anySession = session as any;
+        if (typeof anySession.image === 'string' && anySession.image.trim()) {
+          (token as any).picture = anySession.image;
+        }
       }
       return token;
     },
@@ -78,6 +89,11 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.id = token.sub as string;
         session.user.barberId = token.barberId as string | undefined;
+        // Ensure UI reading session.user.image gets the latest value.
+        const picture = (token as any).picture;
+        if (typeof picture === 'string') {
+          (session.user as any).image = picture;
+        }
       }
       return session;
     },

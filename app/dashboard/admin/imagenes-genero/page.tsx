@@ -15,10 +15,16 @@ export default function GenderImagesPage() {
   const [loading, setLoading] = useState(false);
   const [maleImage, setMaleImage] = useState<string | null>(null);
   const [femaleImage, setFemaleImage] = useState<string | null>(null);
+  const [galleryMaleCircleImage, setGalleryMaleCircleImage] = useState<string | null>(null);
+  const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
   const [malePreview, setMalePreview] = useState<string | null>(null);
   const [femalePreview, setFemalePreview] = useState<string | null>(null);
+  const [galleryMalePreview, setGalleryMalePreview] = useState<string | null>(null);
+  const [galleryFemalePreview, setGalleryFemalePreview] = useState<string | null>(null);
   const [maleFileInfo, setMaleFileInfo] = useState<{ name: string; size: string } | null>(null);
   const [femaleFileInfo, setFemaleFileInfo] = useState<{ name: string; size: string } | null>(null);
+  const [galleryMaleFileInfo, setGalleryMaleFileInfo] = useState<{ name: string; size: string } | null>(null);
+  const [galleryFemaleFileInfo, setGalleryFemaleFileInfo] = useState<{ name: string; size: string } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated' || (session && session.user?.role !== 'ADMIN')) {
@@ -43,6 +49,15 @@ export default function GenderImagesPage() {
           setFemaleImage(data.femaleGenderImage);
           setFemalePreview(data.femaleGenderImage);
         }
+
+        if (data.galleryMaleCircleImage) {
+          setGalleryMaleCircleImage(data.galleryMaleCircleImage);
+          setGalleryMalePreview(data.galleryMaleCircleImage);
+        }
+        if (data.galleryFemaleCircleImage) {
+          setGalleryFemaleCircleImage(data.galleryFemaleCircleImage);
+          setGalleryFemalePreview(data.galleryFemaleCircleImage);
+        }
       }
     } catch (error) {
       console.error('Error fetching images:', error);
@@ -57,7 +72,10 @@ export default function GenderImagesPage() {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  const handleImageUpload = async (file: File, type: 'male' | 'female') => {
+  const handleImageUpload = async (
+    file: File,
+    type: 'male' | 'female' | 'galleryMale' | 'galleryFemale'
+  ) => {
     if (!file) {
       toast.error('No file selected');
       return;
@@ -83,11 +101,10 @@ export default function GenderImagesPage() {
       size: formatFileSize(file.size)
     };
     
-    if (type === 'male') {
-      setMaleFileInfo(fileInfo);
-    } else {
-      setFemaleFileInfo(fileInfo);
-    }
+    if (type === 'male') setMaleFileInfo(fileInfo);
+    else if (type === 'female') setFemaleFileInfo(fileInfo);
+    else if (type === 'galleryMale') setGalleryMaleFileInfo(fileInfo);
+    else setGalleryFemaleFileInfo(fileInfo);
 
     setLoading(true);
     const loadingToast = toast.loading('Uploading image...');
@@ -123,9 +140,14 @@ export default function GenderImagesPage() {
       const { url } = responseData;
 
       // Update settings
-      const settingsData = type === 'male' 
-        ? { maleGenderImage: url }
-        : { femaleGenderImage: url };
+      const settingsData =
+        type === 'male'
+          ? { maleGenderImage: url }
+          : type === 'female'
+            ? { femaleGenderImage: url }
+            : type === 'galleryMale'
+              ? { galleryMaleCircleImage: url }
+              : { galleryFemaleCircleImage: url };
 
       const settingsRes = await fetch('/api/settings', {
         method: 'PUT',
@@ -142,13 +164,27 @@ export default function GenderImagesPage() {
       if (type === 'male') {
         setMaleImage(url);
         setMalePreview(url);
-      } else {
+      } else if (type === 'female') {
         setFemaleImage(url);
         setFemalePreview(url);
+      } else if (type === 'galleryMale') {
+        setGalleryMaleCircleImage(url);
+        setGalleryMalePreview(url);
+      } else {
+        setGalleryFemaleCircleImage(url);
+        setGalleryFemalePreview(url);
       }
 
       toast.dismiss(loadingToast);
-      toast.success(`✓ ${type === 'male' ? 'Barber' : 'Stylist'} image updated successfully`);
+      const label =
+        type === 'male'
+          ? 'Barber'
+          : type === 'female'
+            ? 'Stylist'
+            : type === 'galleryMale'
+              ? 'Gallery Men'
+              : 'Gallery Women';
+      toast.success(`✓ ${label} image updated successfully`);
     } catch (error: unknown) {
       console.error('[Upload] Error:', error);
       toast.dismiss(loadingToast);
@@ -187,6 +223,45 @@ export default function GenderImagesPage() {
       }
 
       toast.success(`${type === 'male' ? 'Barber' : 'Stylist'} image deleted`);
+    } catch (error: unknown) {
+      console.error('Error:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(message || 'Error deleting image');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveGalleryCircleImage = async (type: 'galleryMale' | 'galleryFemale') => {
+    setLoading(true);
+
+    try {
+      const settingsData = type === 'galleryMale'
+        ? { galleryMaleCircleImage: null }
+        : { galleryFemaleCircleImage: null };
+
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Error deleting image');
+      }
+
+      if (type === 'galleryMale') {
+        setGalleryMaleCircleImage(null);
+        setGalleryMalePreview(null);
+        setGalleryMaleFileInfo(null);
+      } else {
+        setGalleryFemaleCircleImage(null);
+        setGalleryFemalePreview(null);
+        setGalleryFemaleFileInfo(null);
+      }
+
+      toast.success(`${type === 'galleryMale' ? 'Gallery Men' : 'Gallery Women'} image deleted`);
     } catch (error: unknown) {
       console.error('Error:', error);
       const message = error instanceof Error ? error.message : String(error);
@@ -370,6 +445,135 @@ export default function GenderImagesPage() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-white mb-2">Gallery cards (circle photos)</h2>
+          <p className="text-gray-400 text-sm mb-6">These images appear inside the circle on the Men&apos;s Cuts / Women&apos;s Cuts cards in Galería → Get Inspired.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Gallery Men Circle */}
+            <Card className="bg-gray-900 border-blue-500/30 hover:border-[#00f0ff] transition-all">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-[#00f0ff]" />
+                  Gallery Men (Circle)
+                </CardTitle>
+                <CardDescription>Small circle photo on the Men&apos;s Cuts card</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative w-full aspect-square bg-gradient-to-br from-blue-900/40 to-cyan-900/40 rounded-lg overflow-hidden flex items-center justify-center group">
+                  {galleryMalePreview ? (
+                    <Image src={galleryMalePreview} alt="Gallery Men" fill className="object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <ImageIcon className="w-24 h-24 text-[#00f0ff]/50" />
+                      <p className="text-sm text-gray-500">No image</p>
+                    </div>
+                  )}
+                </div>
+
+                {galleryMaleFileInfo && (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-800 p-2 rounded">
+                    <ImageIcon className="w-4 h-4 text-[#00f0ff]" />
+                    <span className="truncate flex-1">{galleryMaleFileInfo.name}</span>
+                    <span className="text-[#00f0ff]">{galleryMaleFileInfo.size}</span>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <label className="flex-1 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, 'galleryMale');
+                      }}
+                      disabled={loading}
+                    />
+                    <div className="w-full h-10 bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black rounded-md flex items-center justify-center font-medium hover:opacity-90 transition-opacity">
+                      <Upload className="w-4 h-4 mr-2" />
+                      {galleryMaleCircleImage ? 'Change' : 'Upload'}
+                    </div>
+                  </label>
+                  {galleryMaleCircleImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-red-500 text-red-500 hover:bg-red-500/10"
+                      onClick={() => handleRemoveGalleryCircleImage('galleryMale')}
+                      disabled={loading}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Gallery Women Circle */}
+            <Card className="bg-gray-900 border-pink-500/30 hover:border-[#ffd700] transition-all">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <ImageIcon className="w-5 h-5 text-[#ffd700]" />
+                  Gallery Women (Circle)
+                </CardTitle>
+                <CardDescription>Small circle photo on the Women&apos;s Cuts card</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative w-full aspect-square bg-gradient-to-br from-pink-900/40 to-purple-900/40 rounded-lg overflow-hidden flex items-center justify-center group">
+                  {galleryFemalePreview ? (
+                    <Image src={galleryFemalePreview} alt="Gallery Women" fill className="object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-3">
+                      <ImageIcon className="w-24 h-24 text-[#ffd700]/50" />
+                      <p className="text-sm text-gray-500">No image</p>
+                    </div>
+                  )}
+                </div>
+
+                {galleryFemaleFileInfo && (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 bg-gray-800 p-2 rounded">
+                    <ImageIcon className="w-4 h-4 text-[#ffd700]" />
+                    <span className="truncate flex-1">{galleryFemaleFileInfo.name}</span>
+                    <span className="text-[#ffd700]">{galleryFemaleFileInfo.size}</span>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <label className="flex-1 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file, 'galleryFemale');
+                      }}
+                      disabled={loading}
+                    />
+                    <div className="w-full h-10 bg-gradient-to-r from-[#ffd700] to-[#ff6b6b] text-black rounded-md flex items-center justify-center font-medium hover:opacity-90 transition-opacity">
+                      <Upload className="w-4 h-4 mr-2" />
+                      {galleryFemaleCircleImage ? 'Change' : 'Upload'}
+                    </div>
+                  </label>
+                  {galleryFemaleCircleImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-red-500 text-red-500 hover:bg-red-500/10"
+                      onClick={() => handleRemoveGalleryCircleImage('galleryFemale')}
+                      disabled={loading}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Info Cards */}

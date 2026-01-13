@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
+import { publishLinkToFacebookPage } from '@/lib/facebook';
 
 export async function POST(
   request: NextRequest,
@@ -40,6 +41,8 @@ export async function POST(
       );
     }
 
+    const wasApproved = post.status === 'APPROVED';
+
     // Update post status
     const updatedPost = await prisma.post.update({
       where: { id: params.id },
@@ -48,6 +51,28 @@ export async function POST(
         rejectionReason: action === 'reject' ? reason : null
       }
     });
+
+    // Optional: auto-publish to Facebook only when transitioning into APPROVED.
+    if (action === 'approve' && !wasApproved) {
+      try {
+        const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.jbsbookme.com';
+        const publicLink = `${origin.replace(/\/$/, '')}/p/${post.id}`;
+        const message = (post.caption || 'New post').slice(0, 1900);
+
+        const fbResult = await publishLinkToFacebookPage({
+          message,
+          link: publicLink,
+        });
+
+        if (!fbResult.ok) {
+          console.log('[POST /api/posts/[id]/approve] Facebook publish skipped/failed:', fbResult.error);
+        } else {
+          console.log('[POST /api/posts/[id]/approve] Facebook publish ok:', fbResult.id);
+        }
+      } catch (error) {
+        console.log('[POST /api/posts/[id]/approve] Facebook publish unexpected error:', error);
+      }
+    }
 
     // Create notification for author
     await prisma.notification.create({

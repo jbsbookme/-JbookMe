@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { uploadFile, getFileUrl } from '@/lib/s3';
+import { put } from '@vercel/blob';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 export async function POST(request: NextRequest) {
@@ -50,16 +50,16 @@ export async function POST(request: NextRequest) {
     const ext = file.name.split('.').pop();
     const fileName = `services/${timestamp}.${ext}`;
 
-    // Subir a S3 (público)
-    const cloud_storage_path = await uploadFile(buffer, fileName, true);
-
-    // Obtener URL público
-    const imageUrl = await getFileUrl(cloud_storage_path, true);
+    // Subir a Vercel Blob (público)
+    const blob = await put(fileName, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
     return NextResponse.json(
       { 
-        url: imageUrl,
-        cloud_storage_path 
+        url: blob.url,
+        cloud_storage_path: blob.url,
       },
       { status: 200 }
     );

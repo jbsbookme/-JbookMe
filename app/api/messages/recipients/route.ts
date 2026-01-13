@@ -13,79 +13,87 @@ export async function GET() {
     }
 
     const userId = session.user.id;
-    const userRole = session.user.role;
 
-    let recipients: any[];
+    // Clients should only be able to start a chat with the admin team.
+    // We represent the admin team as a single entry labeled "Administrators" that maps
+    // to the configured owner admin user. Clients can also start chats with active
+    // barbers/stylists.
+    if (session.user.role === 'CLIENT') {
+      const ownerEmail = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
 
-    // Role-based filtering
-    switch (userRole) {
-      case "ADMIN":
-        // ADMIN sees all users except themselves
-        recipients = await prisma.user.findMany({
-          where: {
-            id: {
-              not: userId,
+      const ownerAdmin = ownerEmail
+        ? await prisma.user.findUnique({
+            where: { email: ownerEmail },
+            select: { id: true, image: true },
+          })
+        : null;
+
+      const fallbackAdmin = ownerAdmin
+        ? null
+        : await prisma.user.findFirst({
+            where: { role: 'ADMIN' },
+            select: { id: true, image: true },
+            orderBy: { createdAt: 'asc' },
+          });
+
+      const admin = ownerAdmin || fallbackAdmin;
+      if (!admin) return NextResponse.json([]);
+
+      const activeStaff = await prisma.barber.findMany({
+        where: { isActive: true },
+        select: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+              role: true,
             },
           },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            role: true,
+        },
+        orderBy: {
+          user: {
+            name: 'asc',
           },
-          orderBy: {
-            name: "asc",
-          },
-        });
-        break;
+        },
+      });
 
-      case "CLIENT":
-        // CLIENT only sees BARBER users
-        recipients = await prisma.user.findMany({
-          where: {
-            role: "BARBER",
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            role: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-        });
-        break;
+      const staffRecipients = activeStaff
+        .map((b) => b.user)
+        .filter((u) => u.id !== userId);
 
-      case "BARBER":
-        // BARBER sees all CLIENTS
-        recipients = await prisma.user.findMany({
-          where: {
-            role: "CLIENT",
-            id: {
-              not: userId,
-            },
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            role: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-        });
-        break;
-
-      default:
-        // Fallback: no recipients
-        recipients = [];
-        break;
+      return NextResponse.json([
+        {
+          id: admin.id,
+          name: 'Administrators',
+          email: '',
+          image: admin.image,
+          role: 'ADMIN',
+        },
+        ...staffRecipients,
+      ]);
     }
+
+    // Inbox compose recipient list: only allow messaging to staff accounts.
+    // Staff = ADMINs + active Barber profiles (barbers + stylists).
+    // This prevents clients from appearing in the dropdown.
+    const recipients = await prisma.user.findMany({
+      where: {
+        id: { not: userId },
+        OR: [{ role: "ADMIN" }, { barber: { is: { isActive: true } } }],
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        role: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
 
     return NextResponse.json(recipients);
   } catch (error) {

@@ -29,7 +29,10 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { addDays, format } from 'date-fns';
-import { enUS } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
+import { formatPrice } from '@/lib/utils';
+import { formatTime12h } from '@/lib/time';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 // Types
 type Service = {
@@ -40,6 +43,12 @@ type Service = {
   price: number;
   image: string | null;
   gender: 'MALE' | 'FEMALE' | 'UNISEX' | null;
+  barberId?: string | null;
+};
+
+const getServiceKey = (service: Pick<Service, 'name' | 'duration' | 'price' | 'gender'>) => {
+  const normalizedName = service.name.trim().toLowerCase();
+  return `${service.gender ?? ''}::${normalizedName}::${service.duration}::${service.price}`;
 };
 
 type Barber = {
@@ -70,6 +79,9 @@ type Barber = {
     mediaUrl: string;
     title: string | null;
   }>;
+  galleryImages?: Array<{
+    cloud_storage_path: string;
+  }>;
 };
 
 type Step = 'gender' | 'services' | 'barbers' | 'barber-profile' | 'datetime' | 'payment';
@@ -78,16 +90,20 @@ export default function ReservarPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, language } = useI18n();
+
+  const dateLocale = language === 'es' ? es : enUS;
 
   const showProfessionalSuccessToast = (mode: 'booked' | 'rescheduled') => {
-    const title = mode === 'booked' ? 'Booking confirmed' : 'Appointment rescheduled';
-    const subtitle = 'Thanks for being part of JBBarbershop.';
+    const title =
+      mode === 'booked' ? t('booking.toastBookingConfirmedTitle') : t('booking.toastAppointmentRescheduledTitle');
+    const subtitle = t('booking.toastThanksSubtitle');
 
     toast.custom(
-      (t) => (
+      (toastData) => (
         <div
           className={`${
-            t.visible ? 'animate-enter' : 'animate-leave'
+            toastData.visible ? 'animate-enter' : 'animate-leave'
           } max-w-md w-full pointer-events-auto rounded-xl border border-[#00f0ff]/30 bg-gray-950/95 backdrop-blur shadow-lg overflow-hidden`}
         >
           <div className="h-1.5 bg-gradient-to-r from-[#00f0ff] to-[#ffd700]" />
@@ -100,9 +116,9 @@ export default function ReservarPage() {
               <p className="text-sm text-gray-300 mt-0.5">{subtitle}</p>
             </div>
             <button
-              onClick={() => toast.dismiss(t.id)}
+              onClick={() => toast.dismiss(toastData.id)}
               className="ml-2 text-gray-400 hover:text-white transition-colors"
-              aria-label="Dismiss"
+              aria-label={t('common.dismiss')}
               type="button"
             >
               ✕
@@ -136,6 +152,9 @@ export default function ReservarPage() {
   const [now, setNow] = useState<Date>(() => new Date());
   const [maleGenderImage, setMaleGenderImage] = useState<string | null>(null);
   const [femaleGenderImage, setFemaleGenderImage] = useState<string | null>(null);
+
+  const selectedBarberId = selectedBarber?.id;
+  const selectedBarberGender = selectedBarber?.gender;
 
   const isSameDay = useCallback(
     (a: Date, b: Date) =>
@@ -299,7 +318,7 @@ export default function ReservarPage() {
           } else {
             // If BOTH or undefined, ERROR - This should not happen
             console.error('[RESERVAR] ERROR: Barber has invalid gender:', barber.gender);
-            toast.error("Error: This professional's gender is not set correctly");
+            toast.error(t('booking.errorProfessionalGenderNotSet'));
             return;
           }
           
@@ -313,12 +332,30 @@ export default function ReservarPage() {
           const servicesData = await servicesRes.json();
           const servicesArray = Array.isArray(servicesData) ? servicesData : (servicesData.services || []);
           console.log('[RESERVAR] Loaded services:', servicesArray.length);
-          setServices(servicesArray.filter((s: Service) => s));
+
+          const normalized = servicesArray.filter((s: Service) => s);
+          // Defensive dedupe (legacy DB may have multiple identical rows)
+          const byKey = new Map<string, Service>();
+          for (const service of normalized) {
+            const key = getServiceKey(service);
+            const existing = byKey.get(key);
+            if (!existing) {
+              byKey.set(key, service);
+              continue;
+            }
+
+            // When a barber is preselected, prefer the service row that belongs to that barber.
+            if (existing.barberId !== barber.id && service.barberId === barber.id) {
+              byKey.set(key, service);
+            }
+          }
+
+          setServices(Array.from(byKey.values()));
           
           // If serviceId is provided, pre-select the service and skip to date/time
           if (serviceId) {
             console.log('[RESERVAR] ServiceId provided, finding service...');
-            const service = servicesArray.find((s: Service) => s.id === serviceId);
+            const service = Array.from(byKey.values()).find((s: Service) => s.id === serviceId);
             
             if (service) {
               console.log('[RESERVAR] Found service:', service.name);
@@ -344,7 +381,7 @@ export default function ReservarPage() {
       }
     } catch (error) {
       console.error('[RESERVAR] Error loading barber:', error);
-      toast.error('Error loading professional');
+      toast.error(t('booking.errorLoadingProfessional'));
     }
   };
 
@@ -354,24 +391,76 @@ export default function ReservarPage() {
       // FIXED: If a barber is selected, filter by their gender
       let genderForServices = selectedGender;
       
-      if (selectedBarber?.gender && selectedBarber.gender !== 'BOTH') {
-        genderForServices = selectedBarber.gender;
+      if (selectedBarberGender && selectedBarberGender !== 'BOTH') {
+        genderForServices = selectedBarberGender;
         console.log('[RESERVAR] Filtering services by barber gender:', genderForServices);
       }
       
-      const genderParam = genderForServices ? `?gender=${genderForServices}` : '';
-      const res = await fetch(`/api/services${genderParam}`);
+      const params = new URLSearchParams();
+      if (genderForServices) params.set('gender', genderForServices);
+
+      // IMPORTANT: once a barber is selected, fetch ONLY that barber's services
+      if (selectedBarberId) params.set('barberId', selectedBarberId);
+
+      const query = params.toString();
+      const res = await fetch(`/api/services${query ? `?${query}` : ''}`);
       const data = await res.json();
       if (res.ok) {
         // Ensure data is an array
         const servicesArray = Array.isArray(data) ? data : (data.services || []);
-        setServices(servicesArray.filter((s: Service) => s));
-        console.log('[RESERVAR] Loaded services:', servicesArray.length, 'for gender:', genderForServices);
+        const normalized = servicesArray.filter((s: Service) => s);
+
+        // If NO barber selected yet, the API returns services for multiple barbers.
+        // Deduplicate by (gender + name + duration + price) so UI doesn't show repeats.
+        const nextServices = selectedBarberId
+          ? normalized
+          : Array.from(
+              new Map(normalized.map((s) => [getServiceKey(s), s])).values()
+            );
+
+        setServices(nextServices);
+
+        console.log('[RESERVAR] Loaded services:', {
+          total: normalized.length,
+          deduped: nextServices.length,
+          gender: genderForServices,
+          barberId: selectedBarberId ?? null,
+        });
       }
     } catch (error) {
       console.error('Error fetching services:', error);
     }
-  }, [selectedGender, selectedBarber?.gender]);
+  }, [selectedGender, selectedBarberGender, selectedBarberId]);
+
+  const ensureSelectedServiceForBarber = useCallback(async () => {
+    if (!selectedService || !selectedBarberId) return;
+
+    try {
+      const params = new URLSearchParams();
+      params.set('barberId', selectedBarberId);
+
+      // Keep the gender strict when possible
+      if (selectedBarberGender === 'MALE' || selectedBarberGender === 'FEMALE') {
+        params.set('gender', selectedBarberGender);
+      }
+
+      const res = await fetch(`/api/services?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) return;
+
+      const servicesArray = Array.isArray(data) ? data : (data.services || []);
+      const normalized = servicesArray.filter((s: Service) => s);
+
+      const key = getServiceKey(selectedService);
+      const match = normalized.find((s) => getServiceKey(s) === key);
+
+      if (match && match.id !== selectedService.id) {
+        setSelectedService(match);
+      }
+    } catch (error) {
+      console.error('[RESERVAR] Error ensuring service for barber:', error);
+    }
+  }, [selectedService, selectedBarberId, selectedBarberGender]);
 
   const fetchBarbers = useCallback(async () => {
     setBarbersLoading(true);
@@ -511,6 +600,15 @@ export default function ReservarPage() {
     }
   }, [currentStep, selectedBarber]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // UX: When changing steps (e.g. Services -> Calendar), reset scroll so the main content
+  // (calendar) is visible immediately on mobile.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }, [currentStep]);
+
   // ========== EVENT HANDLERS ==========
   // Date selection handler
   const handleDateSelect = (date: Date | undefined) => {
@@ -552,24 +650,28 @@ export default function ReservarPage() {
     setCurrentStep('barber-profile');
   };
 
-  const handleContinueToDateTime = () => {
+  const handleContinueToDateTime = async () => {
+    await ensureSelectedServiceForBarber();
     setCurrentStep('datetime');
   };
 
   const handleSubmitBooking = async () => {
     if (!session) {
-      toast.error('You must sign in to book');
+      toast.error(t('booking.mustLogin'));
       router.push('/auth');
       return;
     }
 
     if (!selectedService || !selectedBarber || !selectedDate || !selectedTime || !paymentMethod) {
-      toast.error('Please complete all fields, including the payment method');
+      toast.error(t('booking.completeAllFields'));
       return;
     }
 
+    // Safety: ensure we book the service row that belongs to the selected barber
+    await ensureSelectedServiceForBarber();
+
     if (!acceptCancellationPolicy) {
-      toast.error('Please accept the 24-hour cancellation policy to continue');
+      toast.error(t('booking.acceptCancellationPolicyRequired'));
       return;
     }
 
@@ -594,7 +696,7 @@ export default function ReservarPage() {
           router.push('/perfil');
         } else {
           const data = await res.json().catch(() => ({}));
-          toast.error(data.error || data.message || 'Error rescheduling appointment');
+          toast.error(data.error || data.message || t('booking.errorReschedulingAppointment'));
         }
 
         return;
@@ -620,10 +722,10 @@ export default function ReservarPage() {
         router.push('/perfil');
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || data.message || 'Error booking appointment');
+        toast.error(data.error || data.message || t('booking.errorBookingAppointment'));
       }
     } catch (error) {
-      toast.error('Error processing booking');
+      toast.error(t('booking.errorProcessingBooking'));
     } finally {
       setLoading(false);
     }
@@ -679,9 +781,9 @@ export default function ReservarPage() {
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6 max-w-2xl mx-auto"
     >
-      <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold text-white mb-4">Who is this service for?</h2>
-        <p className="text-gray-400 text-lg">Select to see personalized services</p>
+      <div className="text-center mb-8 sm:mb-12">
+        <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3 sm:mb-4">{t('booking.whoIsServiceFor')}</h2>
+        <p className="text-gray-400 text-base sm:text-lg">{t('booking.selectToSeeServices')}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -694,22 +796,25 @@ export default function ReservarPage() {
           }}
           className="cursor-pointer"
         >
-          <Card className="bg-gradient-to-br from-blue-900/40 to-cyan-900/40 border-2 border-blue-500/30 hover:border-[#00f0ff] transition-all duration-300 overflow-hidden group">
-            <CardContent className="p-12 text-center">
-              <div className="relative w-24 h-24 mx-auto mb-6 rounded-full bg-blue-500/20 flex items-center justify-center group-hover:bg-blue-500/30 transition-colors overflow-hidden">
-                {maleGenderImage ? (
-                  <Image
-                    src={maleGenderImage}
-                    alt="Man"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <User className="w-12 h-12 text-[#00f0ff]" />
-                )}
-              </div>
-              <h3 className="text-3xl font-bold text-white mb-2">Men</h3>
-              <p className="text-gray-400">Services for men</p>
+          <Card className="relative bg-[#0a0a0a] border-2 border-[#00f0ff]/25 hover:border-[#00f0ff] transition-all duration-300 overflow-hidden group">
+            <div className="relative h-44 sm:h-56 md:h-64">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#00f0ff]/14 via-black/40 to-black/80" />
+              {maleGenderImage ? (
+                <div className="absolute inset-0">
+                  <Image src={maleGenderImage} alt={t('booking.male')} fill className="object-cover opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                </div>
+              ) : null}
+            </div>
+
+            <CardContent className="p-5 sm:p-8 text-center">
+              {!maleGenderImage ? (
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full bg-black/30 flex items-center justify-center border border-white/10 group-hover:bg-black/40 transition-colors overflow-hidden">
+                  <User className="w-10 h-10 sm:w-12 sm:h-12 text-[#00f0ff] drop-shadow" />
+                </div>
+              ) : null}
+              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2 drop-shadow">{t('booking.male')}</h3>
+              <p className="text-sm sm:text-base text-white/80 drop-shadow">{t('booking.servicesForMale')}</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -723,22 +828,25 @@ export default function ReservarPage() {
           }}
           className="cursor-pointer"
         >
-          <Card className="bg-gradient-to-br from-pink-900/40 to-purple-900/40 border-2 border-pink-500/30 hover:border-[#ffd700] transition-all duration-300 overflow-hidden group">
-            <CardContent className="p-12 text-center">
-              <div className="relative w-24 h-24 mx-auto mb-6 rounded-full bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30 transition-colors overflow-hidden">
-                {femaleGenderImage ? (
-                  <Image
-                    src={femaleGenderImage}
-                    alt="Woman"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <User className="w-12 h-12 text-[#ffd700]" />
-                )}
-              </div>
-              <h3 className="text-3xl font-bold text-white mb-2">Women</h3>
-              <p className="text-gray-400">Services for women</p>
+          <Card className="relative bg-[#0a0a0a] border-2 border-[#ffd700]/25 hover:border-[#ffd700] transition-all duration-300 overflow-hidden group">
+            <div className="relative h-44 sm:h-56 md:h-64">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#ffd700]/14 via-black/40 to-black/80" />
+              {femaleGenderImage ? (
+                <div className="absolute inset-0">
+                  <Image src={femaleGenderImage} alt={t('booking.female')} fill className="object-cover opacity-80" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                </div>
+              ) : null}
+            </div>
+
+            <CardContent className="p-5 sm:p-8 text-center">
+              {!femaleGenderImage ? (
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full bg-black/30 flex items-center justify-center border border-white/10 group-hover:bg-black/40 transition-colors overflow-hidden">
+                  <User className="w-10 h-10 sm:w-12 sm:h-12 text-[#ffd700] drop-shadow" />
+                </div>
+              ) : null}
+              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2 drop-shadow">{t('booking.female')}</h3>
+              <p className="text-sm sm:text-base text-white/80 drop-shadow">{t('booking.servicesForFemale')}</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -755,8 +863,8 @@ export default function ReservarPage() {
       className="space-y-6"
     >
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-2">Select a Service</h2>
-        <p className="text-gray-400">Choose the service you want to book</p>
+        <h2 className="text-3xl font-bold text-white mb-2">{t('booking.chooseService')}</h2>
+        <p className="text-gray-400">{t('booking.chooseServiceSubtitle')}</p>
       </div>
 
       <div className="space-y-3 max-w-4xl mx-auto">
@@ -767,9 +875,9 @@ export default function ReservarPage() {
           const durationLabel =
             hoursPart > 0
               ? minsPart > 0
-                ? `${hoursPart} hr ${minsPart} min`
-                : `${hoursPart} hr`
-              : `${minsPart} min`;
+                ? `${hoursPart} ${t('common.hourShort')} ${minsPart} ${t('common.minuteShort')}`
+                : `${hoursPart} ${t('common.hourShort')}`
+              : `${minsPart} ${t('common.minuteShort')}`;
 
           return (
             <motion.div
@@ -779,7 +887,7 @@ export default function ReservarPage() {
               onClick={() => handleServiceSelect(service)}
               className="cursor-pointer"
             >
-              <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff]/60 transition-all duration-300">
+              <Card className="bg-black/35 border-gray-800 shadow-[0_10px_28px_rgba(0,0,0,0.45)] hover:shadow-[0_14px_34px_rgba(0,0,0,0.55)] hover:border-[#00f0ff]/60 transition-all duration-300">
                 <CardContent className="p-3">
                   <div className="flex items-center gap-3">
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-gray-700 bg-black/20">
@@ -795,7 +903,7 @@ export default function ReservarPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-base font-bold italic text-white">{service.name}</p>
-                        <span className="text-sm font-bold text-[#ffd700]">${service.price}</span>
+                        <span className="shrink-0 whitespace-nowrap break-normal tabular-nums text-sm font-bold text-[#ffd700]">{formatPrice(service.price)}</span>
                       </div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
                         <Clock className="h-3.5 w-3.5" />
@@ -813,7 +921,7 @@ export default function ReservarPage() {
                           handleServiceSelect(service);
                         }}
                       >
-                        Book Now
+                        {t('common.bookNow')}
                       </Button>
                     </div>
                   </div>
@@ -828,10 +936,25 @@ export default function ReservarPage() {
 
   // Helper function to get professional title based on gender
   const getProfessionalTitle = (gender: 'MALE' | 'FEMALE' | 'BOTH' | null): string => {
-    if (gender === 'MALE') return 'Barber';
-    if (gender === 'FEMALE') return 'Stylist';
-    if (gender === 'BOTH') return 'Barber & Stylist';
-    return 'Professional';
+    if (gender === 'MALE') return t('booking.barberTitle');
+    if (gender === 'FEMALE') return t('booking.stylistTitle');
+    if (gender === 'BOTH') return t('booking.barberAndStylistTitle');
+    return t('booking.professionalTitle');
+  };
+
+  const getAvatarUrl = (barber: Barber): string | null => {
+    if (barber.user?.image) return barber.user.image;
+    if (barber.profileImage) return barber.profileImage;
+
+    const media = Array.isArray(barber.media) ? barber.media : [];
+    const firstPhoto = media.find((m) => m?.mediaType === 'PHOTO' && typeof m?.mediaUrl === 'string' && m.mediaUrl);
+
+    if (firstPhoto?.mediaUrl) return firstPhoto.mediaUrl;
+
+    const galleryImages = Array.isArray(barber.galleryImages) ? barber.galleryImages : [];
+    const firstGalleryUrl = galleryImages.find((g) => typeof g?.cloud_storage_path === 'string' && g.cloud_storage_path)
+      ?.cloud_storage_path;
+    return firstGalleryUrl || null;
   };
 
   // Step 2: Select Barber
@@ -844,61 +967,69 @@ export default function ReservarPage() {
     >
       <div className="text-center mb-8">
         <h2 className="text-3xl font-bold text-white mb-2">
-          {selectedGender === 'MALE' ? 'Choose Your Barber' : selectedGender === 'FEMALE' ? 'Choose Your Stylist' : 'Choose Your Professional'}
+          {selectedGender === 'MALE'
+            ? t('booking.chooseBarber')
+            : selectedGender === 'FEMALE'
+              ? t('booking.chooseStylist')
+              : t('booking.chooseProfessional')}
         </h2>
-        <p className="text-gray-400">Select your preferred professional</p>
+        <p className="text-gray-400">{t('booking.selectPreferredProfessional')}</p>
       </div>
 
       {barbersLoading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#00f0ff]" />
-          <p className="text-gray-400 text-sm mt-4">Loading professionals...</p>
+          <p className="text-gray-400 text-sm mt-4">{t('booking.loadingProfessionals')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredBarbers.map((barber) => (
-            <motion.div
-              key={barber.id}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleBarberSelect(barber)}
-              className="cursor-pointer"
-            >
-              <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 p-6 text-center">
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.4)]">
-                    {barber.user.image ? (
-                      <Image
-                        src={barber.user.image}
-                        alt={barber.user.name || 'Barber'}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
-                        <Scissors className="w-10 h-10 text-gray-600" />
-                      </div>
-                    )}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+          {filteredBarbers.map((barber) => {
+            const avatarUrl = getAvatarUrl(barber);
+
+            return (
+              <motion.div
+                key={barber.id}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handleBarberSelect(barber)}
+                className="cursor-pointer"
+              >
+                <Card className="bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 p-3 sm:p-6 text-center">
+                  <div className="relative w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-2.5 sm:mb-4">
+                    <div className="w-full h-full rounded-full overflow-hidden border-2 sm:border-4 border-[#00f0ff] shadow-[0_0_14px_rgba(0,240,255,0.35)] sm:shadow-[0_0_20px_rgba(0,240,255,0.4)]">
+                      {avatarUrl ? (
+                        <Image
+                          src={avatarUrl}
+                          alt={barber.user.name || t('booking.professionalTitle')}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                          <Scissors className="w-8 h-8 sm:w-10 sm:h-10 text-gray-600" />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <h3 className="text-lg font-bold text-white mb-1">
-                  {barber.user.name || 'Professional'}
-                </h3>
-                <p className="text-xs text-[#00f0ff] mb-2 font-semibold">
-                  {getProfessionalTitle(barber.gender)}
-                </p>
-                {barber.rating && (
-                  <div className="flex items-center justify-center gap-1 text-[#ffd700] mb-2">
-                    <Star className="w-4 h-4 fill-current" />
-                    <span className="text-sm font-semibold">{barber.rating.toFixed(1)}</span>
-                  </div>
-                )}
-                {barber.specialties && (
-                  <p className="text-xs text-gray-500 line-clamp-2">{barber.specialties}</p>
-                )}
-              </Card>
-            </motion.div>
-          ))}
+                  <h3 className="text-sm sm:text-lg font-bold text-white mb-0.5 sm:mb-1">
+                    {barber.user.name || t('booking.professionalTitle')}
+                  </h3>
+                  <p className="text-[10px] sm:text-xs text-[#00f0ff] mb-1.5 sm:mb-2 font-semibold">
+                    {getProfessionalTitle(barber.gender)}
+                  </p>
+                  {barber.rating && (
+                    <div className="flex items-center justify-center gap-1 text-[#ffd700] mb-1.5 sm:mb-2">
+                      <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                      <span className="text-xs sm:text-sm font-semibold">{barber.rating.toFixed(1)}</span>
+                    </div>
+                  )}
+                  {barber.specialties && (
+                    <p className="text-[10px] sm:text-xs text-gray-500 line-clamp-2">{barber.specialties}</p>
+                  )}
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
       )}
     </motion.div>
@@ -911,6 +1042,8 @@ export default function ReservarPage() {
     const media = Array.isArray(selectedBarber.media) ? selectedBarber.media : [];
     const photos = media.filter((m) => m?.mediaType === 'PHOTO');
     const videos = media.filter((m) => m?.mediaType === 'VIDEO');
+
+    const avatarUrl = getAvatarUrl(selectedBarber);
 
     return (
       <motion.div
@@ -926,10 +1059,10 @@ export default function ReservarPage() {
               {/* Profile photo */}
               <div className="relative w-40 h-40 flex-shrink-0 mx-auto md:mx-0">
                 <div className="w-full h-full rounded-full overflow-hidden border-4 border-[#00f0ff] shadow-[0_0_30px_rgba(0,240,255,0.5)]">
-                  {selectedBarber.profileImage ? (
+                  {avatarUrl ? (
                     <Image
-                      src={selectedBarber.profileImage}
-                      alt={selectedBarber.user.name || 'Barber'}
+                      src={avatarUrl}
+                      alt={selectedBarber.user.name || 'Professional'}
                       fill
                       className="object-cover"
                     />
@@ -1088,7 +1221,7 @@ export default function ReservarPage() {
                       <div key={photo.id} className="relative aspect-square rounded-lg overflow-hidden group cursor-pointer">
                         <Image
                           src={photo.mediaUrl}
-                          alt={photo.title || 'Photo'}
+                          alt={photo.title || t('common.photo')}
                           fill
                           className="object-cover group-hover:scale-110 transition-transform duration-300"
                         />
@@ -1108,7 +1241,7 @@ export default function ReservarPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Video className="w-5 h-5 text-[#ffd700]" />
-                    <h4 className="text-lg font-semibold text-white">Videos</h4>
+                    <h4 className="text-lg font-semibold text-white">{t('common.videos')}</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {videos.slice(0, 4).map((video) => (
@@ -1133,7 +1266,7 @@ export default function ReservarPage() {
             onClick={handleContinueToDateTime}
             className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold px-8 py-2.5 hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-300"
           >
-            Continue
+            {t('booking.continue')}
             <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
         </div>
@@ -1146,7 +1279,7 @@ export default function ReservarPage() {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const quickDays = Array.from({ length: 7 }, (_, i) => addDays(todayStart, i));
+    const quickDays = Array.from({ length: 14 }, (_, i) => addDays(todayStart, i));
 
     const minutesFor = (t: string) => parseTimeToMinutes(t) ?? 0;
     const sortedSlots = [...filteredAvailableTimes].sort((a, b) => minutesFor(a) - minutesFor(b));
@@ -1170,9 +1303,9 @@ export default function ReservarPage() {
     const evening = sortedSlots.filter((t) => minutesFor(t) >= 17 * 60);
 
     const slotGroups: Array<{ label: string; items: string[] }> = [
-      { label: 'Morning', items: morning },
-      { label: 'Afternoon', items: afternoon },
-      { label: 'Evening', items: evening },
+      { label: t('booking.morning'), items: morning },
+      { label: t('booking.afternoon'), items: afternoon },
+      { label: t('booking.evening'), items: evening },
     ];
 
     return (
@@ -1183,15 +1316,15 @@ export default function ReservarPage() {
         className="space-y-6 max-w-4xl mx-auto"
       >
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Select Date & Time</h2>
-          <p className="text-gray-400">Choose when you want your appointment</p>
+          <h2 className="text-3xl font-bold text-white mb-2">{t('booking.selectDateTime')}</h2>
+          <p className="text-gray-400">{t('booking.chooseDateTimeSubtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Calendar */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-black/35 border-gray-800">
             <CardContent className="p-6">
-              <h3 className="text-xl font-bold text-[#00f0ff] mb-4 text-center">Select a Day</h3>
+              <h3 className="text-xl font-bold text-[#00f0ff] mb-4 text-center">{t('booking.selectDate')}</h3>
 
               <div className="flex justify-center">
                 <Calendar
@@ -1199,41 +1332,60 @@ export default function ReservarPage() {
                   selected={selectedDate}
                   onSelect={handleDateSelect}
                   disabled={(date) => date < todayStart}
-                  className="mx-auto rounded-md border border-gray-700"
+                  className="mx-auto rounded-xl border border-gray-800 bg-black/20"
+                  classNames={{
+                    caption_label: 'text-sm font-semibold text-[#00f0ff]',
+                    head_cell: 'text-gray-500 rounded-md w-9 font-medium text-[0.75rem]',
+                    nav_button:
+                      'h-7 w-7 bg-black/20 border border-gray-800 p-0 text-gray-300 hover:bg-[#00f0ff]/10 hover:text-[#00f0ff] hover:border-[#00f0ff]/30',
+                    day: 'h-9 w-9 p-0 font-normal rounded-full hover:bg-[#00f0ff]/15 hover:text-[#00f0ff] transition-colors',
+                    day_selected:
+                      'bg-[#00f0ff] text-black font-bold hover:bg-[#00f0ff] focus:bg-[#00f0ff] shadow-[0_0_10px_rgba(0,240,255,0.45)]',
+                    day_today: 'bg-[#ffd700]/10 text-[#ffd700] border border-[#ffd700]/40 rounded-full',
+                    day_outside: 'day-outside text-gray-600 opacity-50',
+                    day_disabled: 'text-gray-600 opacity-50',
+                  }}
                 />
               </div>
 
               {/* Quick 7-day strip (schedule-style) */}
               <div className="mt-5">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm text-gray-400">Next days</p>
+                  <p className="text-sm text-gray-400">{t('booking.upcomingDates')}</p>
                   {selectedDate ? (
                     <p className="text-sm text-gray-300">
-                      <span className="text-gray-500">Selected:</span>{' '}
+                      <span className="text-gray-500">{t('booking.selected')}:</span>{' '}
                       <span className="font-semibold text-white">
-                        {format(selectedDate, 'EEE, MMM d', { locale: enUS })}
+                        {format(selectedDate, 'EEE, MMM d', { locale: dateLocale })}
                       </span>
                     </p>
                   ) : null}
                 </div>
 
-                <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+                <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory scrollbar-hide">
                   {quickDays.map((d) => {
                     const isSelected = selectedDate ? isSameDay(d, selectedDate) : false;
+                    const isToday = isSameDay(d, todayStart);
                     return (
                       <button
                         key={d.toISOString()}
                         type="button"
                         onClick={() => handleDateSelect(d)}
-                        className={`min-w-[72px] rounded-lg border px-3 py-2 text-center transition-colors ${
+                        aria-current={isSelected ? 'date' : undefined}
+                        className={`flex-none w-[84px] rounded-xl border px-3 py-2 text-center transition-colors snap-start ${
                           isSelected
-                            ? 'border-[#00f0ff]/60 bg-[#00f0ff]/10'
-                            : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
+                            ? 'border-[#00f0ff]/70 bg-[#00f0ff]/10'
+                            : isToday
+                              ? 'border-[#ffd700]/40 bg-[#ffd700]/10'
+                              : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
                         }`}
                       >
-                        <div className="text-[11px] text-gray-400">{format(d, 'EEE', { locale: enUS })}</div>
-                        <div className={`text-base font-bold ${isSelected ? 'text-[#00f0ff]' : 'text-white'}`}>
-                          {format(d, 'd', { locale: enUS })}
+                        <div className="text-[11px] text-gray-400">{format(d, 'EEE', { locale: dateLocale })}</div>
+                        <div className={`text-lg font-extrabold ${isSelected ? 'text-[#00f0ff]' : isToday ? 'text-[#ffd700]' : 'text-white'}`}>
+                          {format(d, 'd', { locale: dateLocale })}
+                        </div>
+                        <div className={`text-[11px] ${isSelected ? 'text-[#00f0ff]/80' : isToday ? 'text-[#ffd700]/80' : 'text-gray-500'}`}>
+                          {format(d, 'MMM', { locale: dateLocale })}
                         </div>
                       </button>
                     );
@@ -1244,15 +1396,15 @@ export default function ReservarPage() {
           </Card>
 
           {/* Time Slots */}
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-black/35 border-gray-800">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-[#00f0ff]">Select a Time</h3>
+                <h3 className="text-xl font-bold text-[#00f0ff]">{t('booking.selectTime')}</h3>
                 {selectedDate ? (
                   <div className="text-right">
-                    <div className="text-xs text-gray-500">Date</div>
+                    <div className="text-xs text-gray-500">{t('booking.dateLabel')}</div>
                     <div className="text-sm font-semibold text-white">
-                      {format(selectedDate, 'EEE, MMM d', { locale: enUS })}
+                      {format(selectedDate, 'EEE, MMM d', { locale: dateLocale })}
                     </div>
                   </div>
                 ) : null}
@@ -1261,13 +1413,13 @@ export default function ReservarPage() {
               {!selectedDate ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Clock className="w-16 h-16 text-gray-600 mb-4" />
-                  <p className="text-gray-400 text-center">Select a day to see available times</p>
+                  <p className="text-gray-400 text-center">{t('booking.selectDayToSeeTimes')}</p>
                 </div>
               ) : sortedSlots.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <Clock className="w-16 h-16 text-gray-600 mb-4" />
-                  <p className="text-gray-400 text-center">No times available for this day</p>
-                  <p className="text-gray-500 text-sm mt-2">Try another date</p>
+                  <p className="text-gray-400 text-center">{t('booking.noTimesAvailable')}</p>
+                  <p className="text-gray-500 text-sm mt-2">{t('booking.tryAnotherDate')}</p>
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -1276,10 +1428,12 @@ export default function ReservarPage() {
                       <div key={group.label}>
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-sm font-semibold text-gray-300">{group.label}</p>
-                          <p className="text-xs text-gray-500">{group.items.length} slots</p>
+                          <p className="text-xs text-gray-500">
+                            {group.items.length} {t('booking.slots')}
+                          </p>
                         </div>
 
-                        <div className="flex gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch]">
+                        <div className="flex gap-3 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory scrollbar-hide">
                           {group.items.map((time) => {
                             const slot = formatSlot(time);
                             return (
@@ -1288,21 +1442,15 @@ export default function ReservarPage() {
                                 type="button"
                                 onClick={() => setSelectedTime(time)}
                                 aria-pressed={selectedTime === time}
-                                className={`min-w-[72px] rounded-lg border px-3 py-2 text-center transition-colors ${
+                                className={`flex-none w-16 h-16 rounded-full border text-center transition-colors snap-start ${
                                   selectedTime === time
-                                    ? 'border-[#00f0ff]/60 bg-[#00f0ff]/10'
-                                    : 'border-gray-800 bg-black/20 hover:border-[#00f0ff]/30'
+                                    ? 'border-[#00f0ff] bg-[#00f0ff] text-black shadow-[0_0_16px_rgba(0,240,255,0.35)]'
+                                    : 'border-gray-800 bg-black/20 text-white hover:border-[#00f0ff]/40 hover:bg-[#00f0ff]/10 hover:text-[#00f0ff]'
                                 }`}
+                                aria-label={t('booking.selectTimeAria').replace('{time}', formatTime12h(time))}
                               >
-                                <div className="text-[11px] text-gray-400 leading-none">
-                                  {slot.sub || '\u00A0'}
-                                </div>
-                                <div
-                                  className={`text-base font-bold leading-tight whitespace-nowrap ${
-                                    selectedTime === time ? 'text-[#00f0ff]' : 'text-white'
-                                  }`}
-                                >
-                                  {slot.main}
+                                <div className="w-full h-full flex items-center justify-center px-2">
+                                  <span className="text-sm font-bold leading-none whitespace-nowrap">{slot.main}</span>
                                 </div>
                               </button>
                             );
@@ -1321,11 +1469,11 @@ export default function ReservarPage() {
       <Card className="bg-gray-900 border-gray-800">
         <CardContent className="p-6">
           <Label htmlFor="notes" className="text-white text-lg mb-3 block">
-            Additional notes (optional)
+            {t('booking.notes')} ({t('common.optional')})
           </Label>
           <Textarea
             id="notes"
-            placeholder="Any preferences or special requests..."
+            placeholder={t('booking.notesPlaceholder')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="bg-gray-800 border-gray-700 text-white min-h-[100px]"
@@ -1337,29 +1485,37 @@ export default function ReservarPage() {
       {selectedDate && selectedTime && (
         <Card className="bg-gradient-to-r from-[#00f0ff]/10 to-[#ffd700]/10 border-[#00f0ff]">
           <CardContent className="p-6">
-            <h3 className="text-2xl font-bold text-white mb-4">Appointment Summary</h3>
+            <h3 className="text-2xl font-bold text-white mb-4">{t('booking.appointmentSummary')}</h3>
             <div className="space-y-3 text-gray-300 mb-6">
               <div className="flex items-center gap-3">
                 <Scissors className="w-5 h-5 text-[#00f0ff]" />
-                <span>Service: <strong>{selectedService?.name}</strong></span>
+                <span>
+                  {t('booking.serviceLabel')}: <strong>{selectedService?.name}</strong>
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <User className="w-5 h-5 text-[#00f0ff]" />
-                <span>Barber: <strong>{selectedBarber?.user.name}</strong></span>
+                <span>
+                  {t('common.barber')}: <strong>{selectedBarber?.user.name}</strong>
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <CalendarIcon className="w-5 h-5 text-[#00f0ff]" />
                 <span>
-                  Date: <strong>{format(selectedDate, 'MMMM d, yyyy', { locale: enUS })}</strong>
+                  {t('booking.dateLabel')}: <strong>{format(selectedDate, 'MMMM d, yyyy', { locale: dateLocale })}</strong>
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-[#00f0ff]" />
-                <span>Time: <strong>{selectedTime}</strong></span>
+                <span>
+                  {t('booking.timeLabel')}: <strong>{selectedTime}</strong>
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <DollarSign className="w-5 h-5 text-[#ffd700]" />
-                <span>Price: <strong className="text-[#ffd700] text-xl">${selectedService?.price}</strong></span>
+                <span>
+                  {t('booking.priceLabel')}: <strong className="text-[#ffd700] text-xl">${selectedService?.price}</strong>
+                </span>
               </div>
             </div>
 
@@ -1368,7 +1524,7 @@ export default function ReservarPage() {
               className="w-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold py-2.5 hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-300"
             >
               <ArrowRight className="w-5 h-5 mr-2" />
-              Continue
+              {t('booking.continue')}
             </Button>
           </CardContent>
         </Card>
@@ -1384,6 +1540,13 @@ export default function ReservarPage() {
     const hasZelle = selectedBarber.zelleEmail || selectedBarber.zellePhone;
     const hasCashapp = selectedBarber.cashappTag;
 
+    const paymentMethodLabel =
+      paymentMethod === 'ZELLE'
+        ? t('booking.paymentMethods.zelle')
+        : paymentMethod === 'CASHAPP'
+          ? t('booking.paymentMethods.cashapp')
+          : t('booking.paymentMethods.cash');
+
     return (
       <motion.div
         initial={{ opacity: 0, x: 20 }}
@@ -1392,8 +1555,8 @@ export default function ReservarPage() {
         className="space-y-6 max-w-4xl mx-auto"
       >
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Payment Method</h2>
-          <p className="text-gray-400">Select how you&apos;d like to pay</p>
+          <h2 className="text-3xl font-bold text-white mb-2">{t('booking.paymentMethod')}</h2>
+          <p className="text-gray-400">{t('booking.paymentSubtitle')}</p>
         </div>
 
         {/* Barber's Payment Info */}
@@ -1404,7 +1567,7 @@ export default function ReservarPage() {
                 {selectedBarber.profileImage ? (
                   <Image
                     src={selectedBarber.profileImage}
-                    alt={selectedBarber.user.name || 'Barber'}
+                    alt={selectedBarber.user.name || t('common.barber')}
                     fill
                     className="object-cover"
                   />
@@ -1416,7 +1579,7 @@ export default function ReservarPage() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">{selectedBarber.user.name}</h3>
-                <p className="text-gray-400">Accepted payment methods</p>
+                <p className="text-gray-400">{t('booking.acceptedPaymentMethods')}</p>
               </div>
             </div>
 
@@ -1434,7 +1597,7 @@ export default function ReservarPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <DollarSign className="w-6 h-6 text-purple-400" />
-                      <span className="text-xl font-bold text-white">Zelle</span>
+                      <span className="text-xl font-bold text-white">{t('booking.paymentMethods.zelle')}</span>
                     </div>
                     {paymentMethod === 'ZELLE' && (
                       <Check className="w-6 h-6 text-purple-400" />
@@ -1443,13 +1606,13 @@ export default function ReservarPage() {
                   <div className="space-y-1 text-sm">
                     {selectedBarber.zelleEmail && (
                       <p className="text-gray-300">
-                        <span className="text-gray-500">Email:</span>{' '}
+                        <span className="text-gray-500">{t('common.email')}:</span>{' '}
                         <span className="font-semibold text-purple-300">{selectedBarber.zelleEmail}</span>
                       </p>
                     )}
                     {selectedBarber.zellePhone && (
                       <p className="text-gray-300">
-                        <span className="text-gray-500">Phone:</span>{' '}
+                        <span className="text-gray-500">{t('common.phone')}:</span>{' '}
                         <span className="font-semibold text-purple-300">{selectedBarber.zellePhone}</span>
                       </p>
                     )}
@@ -1469,14 +1632,14 @@ export default function ReservarPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       <DollarSign className="w-6 h-6 text-green-400" />
-                      <span className="text-xl font-bold text-white">CashApp</span>
+                      <span className="text-xl font-bold text-white">{t('booking.paymentMethods.cashapp')}</span>
                     </div>
                     {paymentMethod === 'CASHAPP' && (
                       <Check className="w-6 h-6 text-green-400" />
                     )}
                   </div>
                   <p className="text-gray-300 text-sm">
-                    <span className="text-gray-500">$Cashtag:</span>{' '}
+                    <span className="text-gray-500">{t('booking.cashappCashtagLabel')}:</span>{' '}
                     <span className="font-semibold text-green-300">{selectedBarber.cashappTag}</span>
                   </p>
                 </div>
@@ -1494,13 +1657,13 @@ export default function ReservarPage() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <DollarSign className="w-6 h-6 text-[#ffd700]" />
-                    <span className="text-xl font-bold text-white">Cash</span>
+                    <span className="text-xl font-bold text-white">{t('booking.paymentMethods.cash')}</span>
                   </div>
                   {paymentMethod === 'CASH' && (
                     <Check className="w-6 h-6 text-[#ffd700]" />
                   )}
                 </div>
-                <p className="text-gray-400 text-sm">Pay in person at the barbershop</p>
+                <p className="text-gray-400 text-sm">{t('booking.cashPayment')}</p>
               </div>
             </div>
 
@@ -1508,17 +1671,17 @@ export default function ReservarPage() {
             {(paymentMethod === 'ZELLE' || paymentMethod === 'CASHAPP') && (
               <div className="mt-6 pt-6 border-t border-gray-700">
                 <Label htmlFor="paymentRef" className="text-white text-lg mb-3 block">
-                  Payment reference (optional)
+                  {t('booking.paymentReference')} ({t('common.optional')})
                 </Label>
                 <Input
                   id="paymentRef"
-                  placeholder="e.g., last 4 digits of the transaction"
+                  placeholder={t('booking.paymentRefPlaceholder')}
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  This helps {selectedBarber.user.name} confirm your payment faster
+                  {t('booking.paymentReferenceHelp').replace('{name}', selectedBarber.user.name || t('common.barber'))}
                 </p>
               </div>
             )}
@@ -1529,37 +1692,43 @@ export default function ReservarPage() {
         {paymentMethod && (
           <Card className="bg-gradient-to-r from-[#00f0ff]/10 to-[#ffd700]/10 border-[#00f0ff]">
             <CardContent className="p-6">
-              <h3 className="text-2xl font-bold text-white mb-4">Confirm Your Booking</h3>
+              <h3 className="text-2xl font-bold text-white mb-4">{t('booking.confirmBooking')}</h3>
               <div className="space-y-3 text-gray-300 mb-6">
                 <div className="flex items-center gap-3">
                   <Scissors className="w-5 h-5 text-[#00f0ff]" />
-                  <span>Service: <strong>{selectedService?.name}</strong></span>
+                  <span>
+                    {t('booking.serviceLabel')}: <strong>{selectedService?.name}</strong>
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <User className="w-5 h-5 text-[#00f0ff]" />
-                  <span>Barber: <strong>{selectedBarber?.user.name}</strong></span>
+                  <span>
+                    {t('common.barber')}: <strong>{selectedBarber?.user.name}</strong>
+                  </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <CalendarIcon className="w-5 h-5 text-[#00f0ff]" />
                   <span>
-                    Date: <strong>{selectedDate && format(selectedDate, 'MMMM d, yyyy', { locale: enUS })}</strong>
+                    {t('booking.dateLabel')}: <strong>{selectedDate && format(selectedDate, 'MMMM d, yyyy', { locale: dateLocale })}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-[#00f0ff]" />
-                  <span>Time: <strong>{selectedTime}</strong></span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <DollarSign className="w-5 h-5 text-[#ffd700]" />
                   <span>
-                    Payment method: <strong className="text-[#ffd700]">
-                      {paymentMethod === 'ZELLE' ? 'Zelle' : paymentMethod === 'CASHAPP' ? 'CashApp' : 'Cash'}
-                    </strong>
+                    {t('booking.timeLabel')}: <strong>{selectedTime}</strong>
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <DollarSign className="w-5 h-5 text-[#ffd700]" />
-                  <span>Price: <strong className="text-[#ffd700] text-xl">${selectedService?.price}</strong></span>
+                  <span>
+                    {t('booking.paymentMethodLabel')}: <strong className="text-[#ffd700]">{paymentMethodLabel}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <DollarSign className="w-5 h-5 text-[#ffd700]" />
+                  <span>
+                    {t('booking.priceLabel')}: <strong className="text-[#ffd700] text-xl">${selectedService?.price}</strong>
+                  </span>
                 </div>
               </div>
 
@@ -1567,10 +1736,9 @@ export default function ReservarPage() {
                 <p className="text-yellow-200 text-sm flex items-start gap-2">
                   <span className="text-xl">⚠️</span>
                   <span>
-                    {paymentMethod === 'CASH' 
-                      ? 'Remember to bring cash on the day of your appointment.'
-                      : `Make your payment via ${paymentMethod === 'ZELLE' ? 'Zelle' : 'CashApp'} before your appointment. The barber will confirm it.`
-                    }
+                    {paymentMethod === 'CASH'
+                      ? t('booking.cashReminder')
+                      : t('booking.makePaymentBeforeAppointment').replace('{method}', paymentMethodLabel)}
                   </span>
                 </p>
               </div>
@@ -1584,7 +1752,8 @@ export default function ReservarPage() {
                     className="mt-1 h-4 w-4 accent-[#ffd700]"
                   />
                   <span>
-                    I accept the 24-hour cancellation policy. Cancellations must be made at least <strong>24 hours</strong> in advance.
+                    {t('booking.cancellationPolicyAgreementPrefix')} <strong>{t('booking.twentyFourHours')}</strong>{' '}
+                    {t('booking.cancellationPolicyAgreementSuffix')}
                   </span>
                 </label>
               </div>
@@ -1595,11 +1764,11 @@ export default function ReservarPage() {
                 className="w-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold py-2.5 hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
-                  'Processing...'
+                  t('booking.processing')
                 ) : (
                   <>
                     <Check className="w-5 h-5 mr-2" />
-                    Confirm Booking
+                    {t('booking.confirmBooking')}
                   </>
                 )}
               </Button>
@@ -1610,16 +1779,18 @@ export default function ReservarPage() {
     );
   };
 
+  const isGenderStep = currentStep === 'gender';
+
   return (
-    <div className="min-h-screen bg-black pb-24">
+    <div className="min-h-screen bg-black pb-24 flex flex-col">
       {/* Progress indicator and Back button */}
-      <div className="container mx-auto px-4 mt-8 mb-8">
+      <div className="container mx-auto px-4 mt-4 mb-4 sm:mt-8 sm:mb-8">
         <Button
           variant="ghost"
           size="icon"
           onClick={handleBack}
           className="text-gray-400 hover:text-[#00f0ff] active:text-[#00f0ff] mb-4"
-          aria-label="Back"
+          aria-label={t('common.back')}
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
@@ -1643,7 +1814,11 @@ export default function ReservarPage() {
       </div>
 
       {/* Main content */}
-      <div className="container mx-auto px-4">
+      <div
+        className={`container mx-auto px-4 flex-1 ${
+          isGenderStep ? 'flex items-center justify-center' : ''
+        }`}
+      >
         <AnimatePresence mode="wait">
           {currentStep === 'gender' && renderGenderStep()}
           {currentStep === 'services' && renderServicesStep()}

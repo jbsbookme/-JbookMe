@@ -52,7 +52,7 @@ export default function ClienteDashboard() {
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image must be 10MB or less");
+      toast.error(t('client.imageTooLarge10MB'));
       return;
     }
 
@@ -69,7 +69,7 @@ export default function ClienteDashboard() {
       if (res.ok) {
         const data = await res.json();
         setProfileImage(data.imageUrl);
-        toast.success("Photo updated successfully");
+        toast.success(t('client.photoUpdatedSuccess'));
         if (user) {
           await updateUser({ image: data.imageUrl });
         } else {
@@ -77,11 +77,11 @@ export default function ClienteDashboard() {
         }
       } else {
         const errorData = await res.json();
-        toast.error(errorData.message || "Error uploading image");
+        toast.error(errorData.message || t('client.errorUploadingImage'));
       }
     } catch (error) {
       console.error('Error uploading profile image:', error);
-      toast.error("Error uploading image");
+      toast.error(t('client.errorUploadingImage'));
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +89,7 @@ export default function ClienteDashboard() {
 
   const handleNameUpdate = async () => {
     if (!name.trim()) {
-      toast.error("Name cannot be empty");
+      toast.error(t('client.nameCannotBeEmpty'));
       return;
     }
 
@@ -102,7 +102,7 @@ export default function ClienteDashboard() {
       });
 
       if (res.ok) {
-        toast.success("Name updated successfully");
+        toast.success(t('client.nameUpdatedSuccess'));
         if (user) {
           await updateUser({ name });
         } else {
@@ -110,10 +110,10 @@ export default function ClienteDashboard() {
         }
       } else {
         const data = await res.json();
-        toast.error(data.message || "Error updating name");
+        toast.error(data.message || t('client.errorUpdatingName'));
       }
     } catch (error) {
-      toast.error("Error updating name");
+      toast.error(t('client.errorUpdatingName'));
     } finally {
       setIsLoading(false);
     }
@@ -121,13 +121,13 @@ export default function ClienteDashboard() {
 
   const handleEmailUpdate = async () => {
     if (!email.trim()) {
-      toast.error("Email cannot be empty");
+      toast.error(t('client.emailCannotBeEmpty'));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error("Invalid email format");
+      toast.error(t('errors.invalidEmail'));
       return;
     }
 
@@ -140,7 +140,7 @@ export default function ClienteDashboard() {
       });
 
       if (res.ok) {
-        toast.success("Email updated successfully");
+        toast.success(t('client.emailUpdatedSuccess'));
         if (user) {
           await updateUser({ email });
         } else {
@@ -148,10 +148,10 @@ export default function ClienteDashboard() {
         }
       } else {
         const data = await res.json();
-        toast.error(data.message || "Error updating email");
+        toast.error(data.message || t('client.errorUpdatingEmail'));
       }
     } catch (error) {
-      toast.error("Error updating email");
+      toast.error(t('client.errorUpdatingEmail'));
     } finally {
       setIsLoading(false);
     }
@@ -159,12 +159,12 @@ export default function ClienteDashboard() {
 
   const handlePasswordChange = async () => {
     if (passwords.newPassword !== passwords.confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t('errors.passwordMismatch'));
       return;
     }
 
     if (passwords.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(`${t('errors.minLength')} 6`);
       return;
     }
 
@@ -180,7 +180,7 @@ export default function ClienteDashboard() {
       });
 
       if (res.ok) {
-        toast.success("Password updated");
+        toast.success(t('client.passwordUpdatedSuccess'));
         setPasswords({
           currentPassword: "",
           newPassword: "",
@@ -188,10 +188,10 @@ export default function ClienteDashboard() {
         });
       } else {
         const data = await res.json();
-        toast.error(data.message || "Error changing password");
+        toast.error(data.message || t('client.errorChangingPassword'));
       }
     } catch (error) {
-      toast.error("Error changing password");
+      toast.error(t('client.errorChangingPassword'));
     } finally {
       setIsLoading(false);
     }
@@ -216,7 +216,7 @@ export default function ClienteDashboard() {
               fallbackHref="/menu"
               variant="ghost"
               size="icon"
-              aria-label="Back"
+              aria-label={t('common.back')}
               className="text-gray-400 hover:text-white"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -230,7 +230,7 @@ export default function ClienteDashboard() {
             <Link href="/inbox">
               <Button variant="outline" className="border-gray-700 hover:border-[#00f0ff] hover:text-[#00f0ff]">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Messages</span>
+                <span className="hidden sm:inline">{t('client.messages')}</span>
               </Button>
             </Link>
             <PushNotificationButton />
@@ -247,7 +247,13 @@ export default function ClienteDashboard() {
               {/* Profile photo */}
               <div className="flex flex-col items-center">
                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                  <Avatar className="w-32 h-32 border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+                  <Avatar
+                    className={`w-32 h-32 ${
+                      profileImage
+                        ? 'border border-gray-800 shadow-none'
+                        : 'border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.3)]'
+                    }`}
+                  >
                     <AvatarImage src={profileImage || undefined} />
                     <AvatarFallback className="bg-gray-800 text-white text-2xl">
                       {session?.user?.name?.charAt(0).toUpperCase() || "U"}

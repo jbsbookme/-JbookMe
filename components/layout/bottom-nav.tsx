@@ -1,6 +1,6 @@
 'use client';
 
-import { Home, Sparkles, Plus, MessageCircle, User } from 'lucide-react';
+import { Home, Sparkles, Plus, MessageCircle, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -73,14 +73,11 @@ export default function BottomNav() {
       isCreate: false
     },
     {
-      id: 'profile',
-      name: isBarber ? 'Dashboard' : t('nav.profile'),
-      icon: User,
-      // Barberos van a dashboard, clientes a perfil
-      href: isAuthenticated 
-        ? (isBarber ? '/dashboard/barbero' : '/perfil')
-        : authHrefFor('/perfil'),
-      active: pathname === '/perfil' || pathname === '/dashboard/cliente' || pathname === '/dashboard/barbero',
+      id: 'book',
+      name: t('nav.book'),
+      icon: Calendar,
+      href: isAuthenticated ? '/reservar' : authHrefFor('/reservar'),
+      active: pathname?.startsWith('/reservar') || false,
       isCreate: false
     }
   ];

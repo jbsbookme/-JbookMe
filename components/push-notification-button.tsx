@@ -4,7 +4,6 @@ import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { Button } from '@/components/ui/button';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { messaging } from '@/lib/firebase';
 
 export function PushNotificationButton() {
   const [mounted, setMounted] = useState(false);
@@ -15,8 +14,8 @@ export function PushNotificationButton() {
     setMounted(true);
   }, []);
 
-  // Don't render if not mounted, not supported, or Firebase messaging is not available
-  if (!mounted || !isSupported || !messaging) {
+  // Don't render if not mounted or not supported
+  if (!mounted || !isSupported) {
     return null;
   }
 

@@ -13,6 +13,8 @@ import {
   Facebook, 
   Instagram, 
   Twitter,
+  Youtube,
+  Music2,
   Scissors,
   ArrowLeft,
   Star,
@@ -32,15 +34,31 @@ import { signOut } from 'next-auth/react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useUser } from '@/contexts/user-context';
+import { LanguageSelector } from '@/components/language-selector';
 
 interface Settings {
-  businessName: string;
-  address: string;
-  phone: string;
-  email: string;
+  // Core business settings
+  shopName?: string;
+  businessName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+
+  // Social networks (current schema)
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  tiktok?: string;
+  youtube?: string;
+  whatsapp?: string;
+
+  // Backward-compat fields (some older UI used *Url)
   facebookUrl?: string;
   instagramUrl?: string;
   twitterUrl?: string;
+  tiktokUrl?: string;
+  youtubeUrl?: string;
+  whatsappUrl?: string;
   whatsappNumber?: string;
 }
 
@@ -119,6 +137,18 @@ export default function MenuPage() {
 
   const currentYear = new Date().getFullYear();
 
+  const businessFacebook = settings?.facebookUrl || settings?.facebook;
+  const businessInstagram = settings?.instagramUrl || settings?.instagram;
+  const businessTwitter = settings?.twitterUrl || settings?.twitter;
+  const businessTiktok = settings?.tiktokUrl || settings?.tiktok;
+  const businessYoutube = settings?.youtubeUrl || settings?.youtube;
+  const businessWhatsapp = settings?.whatsappUrl || settings?.whatsapp;
+
+  const isAdmin = session?.user?.role === 'ADMIN';
+  const isBarber = session?.user?.role === 'BARBER' || session?.user?.role === 'STYLIST';
+  const profileHref = isAdmin ? '/dashboard/admin' : isBarber ? '/dashboard/barbero' : '/perfil';
+  const profileLabel = isAdmin || isBarber ? t('nav.dashboard') : t('nav.profile');
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -138,21 +168,23 @@ export default function MenuPage() {
         <div className="container mx-auto px-4 py-5 max-w-4xl">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">{t('common.menu')}</h1>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-[#00f0ff] hover:bg-transparent"
-              aria-label={t('common.back')}
-              onClick={() => {
-                if (typeof window !== 'undefined' && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push(session ? '/feed' : '/');
-                }
-              }}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-gray-400 hover:text-[#00f0ff] hover:bg-transparent"
+                aria-label={t('common.back')}
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.history.length > 1) {
+                    router.back();
+                  } else {
+                    router.push(session ? '/feed' : '/');
+                  }
+                }}
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -160,14 +192,14 @@ export default function MenuPage() {
       <div className="container mx-auto px-4 py-5 space-y-5 max-w-4xl">
         {/* User */}
         {session?.user && (
-          <Card className="bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10 border-[#00f0ff]/30">
+          <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {(user?.image || session.user.image) ? (
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden border border-[#00f0ff]/30">
+                  {(session.user.image || user?.image) ? (
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden border border-[#00f0ff]/30 bg-transparent">
                       <Image
-                        src={user?.image || session.user.image || ''}
+                        src={session.user.image || user?.image || ''}
                         alt={(user?.name || session.user.name) ? `${user?.name || session.user.name} profile photo` : 'Profile photo'}
                         fill
                         className="object-cover"
@@ -198,11 +230,49 @@ export default function MenuPage() {
           </Card>
         )}
 
+        {/* Language */}
+        <Card className="bg-gray-900 border-gray-800">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-white font-semibold">{t('common.language')}</p>
+              </div>
+              <LanguageSelector />
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Quick Links */}
         <div>
           <h2 className="text-white font-semibold text-lg mb-3 px-2">{t('common.quickLinks')}</h2>
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-0">
+              <Link href={profileHref} className="block">
+                <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#00f0ff]/20 flex items-center justify-center">
+                      <UserIcon className="w-5 h-5 text-[#00f0ff]" />
+                    </div>
+                    <span className="text-white">{profileLabel}</span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-500" />
+                </div>
+              </Link>
+
+              {isAdmin && (
+                <Link href="/perfil" className="block">
+                  <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-[#ffd700]/20 flex items-center justify-center">
+                        <UserIcon className="w-5 h-5 text-[#ffd700]" />
+                      </div>
+                      <span className="text-white">{t('nav.profile')}</span>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                  </div>
+                </Link>
+              )}
+
               <Link href="/reservar" className="block">
                 <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
                   <div className="flex items-center gap-3">
@@ -313,7 +383,7 @@ export default function MenuPage() {
                     <MapPin className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.address')}</p>
-                      <p className="text-white">{settings.address || '123 Main Street, City'}</p>
+                      <p className="text-white">{settings.address || t('common.notAvailable')}</p>
                     </div>
                   </div>
 
@@ -321,12 +391,16 @@ export default function MenuPage() {
                     <Phone className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.phone')}</p>
-                      <a
-                        href={`tel:${settings.phone || '+15551234567'}`}
-                        className="text-white hover:text-[#00f0ff]"
-                      >
-                        {settings.phone || '+1 (555) 123-4567'}
-                      </a>
+                      {settings.phone ? (
+                        <a
+                          href={`tel:${settings.phone}`}
+                          className="text-white hover:text-[#00f0ff]"
+                        >
+                          {settings.phone}
+                        </a>
+                      ) : (
+                        <p className="text-white">{t('common.notAvailable')}</p>
+                      )}
                     </div>
                   </div>
 
@@ -334,12 +408,16 @@ export default function MenuPage() {
                     <Mail className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.email')}</p>
-                      <a
-                        href={`mailto:${settings.email || 'info@bookme.com'}`}
-                        className="text-white hover:text-[#00f0ff]"
-                      >
-                        {settings.email || 'info@bookme.com'}
-                      </a>
+                      {settings.email ? (
+                        <a
+                          href={`mailto:${settings.email}`}
+                          className="text-white hover:text-[#00f0ff]"
+                        >
+                          {settings.email}
+                        </a>
+                      ) : (
+                        <p className="text-white">{t('common.notAvailable')}</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -387,15 +465,15 @@ export default function MenuPage() {
         </div>
 
         {/* Social Media */}
-        {!loading && settings && (settings.facebookUrl || settings.instagramUrl || settings.twitterUrl) && (
+        {!loading && settings && (businessFacebook || businessInstagram || businessTwitter || businessTiktok || businessYoutube || businessWhatsapp) && (
           <div>
             <h2 className="text-white font-semibold text-lg mb-3 px-2">{t('common.followUs')}</h2>
             <Card className="bg-gray-900 border-gray-800">
               <CardContent className="p-4">
-                <div className="flex justify-center gap-6">
-                  {settings.facebookUrl && (
+                <div className="flex justify-center gap-6 flex-wrap">
+                  {businessFacebook && (
                     <a
-                      href={settings.facebookUrl}
+                      href={businessFacebook}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
@@ -406,9 +484,9 @@ export default function MenuPage() {
                       <span className="text-gray-400 text-xs">Facebook</span>
                     </a>
                   )}
-                  {settings.instagramUrl && (
+                  {businessInstagram && (
                     <a
-                      href={settings.instagramUrl}
+                      href={businessInstagram}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
@@ -419,9 +497,9 @@ export default function MenuPage() {
                       <span className="text-gray-400 text-xs">Instagram</span>
                     </a>
                   )}
-                  {settings.twitterUrl && (
+                  {businessTwitter && (
                     <a
-                      href={settings.twitterUrl}
+                      href={businessTwitter}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
@@ -429,7 +507,46 @@ export default function MenuPage() {
                       <div className="w-12 h-12 rounded-full bg-[#00f0ff]/20 flex items-center justify-center group-hover:bg-[#00f0ff]/30 transition-colors">
                         <Twitter className="w-6 h-6 text-[#00f0ff]" />
                       </div>
-                      <span className="text-gray-400 text-xs">Twitter</span>
+                      <span className="text-gray-400 text-xs">Twitter / X</span>
+                    </a>
+                  )}
+                  {businessTiktok && (
+                    <a
+                      href={businessTiktok}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 group"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-colors">
+                        <Music2 className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="text-gray-400 text-xs">TikTok</span>
+                    </a>
+                  )}
+                  {businessYoutube && (
+                    <a
+                      href={businessYoutube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 group"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
+                        <Youtube className="w-6 h-6 text-red-400" />
+                      </div>
+                      <span className="text-gray-400 text-xs">YouTube</span>
+                    </a>
+                  )}
+                  {businessWhatsapp && (
+                    <a
+                      href={businessWhatsapp}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col items-center gap-2 group"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                        <MessageCircle className="w-6 h-6 text-green-400" />
+                      </div>
+                      <span className="text-gray-400 text-xs">WhatsApp</span>
                     </a>
                   )}
                 </div>

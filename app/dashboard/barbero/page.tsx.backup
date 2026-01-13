@@ -36,6 +36,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { resolvePublicMediaUrl } from '@/lib/utils';
 
 interface Stats {
   totalAppointments: number;
@@ -199,9 +200,7 @@ export default function BarberDashboard() {
   };
 
   const getMediaUrl = (cloud_storage_path: string) => {
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME || 'your-bucket';
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+    return resolvePublicMediaUrl(cloud_storage_path);
   };
 
   if (status === 'loading' || loading) {

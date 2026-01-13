@@ -37,12 +37,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   ArrowLeft,
   Plus,
+  Pencil,
   Trash2,
   Ban,
   Clock,
   CheckCircle2,
   XCircle,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -73,8 +75,10 @@ export default function PromotionsPage() {
   
   // Dialogs
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+  const [selectedPromotionForEdit, setSelectedPromotionForEdit] = useState<Promotion | null>(null);
   
   // Form state
   const [form, setForm] = useState({
@@ -87,6 +91,20 @@ export default function PromotionsPage() {
     sendNow: false,
     notificationType: 'both',
   });
+
+  const [editForm, setEditForm] = useState({
+    title: '',
+    message: '',
+    discount: '',
+    startDate: '',
+    endDate: '',
+  });
+
+  const toDateTimeLocalValue = (dateInput: string | Date) => {
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   const fetchPromotions = useCallback(async () => {
     try {
@@ -141,6 +159,11 @@ export default function PromotionsPage() {
 
     setSubmitting(true);
     try {
+      // datetime-local returns a local time string without timezone.
+      // Convert it to an ISO string (UTC) so the server stores the intended moment.
+      const startDateIso = new Date(form.startDate).toISOString();
+      const endDateIso = new Date(form.endDate).toISOString();
+
       const response = await fetch('/api/admin/promotions', {
         method: 'POST',
         headers: {
@@ -148,6 +171,8 @@ export default function PromotionsPage() {
         },
         body: JSON.stringify({
           ...form,
+          startDate: startDateIso,
+          endDate: endDateIso,
           targetRole: form.targetRole === 'ALL' ? null : form.targetRole,
         }),
       });
@@ -229,6 +254,101 @@ export default function PromotionsPage() {
     }
   };
 
+  const handleOpenEdit = (promo: Promotion) => {
+    setSelectedPromotionForEdit(promo);
+    setEditForm({
+      title: promo.title ?? '',
+      message: promo.message ?? '',
+      discount: promo.discount ?? '',
+      startDate: toDateTimeLocalValue(promo.startDate),
+      endDate: toDateTimeLocalValue(promo.endDate),
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdatePromotion = async () => {
+    if (!selectedPromotionForEdit) return;
+
+    if (!editForm.title.trim() || !editForm.message.trim() || !editForm.startDate || !editForm.endDate) {
+      toast.error('Please complete all required fields');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Convert datetime-local (local) -> ISO (UTC) to avoid timezone shifts on the server.
+      const startDateIso = new Date(editForm.startDate).toISOString();
+      const endDateIso = new Date(editForm.endDate).toISOString();
+
+      const response = await fetch(`/api/admin/promotions/${selectedPromotionForEdit.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editForm.title,
+          message: editForm.message,
+          discount: editForm.discount.trim() ? editForm.discount.trim() : null,
+          startDate: startDateIso,
+          endDate: endDateIso,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Promotion updated successfully');
+        setIsEditDialogOpen(false);
+        setSelectedPromotionForEdit(null);
+        fetchPromotions();
+      } else {
+        toast.error(data?.error || 'Error updating promotion');
+      }
+    } catch (error) {
+      console.error('Error updating promotion:', error);
+      toast.error('Connection error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleProcessPromotionsNow = async () => {
+    setSubmitting(true);
+    const toastId = toast.loading('Processing promotions...');
+
+    try {
+      const response = await fetch('/api/admin/promotions/process', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const text = await response.text();
+      let data: any = undefined;
+      try {
+        data = text ? JSON.parse(text) : undefined;
+      } catch {
+        data = undefined;
+      }
+
+      if (response.ok) {
+        toast.success(
+          `Processed: activated ${data?.activated ?? 0}, expired ${data?.expired ?? 0}`,
+          { id: toastId }
+        );
+        fetchPromotions();
+      } else {
+        toast.error(data?.error || `Error processing promotions (${response.status})`, {
+          id: toastId,
+        });
+      }
+    } catch (error) {
+      console.error('Error processing promotions:', error);
+      toast.error('Connection error', { id: toastId });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const styles = {
       SCHEDULED: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
@@ -272,7 +392,7 @@ export default function PromotionsPage() {
       
       <div className="max-w-7xl mx-auto p-6 mt-20">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -291,13 +411,25 @@ export default function PromotionsPage() {
             </div>
           </div>
           
-          <Button
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] hover:opacity-90 text-black font-semibold"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            New Promotion
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={handleProcessPromotionsNow}
+              className="w-full sm:w-auto border-[#00f0ff]/40 text-[#00f0ff] hover:bg-[#00f0ff]/10"
+              disabled={submitting}
+            >
+              <RefreshCw className={`w-5 h-5 mr-2 ${submitting ? 'animate-spin' : ''}`} />
+              {submitting ? 'Processing...' : 'Process now'}
+            </Button>
+
+            <Button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="w-full sm:w-auto bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] hover:opacity-90 text-black font-semibold"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              New Promotion
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -417,7 +549,7 @@ export default function PromotionsPage() {
                             {format(new Date(promo.startDate), 'dd MMM yyyy', { locale: es })}
                           </p>
                           <p className="text-gray-500 text-xs">
-                            {format(new Date(promo.startDate), 'HH:mm', { locale: es })}
+                            {format(new Date(promo.startDate), 'h:mm a', { locale: es })}
                           </p>
                         </div>
                         
@@ -427,7 +559,7 @@ export default function PromotionsPage() {
                             {format(new Date(promo.endDate), 'dd MMM yyyy', { locale: es })}
                           </p>
                           <p className="text-gray-500 text-xs">
-                            {format(new Date(promo.endDate), 'HH:mm', { locale: es })}
+                            {format(new Date(promo.endDate), 'h:mm a', { locale: es })}
                           </p>
                         </div>
                         
@@ -448,6 +580,16 @@ export default function PromotionsPage() {
                     </div>
                     
                     <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEdit(promo)}
+                        className="border-[#00f0ff]/50 text-[#00f0ff] hover:bg-[#00f0ff]/10"
+                        disabled={submitting}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+
                       {promo.status === 'ACTIVE' && (
                         <Button
                           size="sm"
@@ -614,6 +756,103 @@ export default function PromotionsPage() {
               className="bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] hover:opacity-90 text-black font-semibold"
             >
               {submitting ? 'Creating...' : 'Create Promotion'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Promotion Dialog */}
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setSelectedPromotionForEdit(null);
+          }
+        }}
+      >
+        <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-[#00f0ff]">Edit Promotion</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Update title, message, discount and dates
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div>
+              <Label htmlFor="edit-title" className="text-gray-300">Title *</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                className="bg-gray-900 border-gray-700 text-white mt-1"
+                placeholder="🎉 Special Weekend Offer"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-discount" className="text-gray-300">Discount (optional)</Label>
+              <Input
+                id="edit-discount"
+                value={editForm.discount}
+                onChange={(e) => setEditForm({ ...editForm, discount: e.target.value })}
+                className="bg-gray-900 border-gray-700 text-white mt-1"
+                placeholder="20%, $10, 2x1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-message" className="text-gray-300">Message *</Label>
+              <Textarea
+                id="edit-message"
+                value={editForm.message}
+                onChange={(e) => setEditForm({ ...editForm, message: e.target.value })}
+                className="bg-gray-900 border-gray-700 text-white mt-1 min-h-[100px]"
+                placeholder="Describe the promotion..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-startDate" className="text-gray-300">Start Date *</Label>
+                <Input
+                  id="edit-startDate"
+                  type="datetime-local"
+                  value={editForm.startDate}
+                  onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
+                  className="bg-gray-900 border-gray-700 text-white mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-endDate" className="text-gray-300">End Date *</Label>
+                <Input
+                  id="edit-endDate"
+                  type="datetime-local"
+                  value={editForm.endDate}
+                  onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+                  className="bg-gray-900 border-gray-700 text-white mt-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+              disabled={submitting}
+              className="border-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdatePromotion}
+              disabled={submitting}
+              className="bg-gradient-to-r from-[#00f0ff] to-[#00a8cc] hover:opacity-90 text-black font-semibold"
+            >
+              {submitting ? 'Saving...' : 'Save changes'}
             </Button>
           </DialogFooter>
         </DialogContent>

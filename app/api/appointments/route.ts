@@ -5,6 +5,10 @@ import { prisma } from '@/lib/db';
 import { AppointmentStatus } from '@prisma/client';
 import { sendAppointmentCreatedNotifications } from '@/lib/notifications';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
+import { isTwilioConfigured, sendSMS } from '@/lib/twilio';
+import { createNotification } from '@/lib/notifications';
+import { sendWebPushToUser } from '@/lib/push';
+import { buildAppointmentDateTime, normalizeTimeToHHmm, formatTime12h } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
@@ -121,13 +125,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for conflicting appointments
-    const appointmentDate = new Date(date + 'T00:00:00');
+    const normalizedTime = normalizeTimeToHHmm(time);
+    if (!normalizedTime) {
+      return NextResponse.json({ error: 'Invalid time format' }, { status: 400 });
+    }
+
+    // Build exact appointment start datetime
+    const appointmentDateTime = buildAppointmentDateTime(date, normalizedTime);
+
+    // Check for conflicting appointments (exact datetime)
     const existingAppointment = await prisma.appointment.findFirst({
       where: {
         barberId,
-        date: appointmentDate,
-        time,
+        date: appointmentDateTime,
         status: {
           in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED],
         },
@@ -146,12 +156,12 @@ export async function POST(request: NextRequest) {
         clientId: session.user.id,
         barberId,
         serviceId,
-        date: appointmentDate,
-        time,
+        date: appointmentDateTime,
+        time: normalizedTime,
         paymentMethod: paymentMethod || null,
         paymentReference: paymentReference || null,
         notes: notes || null,
-        status: AppointmentStatus.CONFIRMED,
+        status: AppointmentStatus.PENDING,
       },
       include: {
         client: true,
@@ -172,6 +182,68 @@ export async function POST(request: NextRequest) {
         service: true,
       },
     });
+
+    // Notify barber that the appointment is pending confirmation
+    try {
+      const barberUserId = appointment.barber?.user?.id;
+      if (barberUserId) {
+        const dateShort = new Date(appointment.date).toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        });
+        const timeDisplay = formatTime12h(appointment.time);
+
+        await createNotification({
+          userId: barberUserId,
+          type: 'APPOINTMENT_REMINDER',
+          title: 'Appointment pending confirmation',
+          message: `Pending: ${dateShort} at ${timeDisplay} (${appointment.service?.name || 'Service'})`,
+          link: '/dashboard/barbero',
+        });
+
+        await sendWebPushToUser({
+          userId: barberUserId,
+          title: 'Appointment pending confirmation',
+          body: `Pending: ${dateShort} at ${timeDisplay}`,
+          url: '/dashboard/barbero',
+          data: { appointmentId: appointment.id },
+        });
+      }
+    } catch (error) {
+      console.error('[appointments] error notifying barber (pending):', error);
+    }
+
+    // Send ONE confirmation SMS to the client (YES/NO). Appointment stays PENDING until YES.
+    try {
+      const clientPhone = appointment.client?.phone;
+      if (clientPhone && isTwilioConfigured()) {
+        const claimed = await prisma.appointment.updateMany({
+          where: { id: appointment.id, smsConfirmationSent: false },
+          data: { smsConfirmationSent: true },
+        });
+
+        if (claimed.count > 0) {
+          const dateLong = new Date(appointment.date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          });
+
+          const msg = `JB's Barbershop 💈\nPlease confirm your appointment for ${dateLong} at ${formatTime12h(appointment.time)}.\nReply YES to confirm or NO to cancel.`;
+          const res = await sendSMS(clientPhone, msg);
+          console.log('[SMS][confirm][create]', {
+            appointmentId: appointment.id,
+            to: clientPhone,
+            success: res.success,
+            sid: (res as any).sid,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[appointments] error sending confirmation SMS:', error);
+    }
 
     // Send notifications to client, barber, and admin
     try {

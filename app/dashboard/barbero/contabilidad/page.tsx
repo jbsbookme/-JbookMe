@@ -33,6 +33,7 @@ import Link from 'next/link';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, subMonths } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatTime12h } from '@/lib/time';
 import { toast } from 'sonner';
 
 interface Appointment {
@@ -85,11 +86,42 @@ interface DailyEarnings {
   amount: number;
 }
 
+interface ManualPayment {
+  id: string;
+  amount: number;
+  paymentMethod: string;
+  description?: string | null;
+  clientName?: string | null;
+  date: string;
+}
+
+type PaymentHistoryItem =
+  | {
+      type: 'appointment';
+      id: string;
+      date: string;
+      time: string;
+      clientName: string;
+      serviceName: string;
+      amount: number;
+      paymentMethod: string | null | undefined;
+    }
+  | {
+      type: 'manual';
+      id: string;
+      dateTime: string;
+      clientName: string;
+      description: string;
+      amount: number;
+      paymentMethod: string | null | undefined;
+    };
+
 export default function ContabilidadBarbero() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { t } = useI18n();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [manualPayments, setManualPayments] = useState<ManualPayment[]>([]);
   const [earnings, setEarnings] = useState<EarningsSummary>({
     today: 0,
     thisWeek: 0,
@@ -111,6 +143,18 @@ export default function ContabilidadBarbero() {
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
   const [filterService, setFilterService] = useState<string>('all');
   const [filterPayment, setFilterPayment] = useState<string>('all');
+
+  const [isFilterPeriodSelectOpen, setIsFilterPeriodSelectOpen] = useState(false);
+  const [isFilterServiceSelectOpen, setIsFilterServiceSelectOpen] = useState(false);
+  const [isFilterPaymentSelectOpen, setIsFilterPaymentSelectOpen] = useState(false);
+
+  const [isManualPaymentMethodSelectOpen, setIsManualPaymentMethodSelectOpen] = useState(false);
+  const [manualPaymentAmount, setManualPaymentAmount] = useState('');
+  const [manualPaymentMethod, setManualPaymentMethod] = useState<'cash' | 'cashapp' | 'zelle' | 'card'>('cash');
+  const [manualPaymentClientName, setManualPaymentClientName] = useState('');
+  const [manualPaymentDescription, setManualPaymentDescription] = useState('');
+  const [manualPaymentDate, setManualPaymentDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [isSavingManualPayment, setIsSavingManualPayment] = useState(false);
   const [lastMonthEarnings, setLastMonthEarnings] = useState<number>(0);
   const [showGoalDialog, setShowGoalDialog] = useState(false);
   const [newGoal, setNewGoal] = useState<string>('');
@@ -125,23 +169,101 @@ export default function ContabilidadBarbero() {
   const [isPaymentMethodsOpen, setIsPaymentMethodsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  const fetchAppointments = useCallback(async () => {
+  const closeAllSections = () => {
+    setIsGoalOpen(false);
+    setIsSummaryOpen(false);
+    setIsInsightsOpen(false);
+    setIsTrendOpen(false);
+    setIsAnalysisOpen(false);
+    setIsProjectionOpen(false);
+    setIsFiltersOpen(false);
+    setIsPaymentMethodsOpen(false);
+    setIsHistoryOpen(false);
+  };
+
+  const openOnlySection = (
+    section:
+      | 'goal'
+      | 'summary'
+      | 'insights'
+      | 'trend'
+      | 'analysis'
+      | 'projection'
+      | 'filters'
+      | 'paymentMethods'
+      | 'history',
+    open: boolean
+  ) => {
+    if (!open) {
+      if (section === 'goal') setIsGoalOpen(false);
+      if (section === 'summary') setIsSummaryOpen(false);
+      if (section === 'insights') setIsInsightsOpen(false);
+      if (section === 'trend') setIsTrendOpen(false);
+      if (section === 'analysis') setIsAnalysisOpen(false);
+      if (section === 'projection') setIsProjectionOpen(false);
+      if (section === 'filters') setIsFiltersOpen(false);
+      if (section === 'paymentMethods') setIsPaymentMethodsOpen(false);
+      if (section === 'history') setIsHistoryOpen(false);
+      return;
+    }
+
+    closeAllSections();
+    if (section === 'goal') setIsGoalOpen(true);
+    if (section === 'summary') setIsSummaryOpen(true);
+    if (section === 'insights') setIsInsightsOpen(true);
+    if (section === 'trend') setIsTrendOpen(true);
+    if (section === 'analysis') setIsAnalysisOpen(true);
+    if (section === 'projection') setIsProjectionOpen(true);
+    if (section === 'filters') setIsFiltersOpen(true);
+    if (section === 'paymentMethods') setIsPaymentMethodsOpen(true);
+    if (section === 'history') setIsHistoryOpen(true);
+  };
+
+  const normalizePaymentMethod = (method?: string | null) => {
+    const raw = (method || 'cash').toLowerCase();
+    if (raw.includes('cashapp')) return 'cashapp';
+    if (raw.includes('zelle')) return 'zelle';
+    if (raw.includes('card') || raw.includes('credit') || raw.includes('debit')) return 'card';
+    if (raw.includes('cash')) return 'cash';
+    return 'cash';
+  };
+
+  const paymentMethodLabel = (method?: string | null) => {
+    const normalized = normalizePaymentMethod(method);
+    if (normalized === 'cash') return 'Cash';
+    if (normalized === 'cashapp') return 'CashApp';
+    if (normalized === 'zelle') return 'Zelle';
+    return 'Card';
+  };
+
+  const mapManualPaymentMethodToEnum = (method: 'cash' | 'cashapp' | 'zelle' | 'card') => {
+    if (method === 'cash') return 'CASH';
+    if (method === 'cashapp') return 'CASHAPP';
+    if (method === 'zelle') return 'ZELLE';
+    return 'CREDIT_CARD';
+  };
+
+  const fetchAccountingData = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/appointments?role=barber');
-      const data = await res.json();
+      const [appointmentsRes, manualPaymentsRes] = await Promise.all([
+        fetch('/api/appointments?role=barber'),
+        fetch('/api/barber/manual-payments?limit=50'),
+      ]);
 
-      if (res.ok) {
-        const appointmentsData = data.appointments || [];
-        setAppointments(appointmentsData);
-        calculateEarnings(appointmentsData);
-        calculateServiceStats(appointmentsData);
-        calculateTimeSlotStats(appointmentsData);
-        calculateDailyEarnings(appointmentsData);
-        calculateLastMonthEarnings(appointmentsData);
-      }
+      const appointmentsData = appointmentsRes.ok ? (await appointmentsRes.json()).appointments || [] : [];
+      const manualPaymentsData = manualPaymentsRes.ok ? (await manualPaymentsRes.json()).payments || [] : [];
+
+      setAppointments(appointmentsData);
+      setManualPayments(manualPaymentsData);
+
+      calculateEarnings(appointmentsData, manualPaymentsData);
+      calculateServiceStats(appointmentsData);
+      calculateTimeSlotStats(appointmentsData);
+      calculateDailyEarnings(appointmentsData, manualPaymentsData);
+      calculateLastMonthEarnings(appointmentsData, manualPaymentsData);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error('Error fetching accounting data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -154,9 +276,9 @@ export default function ContabilidadBarbero() {
     }
 
     if (session?.user) {
-      fetchAppointments();
+      fetchAccountingData();
     }
-  }, [session, status, router, fetchAppointments]);
+  }, [session, status, router, fetchAccountingData]);
 
   useEffect(() => {
     const savedGoal = localStorage.getItem('monthlyGoal');
@@ -165,7 +287,7 @@ export default function ContabilidadBarbero() {
     }
   }, []);
 
-  const calculateEarnings = (appointmentsData: Appointment[]) => {
+  const calculateEarnings = (appointmentsData: Appointment[], manualPaymentsData: ManualPayment[] = []) => {
     const now = new Date();
     const todayStart = new Date(now.setHours(0, 0, 0, 0));
     const todayEnd = new Date(now.setHours(23, 59, 59, 999));
@@ -208,18 +330,37 @@ export default function ContabilidadBarbero() {
         monthTotal += price;
       }
 
-      const method = apt.paymentMethod?.toLowerCase() || 'cash';
-      if (method.includes('cash')) {
-        paymentMethods.cash += price;
-      } else if (method.includes('cashapp')) {
-        paymentMethods.cashapp += price;
-      } else if (method.includes('zelle')) {
-        paymentMethods.zelle += price;
-      } else if (method.includes('card') || method.includes('credit') || method.includes('debit')) {
-        paymentMethods.card += price;
-      } else {
-        paymentMethods.cash += price;
+      const method = normalizePaymentMethod(apt.paymentMethod);
+      if (method === 'cash') paymentMethods.cash += price;
+      else if (method === 'cashapp') paymentMethods.cashapp += price;
+      else if (method === 'zelle') paymentMethods.zelle += price;
+      else paymentMethods.card += price;
+    });
+
+    manualPaymentsData.forEach((p) => {
+      const amount = Number(p.amount) || 0;
+      if (amount <= 0) return;
+
+      const paymentDate = new Date(p.date);
+      total += amount;
+
+      if (isWithinInterval(paymentDate, { start: todayStart, end: todayEnd })) {
+        todayTotal += amount;
       }
+
+      if (isWithinInterval(paymentDate, { start: weekStart, end: weekEnd })) {
+        weekTotal += amount;
+      }
+
+      if (isWithinInterval(paymentDate, { start: monthStart, end: monthEnd })) {
+        monthTotal += amount;
+      }
+
+      const method = normalizePaymentMethod(p.paymentMethod);
+      if (method === 'cash') paymentMethods.cash += amount;
+      else if (method === 'cashapp') paymentMethods.cashapp += amount;
+      else if (method === 'zelle') paymentMethods.zelle += amount;
+      else paymentMethods.card += amount;
     });
 
     setEarnings({
@@ -315,7 +456,7 @@ export default function ContabilidadBarbero() {
     setTimeSlotStats(stats);
   };
 
-  const calculateDailyEarnings = (appointmentsData: Appointment[]) => {
+  const calculateDailyEarnings = (appointmentsData: Appointment[], manualPaymentsData: ManualPayment[] = []) => {
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(now.getDate() - 30);
@@ -340,6 +481,16 @@ export default function ContabilidadBarbero() {
       dailyMap.set(dateStr, existing + price);
     });
 
+    manualPaymentsData.forEach((p) => {
+      const paymentDate = new Date(p.date);
+      if (paymentDate < thirtyDaysAgo) return;
+      const dateStr = format(paymentDate, 'yyyy-MM-dd');
+      const amount = Number(p.amount) || 0;
+      if (amount <= 0) return;
+      const existing = dailyMap.get(dateStr) || 0;
+      dailyMap.set(dateStr, existing + amount);
+    });
+
     const earnings: DailyEarnings[] = Array.from(dailyMap.entries())
       .map(([date, amount]) => ({ date, amount }))
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -347,7 +498,7 @@ export default function ContabilidadBarbero() {
     setDailyEarnings(earnings);
   };
 
-  const calculateLastMonthEarnings = (appointmentsData: Appointment[]) => {
+  const calculateLastMonthEarnings = (appointmentsData: Appointment[], manualPaymentsData: ManualPayment[] = []) => {
     const now = new Date();
     const lastMonthStart = startOfMonth(subMonths(now, 1));
     const lastMonthEnd = endOfMonth(subMonths(now, 1));
@@ -362,8 +513,48 @@ export default function ContabilidadBarbero() {
       }
     );
 
-    const total = completedAppointments.reduce((sum, apt) => sum + (apt.service?.price || 0), 0);
+    const appointmentTotal = completedAppointments.reduce((sum, apt) => sum + (apt.service?.price || 0), 0);
+    const manualTotal = manualPaymentsData.reduce((sum, p) => {
+      const paymentDate = new Date(p.date);
+      if (!isWithinInterval(paymentDate, { start: lastMonthStart, end: lastMonthEnd })) return sum;
+      const amount = Number(p.amount) || 0;
+      return amount > 0 ? sum + amount : sum;
+    }, 0);
+    const total = appointmentTotal + manualTotal;
     setLastMonthEarnings(total);
+  };
+
+  const getFilteredManualPayments = () => {
+    let filtered = [...manualPayments];
+
+    if (filterPayment !== 'all') {
+      filtered = filtered.filter((p) => normalizePaymentMethod(p.paymentMethod) === filterPayment);
+    }
+
+    if (filterPeriod !== 'all') {
+      const now = new Date();
+      filtered = filtered.filter((p) => {
+        const paymentDate = new Date(p.date);
+        switch (filterPeriod) {
+          case 'today':
+            return format(paymentDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+          case 'week':
+            return isWithinInterval(paymentDate, {
+              start: startOfWeek(now, { weekStartsOn: 1 }),
+              end: endOfWeek(now, { weekStartsOn: 1 }),
+            });
+          case 'month':
+            return isWithinInterval(paymentDate, {
+              start: startOfMonth(now),
+              end: endOfMonth(now),
+            });
+          default:
+            return true;
+        }
+      });
+    }
+
+    return filtered;
   };
 
   const saveMonthlyGoal = () => {
@@ -420,8 +611,87 @@ export default function ContabilidadBarbero() {
     return filtered;
   };
 
+  const getPaymentHistoryItems = () => {
+    const appointmentItems: PaymentHistoryItem[] = getFilteredAppointments().map((apt) => ({
+      type: 'appointment',
+      id: apt.id,
+      date: apt.date,
+      time: apt.time,
+      clientName: apt.user?.name || 'Client',
+      serviceName: apt.service?.name || 'Service',
+      amount: apt.service?.price || 0,
+      paymentMethod: apt.paymentMethod,
+    }));
+
+    // If a specific service is selected, manual payments can't be matched to a service, so hide them.
+    const manualItems: PaymentHistoryItem[] =
+      filterService !== 'all'
+        ? []
+        : getFilteredManualPayments().map((p) => ({
+            type: 'manual',
+            id: p.id,
+            dateTime: p.date,
+            clientName: p.clientName || 'Client',
+            description: p.description || 'Manual Payment',
+            amount: Number(p.amount) || 0,
+            paymentMethod: p.paymentMethod,
+          }));
+
+    const allItems = [...appointmentItems, ...manualItems];
+
+    return allItems
+      .sort((a, b) => {
+        const aTs =
+          a.type === 'appointment'
+            ? new Date(`${a.date}T${a.time}`).getTime()
+            : new Date(a.dateTime).getTime();
+        const bTs =
+          b.type === 'appointment'
+            ? new Date(`${b.date}T${b.time}`).getTime()
+            : new Date(b.dateTime).getTime();
+        return bTs - aTs;
+      })
+      .slice(0, 15);
+  };
+
+  const getFilteredTotals = () => {
+    const totals: PaymentMethodStats = { cash: 0, cashapp: 0, zelle: 0, card: 0 };
+
+    const filteredAppointments = getFilteredAppointments();
+    filteredAppointments.forEach((apt) => {
+      const amount = apt.service?.price || 0;
+      if (amount <= 0) return;
+      const method = normalizePaymentMethod(apt.paymentMethod);
+      if (method === 'cash') totals.cash += amount;
+      else if (method === 'cashapp') totals.cashapp += amount;
+      else if (method === 'zelle') totals.zelle += amount;
+      else totals.card += amount;
+    });
+
+    const filteredManualPayments = filterService !== 'all' ? [] : getFilteredManualPayments();
+    filteredManualPayments.forEach((p) => {
+      const amount = Number(p.amount) || 0;
+      if (amount <= 0) return;
+      const method = normalizePaymentMethod(p.paymentMethod);
+      if (method === 'cash') totals.cash += amount;
+      else if (method === 'cashapp') totals.cashapp += amount;
+      else if (method === 'zelle') totals.zelle += amount;
+      else totals.card += amount;
+    });
+
+    const total = totals.cash + totals.cashapp + totals.zelle + totals.card;
+
+    return {
+      total,
+      totals,
+      countAppointments: filteredAppointments.length,
+      countManual: filteredManualPayments.length,
+    };
+  };
+
   const exportToCSV = () => {
     const completedAppointments = getFilteredAppointments();
+    const filteredManualPayments = getFilteredManualPayments();
 
     const csvData = [
       ['Date', 'Time', 'Client', 'Service', 'Price', 'Payment Method', 'Status'],
@@ -433,6 +703,15 @@ export default function ContabilidadBarbero() {
         `$${apt.service?.price || 0}`,
         apt.paymentMethod || 'Cash',
         apt.status,
+      ]),
+      ...filteredManualPayments.map((p) => [
+        format(new Date(p.date), 'yyyy-MM-dd'),
+        '',
+        p.clientName || 'Client',
+        p.description || 'Manual Payment',
+        `$${Number(p.amount) || 0}`,
+        paymentMethodLabel(p.paymentMethod),
+        'MANUAL',
       ]),
     ];
 
@@ -488,7 +767,7 @@ export default function ContabilidadBarbero() {
         </div>
 
         {/* Goal Progress Card */}
-        <Collapsible open={isGoalOpen} onOpenChange={setIsGoalOpen}>
+        <Collapsible open={isGoalOpen} onOpenChange={(open) => openOnlySection('goal', open)}>
           <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 border-purple-500/30 mb-8">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -582,7 +861,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Summary Cards */}
-        <Collapsible open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
+        <Collapsible open={isSummaryOpen} onOpenChange={(open) => openOnlySection('summary', open)}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-white">Summary</h2>
             <CollapsibleTrigger asChild>
@@ -665,7 +944,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Insights & Comparison */}
-        <Collapsible open={isInsightsOpen} onOpenChange={setIsInsightsOpen}>
+        <Collapsible open={isInsightsOpen} onOpenChange={(open) => openOnlySection('insights', open)}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-white">Insights</h2>
             <CollapsibleTrigger asChild>
@@ -784,7 +1063,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Earnings Trend Chart */}
-        <Collapsible open={isTrendOpen} onOpenChange={setIsTrendOpen}>
+        <Collapsible open={isTrendOpen} onOpenChange={(open) => openOnlySection('trend', open)}>
           <Card className="bg-gray-900 border-gray-800 mb-8">
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
@@ -837,7 +1116,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Service & Time Analysis */}
-        <Collapsible open={isAnalysisOpen} onOpenChange={setIsAnalysisOpen}>
+        <Collapsible open={isAnalysisOpen} onOpenChange={(open) => openOnlySection('analysis', open)}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-white">Analysis</h2>
             <CollapsibleTrigger asChild>
@@ -938,7 +1217,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Projection Card */}
-        <Collapsible open={isProjectionOpen} onOpenChange={setIsProjectionOpen}>
+        <Collapsible open={isProjectionOpen} onOpenChange={(open) => openOnlySection('projection', open)}>
           <Card className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border-indigo-500/30 mb-8">
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
@@ -1018,7 +1297,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Filters */}
-        <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+        <Collapsible open={isFiltersOpen} onOpenChange={(open) => openOnlySection('filters', open)}>
           <Card className="bg-gray-900 border-gray-800 mb-8">
             <CardHeader>
               <div className="flex items-center justify-between gap-4">
@@ -1045,7 +1324,16 @@ export default function ContabilidadBarbero() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Period</label>
-                <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                <Select
+                  open={isFilterPeriodSelectOpen}
+                  onOpenChange={setIsFilterPeriodSelectOpen}
+                  value={filterPeriod}
+                  onValueChange={(v) => {
+                    setFilterPeriod(v);
+                    setIsFilterPeriodSelectOpen(false);
+                    setIsFiltersOpen(false);
+                  }}
+                >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -1059,7 +1347,16 @@ export default function ContabilidadBarbero() {
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Service</label>
-                <Select value={filterService} onValueChange={setFilterService}>
+                <Select
+                  open={isFilterServiceSelectOpen}
+                  onOpenChange={setIsFilterServiceSelectOpen}
+                  value={filterService}
+                  onValueChange={(v) => {
+                    setFilterService(v);
+                    setIsFilterServiceSelectOpen(false);
+                    setIsFiltersOpen(false);
+                  }}
+                >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -1075,7 +1372,16 @@ export default function ContabilidadBarbero() {
               </div>
               <div>
                 <label className="text-sm text-gray-400 mb-2 block">Payment Method</label>
-                <Select value={filterPayment} onValueChange={setFilterPayment}>
+                <Select
+                  open={isFilterPaymentSelectOpen}
+                  onOpenChange={setIsFilterPaymentSelectOpen}
+                  value={filterPayment}
+                  onValueChange={(v) => {
+                    setFilterPayment(v);
+                    setIsFilterPaymentSelectOpen(false);
+                    setIsFiltersOpen(false);
+                  }}
+                >
                   <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -1108,8 +1414,181 @@ export default function ContabilidadBarbero() {
           </Card>
         </Collapsible>
 
+        {/* Manual Payment Entry */}
+        <Card id="register-payment" className="bg-gray-900 border-gray-800 mb-8">
+          <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle className="text-xl text-white flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-green-400" />
+                  Register a Payment
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Add a cash (or manual) payment that is not tied to an appointment
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                onClick={() => {
+                  setManualPaymentAmount('');
+                  setManualPaymentMethod('cash');
+                  setManualPaymentClientName('');
+                  setManualPaymentDescription('');
+                  setManualPaymentDate(format(new Date(), 'yyyy-MM-dd'));
+                }}
+              >
+                Clear
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Amount</label>
+                <Input
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={manualPaymentAmount}
+                  onChange={(e) => setManualPaymentAmount(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Method</label>
+                <Select
+                  open={isManualPaymentMethodSelectOpen}
+                  onOpenChange={setIsManualPaymentMethodSelectOpen}
+                  value={manualPaymentMethod}
+                  onValueChange={(v) => {
+                    setManualPaymentMethod(v as 'cash' | 'cashapp' | 'zelle' | 'card');
+                    setIsManualPaymentMethodSelectOpen(false);
+                  }}
+                >
+                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="cashapp">CashApp</SelectItem>
+                    <SelectItem value="zelle">Zelle</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Client (optional)</label>
+                <Input
+                  placeholder="Client name"
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={manualPaymentClientName}
+                  onChange={(e) => setManualPaymentClientName(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-gray-400 mb-2 block">Date</label>
+                <Input
+                  type="date"
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={manualPaymentDate}
+                  onChange={(e) => setManualPaymentDate(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-3">
+                <label className="text-sm text-gray-400 mb-2 block">Description (optional)</label>
+                <Input
+                  placeholder="Walk-in, tip, product sale, etc."
+                  className="bg-gray-800 border-gray-700 text-white"
+                  value={manualPaymentDescription}
+                  onChange={(e) => setManualPaymentDescription(e.target.value)}
+                />
+              </div>
+              <div className="flex items-end">
+                <Button
+                  type="button"
+                  className="w-full bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-300 hover:to-emerald-400 text-black font-semibold"
+                  disabled={isSavingManualPayment}
+                  onClick={async () => {
+                    const amount = Number(manualPaymentAmount);
+                    if (!amount || amount <= 0) {
+                      toast.error('Please enter a valid amount');
+                      return;
+                    }
+
+                    try {
+                      setIsSavingManualPayment(true);
+                      const res = await fetch('/api/barber/manual-payments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          amount,
+                          paymentMethod: mapManualPaymentMethodToEnum(manualPaymentMethod),
+                          clientName: manualPaymentClientName.trim() || null,
+                          description: manualPaymentDescription.trim() || null,
+                          date: manualPaymentDate || null,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        toast.error(data?.error || 'Failed to register payment');
+                        return;
+                      }
+
+                      toast.success('Payment registered');
+                      await fetchAccountingData();
+                    } catch (e) {
+                      console.error(e);
+                      toast.error('Failed to register payment');
+                    } finally {
+                      setIsSavingManualPayment(false);
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+
+            {manualPayments.length > 0 && (
+              <div className="mt-6">
+                <p className="text-sm text-gray-300 font-medium mb-3">Recent manual payments</p>
+                <div className="space-y-2">
+                  {getFilteredManualPayments()
+                    .slice(0, 5)
+                    .map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex items-center justify-between gap-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-white text-sm font-medium truncate">
+                            {p.clientName || 'Client'} 
+                            <span className="text-gray-400">•</span> {paymentMethodLabel(p.paymentMethod)}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate">
+                            {format(new Date(p.date), 'dd MMM yyyy', { locale: enUS })}
+                            {p.description ? ` • ${p.description}` : ''}
+                          </p>
+                        </div>
+                        <div className="text-white font-semibold whitespace-nowrap">${Number(p.amount).toFixed(2)}</div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Payment Methods Breakdown */}
-        <Collapsible open={isPaymentMethodsOpen} onOpenChange={setIsPaymentMethodsOpen}>
+        <Collapsible open={isPaymentMethodsOpen} onOpenChange={(open) => openOnlySection('paymentMethods', open)}>
           <Card className="bg-gray-900 border-gray-800 mb-8">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
@@ -1120,20 +1599,35 @@ export default function ContabilidadBarbero() {
                   </CardTitle>
                   <CardDescription className="text-gray-400">Summary by payment method</CardDescription>
                 </div>
-                <CollapsibleTrigger asChild>
+                <div className="flex items-center gap-2">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     className="border-gray-700 text-gray-300 hover:bg-gray-800"
-                    aria-label={isPaymentMethodsOpen ? 'Hide section: Payment Methods' : 'Show section: Payment Methods'}
+                    onClick={() => {
+                      const el = document.getElementById('register-payment');
+                      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
                   >
-                    {isPaymentMethodsOpen ? 'Hide' : 'Show'}
-                    <ChevronDown
-                      className={`w-4 h-4 ml-2 transition-transform ${isPaymentMethodsOpen ? 'rotate-180' : ''}`}
-                    />
+                    Add Cash Payment
                   </Button>
-                </CollapsibleTrigger>
+
+                  <CollapsibleTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                      aria-label={isPaymentMethodsOpen ? 'Hide section: Payment Methods' : 'Show section: Payment Methods'}
+                    >
+                      {isPaymentMethodsOpen ? 'Hide' : 'Show'}
+                      <ChevronDown
+                        className={`w-4 h-4 ml-2 transition-transform ${isPaymentMethodsOpen ? 'rotate-180' : ''}`}
+                      />
+                    </Button>
+                  </CollapsibleTrigger>
+                </div>
               </div>
             </CardHeader>
             <CollapsibleContent>
@@ -1185,7 +1679,7 @@ export default function ContabilidadBarbero() {
         </Collapsible>
 
         {/* Recent Transactions */}
-        <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <Collapsible open={isHistoryOpen} onOpenChange={(open) => openOnlySection('history', open)}>
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
@@ -1213,82 +1707,130 @@ export default function ContabilidadBarbero() {
             <CollapsibleContent>
               <CardContent>
             <div className="space-y-3">
-              {getFilteredAppointments()
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .slice(0, 15)
-                .map((apt) => {
-                  const clientName = apt.user?.name || 'Client';
-                  const serviceName = apt.service?.name || 'Service';
-                  const price = apt.service?.price || 0;
-                  const paymentMethod = apt.paymentMethod || 'Cash';
-                  
-                  // Normalize payment method labels
-                  const paymentMethodES =
-                    paymentMethod.toLowerCase().includes('cash') || paymentMethod === 'CASH' ? 'Cash' :
-                    paymentMethod.toLowerCase().includes('zelle') || paymentMethod === 'ZELLE' ? 'Zelle' :
-                    paymentMethod.toLowerCase().includes('cashapp') || paymentMethod === 'CASHAPP' ? 'CashApp' :
-                    paymentMethod.toLowerCase().includes('card') || paymentMethod === 'CARD' ? 'Card' :
-                    paymentMethod;
+              {getPaymentHistoryItems().map((item) => {
+                const paymentMethodES = paymentMethodLabel(item.paymentMethod);
 
-                  // Pick icon and color based on payment method
-                  const paymentIcon = 
-                    paymentMethodES === 'Cash' ? { color: 'green', bg: 'bg-green-500/20', text: 'text-green-400' } :
-                    paymentMethodES === 'Zelle' ? { color: 'purple', bg: 'bg-purple-500/20', text: 'text-purple-400' } :
-                    paymentMethodES === 'CashApp' ? { color: 'blue', bg: 'bg-blue-500/20', text: 'text-blue-400' } :
-                    { color: 'yellow', bg: 'bg-yellow-500/20', text: 'text-yellow-400' };
+                const paymentIcon =
+                  paymentMethodES === 'Cash'
+                    ? { bg: 'bg-green-500/20', text: 'text-green-400' }
+                    : paymentMethodES === 'Zelle'
+                      ? { bg: 'bg-purple-500/20', text: 'text-purple-400' }
+                      : paymentMethodES === 'CashApp'
+                        ? { bg: 'bg-blue-500/20', text: 'text-blue-400' }
+                        : { bg: 'bg-yellow-500/20', text: 'text-yellow-400' };
 
-                  return (
-                    <div
-                      key={apt.id}
-                      className="p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-[#00f0ff] transition-all"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-start gap-3 flex-1">
-                          <div className={`p-2 ${paymentIcon.bg} rounded-lg mt-1`}>
-                            {paymentMethodES === 'Cash' && <DollarSign className={`w-5 h-5 ${paymentIcon.text}`} />}
-                            {(paymentMethodES === 'Zelle' || paymentMethodES === 'CashApp') && <Wallet className={`w-5 h-5 ${paymentIcon.text}`} />}
-                            {paymentMethodES === 'Card' && <CreditCard className={`w-5 h-5 ${paymentIcon.text}`} />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-white font-semibold text-base leading-tight mb-1">
-                              <span className="text-[#00f0ff]">{clientName}</span> paid you{' '}
-                              <span className="text-[#ffd700]">${price.toFixed(2)}</span>{' '}
-                              via <span className={paymentIcon.text}>{paymentMethodES}</span>
-                            </p>
-                            <p className="text-sm text-gray-400 mb-2">
-                              For service: <span className="text-white font-medium">{serviceName}</span>
-                            </p>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(new Date(apt.date), 'dd MMM yyyy', { locale: enUS })}
-                              </span>
-                              <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {apt.time}
-                              </span>
-                            </div>
-                          </div>
+                const dateLabel =
+                  item.type === 'appointment'
+                    ? format(new Date(item.date), 'dd MMM yyyy', { locale: enUS })
+                    : format(new Date(item.dateTime), 'dd MMM yyyy', { locale: enUS });
+
+                const timeLabel = item.type === 'appointment' ? formatTime12h(item.time) : format(new Date(item.dateTime), 'h:mm a');
+                const titleLeft = item.clientName;
+                const titleRight = `$${item.amount.toFixed(2)}`;
+                const subLine =
+                  item.type === 'appointment'
+                    ? `For service: ${item.serviceName}`
+                    : `Manual: ${item.description}`;
+
+                return (
+                  <div
+                    key={`${item.type}-${item.id}`}
+                    className="p-3 sm:p-4 bg-gray-800/50 rounded-lg border border-gray-700 hover:border-[#00f0ff] transition-all overflow-hidden"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className={`p-2 ${paymentIcon.bg} rounded-lg mt-1`}>
+                          {paymentMethodES === 'Cash' && <DollarSign className={`w-5 h-5 ${paymentIcon.text}`} />}
+                          {(paymentMethodES === 'Zelle' || paymentMethodES === 'CashApp') && (
+                            <Wallet className={`w-5 h-5 ${paymentIcon.text}`} />
+                          )}
+                          {paymentMethodES === 'Card' && <CreditCard className={`w-5 h-5 ${paymentIcon.text}`} />}
                         </div>
-                        <div className="flex flex-col items-end">
-                          <div className={`px-3 py-1 rounded-full ${paymentIcon.bg} border border-gray-700`}>
-                            <p className={`text-xs font-semibold ${paymentIcon.text}`}>
-                              {paymentMethodES}
-                            </p>
+                        <div className="min-w-0">
+                          <p className="text-white font-semibold text-sm sm:text-base leading-tight">
+                            <span className="text-[#00f0ff] truncate block sm:inline">{titleLeft}</span>
+                            <span className="sm:ml-1">paid you</span>{' '}
+                            <span className="text-[#ffd700] whitespace-nowrap">{titleRight}</span>{' '}
+                            <span className="sm:ml-1">via</span>{' '}
+                            <span className={`${paymentIcon.text} whitespace-nowrap`}>{paymentMethodES}</span>
+                            {item.type === 'manual' && (
+                              <span className="ml-2 text-[11px] px-2 py-0.5 rounded-full bg-gray-900/60 border border-gray-700 text-gray-300 align-middle whitespace-nowrap">
+                                Manual
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-400 mt-1 break-words">
+                            {subLine}
+                          </p>
+                          <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                            <span className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {dateLabel}
+                            </span>
+                            <span className="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {timeLabel}
+                            </span>
                           </div>
                         </div>
                       </div>
+                      <div className="hidden sm:flex flex-col items-end">
+                        <div className={`px-3 py-1 rounded-full ${paymentIcon.bg} border border-gray-700`}>
+                          <p className={`text-xs font-semibold ${paymentIcon.text}`}>{paymentMethodES}</p>
+                        </div>
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
 
-              {getFilteredAppointments().length === 0 && (
+              {getPaymentHistoryItems().length === 0 && (
                 <div className="text-center py-12">
                   <Receipt className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-400">You don&apos;t have any payments yet</p>
                   <p className="text-sm text-gray-500 mt-2">Your payments will appear here once you complete your first appointments</p>
                 </div>
               )}
+
+              {(() => {
+                const summary = getFilteredTotals();
+                return (
+                  <div className="mt-6 p-5 sm:p-4 bg-gray-950/60 rounded-lg border border-gray-800 overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 min-w-0">
+                      <div>
+                        <p className="text-sm text-gray-300 font-semibold">Total Summary (filters applied)</p>
+                        <p className="text-xs text-gray-500">
+                          {summary.countAppointments} appointments
+                          {filterService === 'all' ? ` • ${summary.countManual} manual` : ''}
+                        </p>
+                      </div>
+                      <div className="text-left sm:text-right min-w-0">
+                        <p className="text-xs text-gray-500">Grand Total</p>
+                        <p className="text-2xl font-bold text-white whitespace-nowrap max-w-full">${summary.total.toFixed(2)}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 bg-gray-900/60 rounded border border-gray-800">
+                        <p className="text-xs text-gray-500">Cash</p>
+                        <p className="text-white font-semibold whitespace-nowrap">${summary.totals.cash.toFixed(2)}</p>
+                      </div>
+                      <div className="p-3 bg-gray-900/60 rounded border border-gray-800">
+                        <p className="text-xs text-gray-500">CashApp</p>
+                        <p className="text-white font-semibold whitespace-nowrap">${summary.totals.cashapp.toFixed(2)}</p>
+                      </div>
+                      <div className="p-3 bg-gray-900/60 rounded border border-gray-800">
+                        <p className="text-xs text-gray-500">Zelle</p>
+                        <p className="text-white font-semibold whitespace-nowrap">${summary.totals.zelle.toFixed(2)}</p>
+                      </div>
+                      <div className="p-3 bg-gray-900/60 rounded border border-gray-800">
+                        <p className="text-xs text-gray-500">Card</p>
+                        <p className="text-white font-semibold whitespace-nowrap">${summary.totals.card.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
               </CardContent>
             </CollapsibleContent>

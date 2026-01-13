@@ -10,8 +10,30 @@ import {
 } from '@/lib/email';
 import { AppointmentStatus } from '@prisma/client';
 import webpush from 'web-push';
+import { isTwilioConfigured, sendSMS } from '@/lib/twilio';
+import { formatTime12h } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
+
+function isCronAuthorized(request: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return true;
+
+  // Vercel Cron requests include this user-agent.
+  const ua = request.headers.get('user-agent') || '';
+  if (ua.includes('vercel-cron/1.0')) return true;
+
+  const headerSecret = request.headers.get('x-cron-secret');
+  if (headerSecret && headerSecret === secret) return true;
+
+  try {
+    const url = new URL(request.url);
+    const querySecret = url.searchParams.get('secret');
+    return querySecret === secret;
+  } catch {
+    return false;
+  }
+}
 
 // Configure web-push with VAPID keys
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
@@ -31,7 +53,8 @@ async function sendPushNotification(
   userId: string,
   title: string,
   body: string,
-  data?: Record<string, unknown>
+  data?: Record<string, unknown>,
+  url?: string
 ) {
   try {
     const subscriptions = await prisma.pushSubscription.findMany({
@@ -53,7 +76,11 @@ async function sendPushNotification(
             body,
             icon: '/icon-192.png',
             badge: '/icon-96.png',
-            data: data || {},
+            url: url || (typeof data?.url === 'string' ? (data.url as string) : undefined) || '/reservar',
+            data: {
+              ...(data || {}),
+              url: url || (typeof data?.url === 'string' ? (data.url as string) : undefined) || '/reservar',
+            },
           })
         );
       } catch (error: unknown) {
@@ -80,15 +107,29 @@ async function sendPushNotification(
  * Process and send appointment notifications
  * This endpoint checks for appointments that need notifications and sends them
  */
-export async function POST() {
+async function processNotifications() {
   try {
     const now = new Date();
+    console.log('[Cron][notifications/process] start', { now: now.toISOString() });
     const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     const in12Hours = new Date(now.getTime() + 12 * 60 * 60 * 1000);
     const in2Hours = new Date(now.getTime() + 2 * 60 * 60 * 1000);
     const in30Minutes = new Date(now.getTime() + 30 * 60 * 1000);
 
     let sentCount = 0;
+    let smsSentCount = 0;
+
+    const adminUser = await prisma.user.findFirst({
+      where: { role: 'ADMIN' },
+      select: { id: true, name: true, phone: true, email: true },
+    });
+
+    const formatDateShort = (dateValue: Date) =>
+      new Date(dateValue).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
 
     // ===== 24-HOUR REMINDERS =====
     // Find appointments that are 24 hours away and haven't been notified yet
@@ -101,7 +142,7 @@ export async function POST() {
         status: {
           in: [AppointmentStatus.CONFIRMED, AppointmentStatus.PENDING],
         },
-        notification24hSent: false,
+        OR: [{ notification24hSent: false }, { sms24hSent: false }],
       },
       include: {
         client: true,
@@ -115,6 +156,7 @@ export async function POST() {
     });
 
     for (const appointment of appointments24h) {
+      const needsEmailPush = !appointment.notification24hSent;
       const clientEmail = appointment.client?.email;
       const barberEmail = appointment.barber?.user?.email;
       const clientName = appointment.client?.name || 'Client';
@@ -126,16 +168,58 @@ export async function POST() {
         month: 'long',
         day: 'numeric',
       });
+      const dateShort = formatDateShort(appointment.date);
       const time = appointment.time;
+      const timeDisplay = formatTime12h(time);
+
+      // ===== SMS (24h) =====
+      if (!appointment.sms24hSent) {
+        // Only send the 24h SMS if the appointment is still PENDING (push confirmation).
+        // If already CONFIRMED, we mark it as handled to avoid repeated evaluation.
+        if (appointment.status !== AppointmentStatus.PENDING) {
+          const handled = await prisma.appointment.updateMany({
+            where: { id: appointment.id, sms24hSent: false },
+            data: { sms24hSent: true },
+          });
+
+          if (handled.count > 0) {
+            console.log('[SMS][24h] skipped: appointment not pending', {
+              appointmentId: appointment.id,
+              status: appointment.status,
+            });
+          }
+        } else {
+        const claimed = await prisma.appointment.updateMany({
+          where: { id: appointment.id, sms24hSent: false },
+          data: { sms24hSent: true },
+        });
+
+        if (claimed.count === 0) {
+          console.log('[SMS][24h] skipped: already claimed', { appointmentId: appointment.id });
+        } else if (!isTwilioConfigured()) {
+          console.log('[SMS][24h] Twilio not configured; skipped', { appointmentId: appointment.id });
+        } else {
+          const clientPhone = appointment.client?.phone;
+          if (!clientPhone) {
+            console.log('[SMS][24h][client] skipped: client phone missing', { appointmentId: appointment.id, clientId: appointment.clientId });
+          } else {
+            const msg = `JB's Barbershop 💈\nReminder: you have an appointment tomorrow at ${timeDisplay}.\nReply YES to confirm or NO to cancel.`;
+            const res = await sendSMS(clientPhone, msg);
+            console.log('[SMS][24h][client]', { appointmentId: appointment.id, to: clientPhone, success: res.success, sid: (res as any).sid });
+            if (res.success) smsSentCount++;
+          }
+        }
+        }
+      }
 
       // Send to client
-      if (clientEmail) {
+      if (needsEmailPush && clientEmail) {
         const emailBody = generate24HourReminderEmail(
           clientName,
           barberName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: clientEmail,
@@ -148,8 +232,9 @@ export async function POST() {
           await sendPushNotification(
             appointment.clientId,
             '⏰ Appointment Reminder',
-            `Your appointment with ${barberName} is tomorrow at ${time}`,
-            { appointmentId: appointment.id }
+            `Tomorrow (${dateShort}) at ${timeDisplay}: ${serviceName} with ${barberName}`,
+            { appointmentId: appointment.id },
+            '/reservar'
           );
         }
         
@@ -157,13 +242,13 @@ export async function POST() {
       }
 
       // Send to barber
-      if (barberEmail) {
+      if (needsEmailPush && barberEmail) {
         const emailBody = generate24HourReminderEmail(
           barberName,
           clientName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: barberEmail,
@@ -178,8 +263,9 @@ export async function POST() {
             await sendPushNotification(
               barberUserId,
               '⏰ Appointment Reminder',
-              `Appointment with ${clientName} is tomorrow at ${time}`,
-              { appointmentId: appointment.id }
+              `Tomorrow (${dateShort}) at ${timeDisplay}: ${serviceName} with ${clientName}`,
+              { appointmentId: appointment.id },
+              '/reservar'
             );
           }
         }
@@ -187,11 +273,24 @@ export async function POST() {
         sentCount++;
       }
 
-      // Mark as sent
-      await prisma.appointment.update({
-        where: { id: appointment.id },
-        data: { notification24hSent: true },
-      });
+      // Admin push (24h)
+      if (needsEmailPush && adminUser?.id) {
+        await sendPushNotification(
+          adminUser.id,
+          '⏰ Recordatorio de cita (24h)',
+          `Mañana (${dateShort}) ${timeDisplay}: ${serviceName} • ${clientName} con ${barberName}`,
+          { appointmentId: appointment.id },
+          '/dashboard/admin/citas'
+        );
+      }
+
+      // Mark email/push as sent
+      if (needsEmailPush) {
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { notification24hSent: true },
+        });
+      }
     }
 
     // ===== 12-HOUR REMINDERS =====
@@ -230,7 +329,9 @@ export async function POST() {
         month: 'long',
         day: 'numeric',
       });
+      const dateShort = formatDateShort(appointment.date);
       const time = appointment.time;
+      const timeDisplay = formatTime12h(time);
 
       // Send to client
       if (clientEmail) {
@@ -239,7 +340,7 @@ export async function POST() {
           barberName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: clientEmail,
@@ -252,7 +353,7 @@ export async function POST() {
           await sendPushNotification(
             appointment.clientId,
             '⏰ Appointment Reminder',
-            `Your appointment with ${barberName} is in 12 hours (${time})`,
+            `Your appointment with ${barberName} is in 12 hours (${timeDisplay})`,
             { appointmentId: appointment.id }
           );
         }
@@ -267,7 +368,7 @@ export async function POST() {
           clientName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: barberEmail,
@@ -282,7 +383,7 @@ export async function POST() {
             await sendPushNotification(
               barberUserId,
               '⏰ Appointment Reminder',
-              `Appointment with ${clientName} is in 12 hours (${time})`,
+              `Appointment with ${clientName} is in 12 hours (${timeDisplay})`,
               { appointmentId: appointment.id }
             );
           }
@@ -309,7 +410,7 @@ export async function POST() {
         status: {
           in: [AppointmentStatus.CONFIRMED, AppointmentStatus.PENDING],
         },
-        notification2hSent: false,
+        OR: [{ notification2hSent: false }, { sms2hSent: false }],
       },
       include: {
         client: true,
@@ -323,6 +424,7 @@ export async function POST() {
     });
 
     for (const appointment of appointments2h) {
+      const needsEmailPush = !appointment.notification2hSent;
       const clientEmail = appointment.client?.email;
       const barberEmail = appointment.barber?.user?.email;
       const clientName = appointment.client?.name || 'Client';
@@ -334,16 +436,64 @@ export async function POST() {
         month: 'long',
         day: 'numeric',
       });
+      const dateShort = formatDateShort(appointment.date);
       const time = appointment.time;
+      const timeDisplay = formatTime12h(time);
+
+      // ===== SMS (2h) =====
+      if (!appointment.sms2hSent) {
+        const claimed = await prisma.appointment.updateMany({
+          where: { id: appointment.id, sms2hSent: false },
+          data: { sms2hSent: true },
+        });
+
+        if (claimed.count === 0) {
+          console.log('[SMS][2h] skipped: already claimed', { appointmentId: appointment.id });
+        } else if (!isTwilioConfigured()) {
+          console.log('[SMS][2h] Twilio not configured; skipped', { appointmentId: appointment.id });
+        } else {
+          const clientPhone = appointment.client?.phone;
+          const barberPhone = appointment.barber?.user?.phone || appointment.barber?.phone;
+          const adminPhone = adminUser?.phone;
+
+          if (clientPhone) {
+            const msg = `JB's Barbershop 💈\nYour appointment is in 2 hours at ${timeDisplay}.\nWe'll be ready for you ✂️`;
+            const res = await sendSMS(clientPhone, msg);
+            console.log('[SMS][2h][client]', { appointmentId: appointment.id, to: clientPhone, success: res.success, sid: (res as any).sid });
+            if (res.success) smsSentCount++;
+          } else {
+            console.log('[SMS][2h][client] skipped: client phone missing', { appointmentId: appointment.id, clientId: appointment.clientId });
+          }
+
+          if (barberPhone) {
+            const msg = `JBookMe 💈\nYou have an appointment today at ${timeDisplay} with ${clientName}.`;
+            const res = await sendSMS(barberPhone, msg);
+            console.log('[SMS][2h][barber]', { appointmentId: appointment.id, to: barberPhone, success: res.success, sid: (res as any).sid });
+            if (res.success) smsSentCount++;
+          } else {
+            console.log('[SMS][2h][barber] skipped: barber phone missing', { appointmentId: appointment.id, barberId: appointment.barberId });
+          }
+
+          if (adminPhone) {
+            const adminName = (adminUser?.name || 'Jorge').trim() || 'Jorge';
+            const msg = `${adminName}, you have an appointment today at ${timeDisplay} with ${clientName} 💈`;
+            const res = await sendSMS(adminPhone, msg);
+            console.log('[SMS][2h][admin]', { appointmentId: appointment.id, to: adminPhone, success: res.success, sid: (res as any).sid });
+            if (res.success) smsSentCount++;
+          } else {
+            console.log('[SMS][2h][admin] skipped: admin phone missing', { appointmentId: appointment.id, adminEmail: adminUser?.email });
+          }
+        }
+      }
 
       // Send to client
-      if (clientEmail) {
+      if (needsEmailPush && clientEmail) {
         const emailBody = generate2HourReminderEmail(
           clientName,
           barberName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: clientEmail,
@@ -356,8 +506,9 @@ export async function POST() {
           await sendPushNotification(
             appointment.clientId,
             '⏰ Upcoming Appointment',
-            `Your appointment with ${barberName} is in 2 hours (${time})`,
-            { appointmentId: appointment.id }
+            `In 2 hours (${dateShort} at ${timeDisplay}): ${serviceName} with ${barberName}`,
+            { appointmentId: appointment.id },
+            '/reservar'
           );
         }
         
@@ -365,13 +516,13 @@ export async function POST() {
       }
 
       // Send to barber
-      if (barberEmail) {
+      if (needsEmailPush && barberEmail) {
         const emailBody = generate2HourReminderEmail(
           barberName,
           clientName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: barberEmail,
@@ -386,8 +537,9 @@ export async function POST() {
             await sendPushNotification(
               barberUserId,
               '⏰ Upcoming Appointment',
-              `Appointment with ${clientName} is in 2 hours (${time})`,
-              { appointmentId: appointment.id }
+              `In 2 hours (${dateShort} at ${timeDisplay}): ${serviceName} with ${clientName}`,
+              { appointmentId: appointment.id },
+              '/reservar'
             );
           }
         }
@@ -395,11 +547,24 @@ export async function POST() {
         sentCount++;
       }
 
-      // Mark as sent
-      await prisma.appointment.update({
-        where: { id: appointment.id },
-        data: { notification2hSent: true },
-      });
+      // Admin push (2h)
+      if (needsEmailPush && adminUser?.id) {
+        await sendPushNotification(
+          adminUser.id,
+          '⏰ Cita en 2 horas',
+          `En 2 horas (${dateShort}) ${timeDisplay}: ${serviceName} • ${clientName} con ${barberName}`,
+          { appointmentId: appointment.id },
+          '/dashboard/admin/citas'
+        );
+      }
+
+      // Mark email/push as sent
+      if (needsEmailPush) {
+        await prisma.appointment.update({
+          where: { id: appointment.id },
+          data: { notification2hSent: true },
+        });
+      }
     }
 
     // ===== 30-MINUTE REMINDERS =====
@@ -439,6 +604,7 @@ export async function POST() {
         day: 'numeric',
       });
       const time = appointment.time;
+      const timeDisplay = formatTime12h(time);
 
       // Send to client
       if (clientEmail) {
@@ -447,7 +613,7 @@ export async function POST() {
           barberName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: clientEmail,
@@ -460,7 +626,7 @@ export async function POST() {
           await sendPushNotification(
             appointment.clientId,
             '🚨 URGENT: Appointment in 30 Minutes',
-            `Your appointment with ${barberName} is at ${time}. Please don’t be late!`,
+            `Your appointment with ${barberName} is at ${timeDisplay}. Please don’t be late!`,
             { appointmentId: appointment.id, urgent: true }
           );
         }
@@ -475,7 +641,7 @@ export async function POST() {
           clientName,
           serviceName,
           date,
-          time
+          timeDisplay
         );
         await sendEmail({
           to: barberEmail,
@@ -490,7 +656,7 @@ export async function POST() {
             await sendPushNotification(
               barberUserId,
               '🚨 Imminent Appointment',
-              `Appointment with ${clientName} in 30 minutes (${time})`,
+              `Appointment with ${clientName} in 30 minutes (${timeDisplay})`,
               { appointmentId: appointment.id, urgent: true }
             );
           }
@@ -554,15 +720,31 @@ export async function POST() {
       }
     }
 
+    const summary = {
+      sentCount,
+      smsSentCount,
+      reminders24h: appointments24h.length,
+      reminders12h: appointments12h.length,
+      reminders2h: appointments2h.length,
+      reminders30m: appointments30m.length,
+      thankYou: completedAppointments.length,
+    };
+
+    console.log('[Cron][notifications/process] done', {
+      now: new Date().toISOString(),
+      ...summary,
+    });
+
     return NextResponse.json({
       success: true,
-      message: `Successfully processed ${sentCount} notifications`,
+      message: `Successfully processed ${sentCount} notifications and sent ${smsSentCount} SMS`,
       details: {
         reminders24h: appointments24h.length,
         reminders12h: appointments12h.length,
         reminders2h: appointments2h.length,
         reminders30m: appointments30m.length,
         thankYou: completedAppointments.length,
+        smsSent: smsSentCount,
       },
     });
   } catch (error) {
@@ -572,4 +754,19 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+// Vercel Cron hits endpoints with GET. Keep POST for manual triggering.
+export async function GET(request: Request) {
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return processNotifications();
+}
+
+export async function POST(request: Request) {
+  if (!isCronAuthorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return processNotifications();
 }

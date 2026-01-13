@@ -12,6 +12,7 @@ import {
   Clock,
   MessageCircle,
   Star,
+  Trash2,
   XCircle,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -109,6 +110,46 @@ export default function NotificacionesPage() {
     }
   };
 
+  const deleteNotification = async (notificationId?: string) => {
+    if (!notificationId) return;
+
+    const ok = window.confirm(t('notifications.confirmDeleteOne'));
+    if (!ok) return;
+
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId }),
+      });
+
+      if (res.ok) {
+        await fetchNotifications();
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    const ok = window.confirm(t('notifications.confirmDeleteAll'));
+    if (!ok) return;
+
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deleteAll: true }),
+      });
+
+      if (res.ok) {
+        await fetchNotifications();
+      }
+    } catch (error) {
+      console.error('Error deleting all notifications:', error);
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -162,6 +203,16 @@ export default function NotificacionesPage() {
                 {t('notifications.markAllRead')}
               </Button>
             )}
+
+            {notifications.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => void deleteAllNotifications()}
+                className="border-gray-700 bg-black/20 text-gray-200 hover:bg-gray-900/40"
+              >
+                {t('notifications.deleteAll')}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -183,13 +234,15 @@ export default function NotificacionesPage() {
             {notifications.map((notification) => {
               const { Icon, className: badgeClassName } = getTypeBadge(notification.type, notification.isRead);
 
-              const content = (
+              const itemClassName = `group bg-gray-900 border border-gray-800 rounded-2xl p-4 transition-colors ${
+                notification.isRead
+                  ? 'hover:bg-gray-900/70'
+                  : 'bg-gradient-to-r from-[#00f0ff]/5 to-transparent hover:from-[#00f0ff]/10'
+              }`;
+
+              const body = (
                 <div
-                  className={`group bg-gray-900 border border-gray-800 rounded-2xl p-4 transition-colors ${
-                    notification.isRead
-                      ? 'hover:bg-gray-900/70'
-                      : 'bg-gradient-to-r from-[#00f0ff]/5 to-transparent hover:from-[#00f0ff]/10'
-                  }`}
+                  className={itemClassName}
                   onClick={() => {
                     if (!notification.isRead) {
                       void markAsRead(notification.id);
@@ -206,39 +259,51 @@ export default function NotificacionesPage() {
                         {!notification.isRead ? (
                           <span className="w-2 h-2 rounded-full bg-[#00f0ff] flex-shrink-0" />
                         ) : null}
-                        <p className="text-white font-semibold text-sm truncate">
-                          {notification.title}
-                        </p>
+                        <p className="text-white font-semibold text-sm truncate">{notification.title}</p>
                       </div>
-                      <p className="text-gray-400 text-sm mt-1">
-                        {notification.message}
-                      </p>
+                      <p className="text-gray-400 text-sm mt-1">{notification.message}</p>
                       <p className="text-gray-500 text-xs mt-2">
                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </p>
                     </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        void deleteNotification(notification.id);
+                      }}
+                      aria-label={t('notifications.deleteOne')}
+                      className="text-gray-400 hover:text-white hover:bg-gray-800/50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               );
 
-              if (notification.link) {
-                return (
-                  <Link
-                    key={notification.id}
-                    href={notification.link}
-                    className="block"
-                    onClick={() => {
-                      if (!notification.isRead) {
-                        void markAsRead(notification.id);
-                      }
-                    }}
-                  >
-                    {content}
-                  </Link>
-                );
-              }
-
-              return <div key={notification.id}>{content}</div>;
+              return (
+                <div key={notification.id}>
+                  {notification.link ? (
+                    <Link
+                      href={notification.link}
+                      className="block"
+                      onClick={() => {
+                        if (!notification.isRead) {
+                          void markAsRead(notification.id);
+                        }
+                      }}
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    body
+                  )}
+                </div>
+              );
             })}
           </div>
         )}

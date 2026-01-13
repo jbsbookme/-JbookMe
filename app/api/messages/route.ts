@@ -3,6 +3,23 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
 import { put } from '@vercel/blob';
+import webpush from 'web-push';
+
+// Configure web-push with VAPID keys
+const vapidPublicKey =
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+  process.env.VAPID_PUBLIC_KEY ||
+  '';
+const vapidPrivateKey =
+  process.env.VAPID_PRIVATE_KEY ||
+  '';
+const vapidSubject =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  `mailto:${process.env.VAPID_EMAIL || 'info@jbbarbershop.com'}`;
+
+if (vapidPublicKey && vapidPrivateKey) {
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
 
 // GET - Fetch messages (inbox)
 export async function GET(request: Request) {
@@ -182,16 +199,60 @@ export async function POST(request: Request) {
       },
     });
 
-    // Send push notification if user has subscriptions
-    const subscriptions = await prisma.pushSubscription.findMany({
-      where: { userId: recipientId },
-    });
+    // Send Web Push notification (works even if the web app is closed), if configured.
+    if (vapidPublicKey && vapidPrivateKey) {
+      const subscriptions = await prisma.pushSubscription.findMany({
+        where: { userId: recipientId },
+      });
 
-    // Note: Actual push sending would require web-push library
-    // For now, we're just creating the subscription infrastructure
-    console.log(
-      `Would send push notification to ${subscriptions.length} devices`
-    );
+      if (subscriptions.length > 0) {
+        const senderName = session.user.name || 'Someone';
+        const payload = JSON.stringify({
+          title: 'Nuevo mensaje',
+          body: `${senderName} te envió un mensaje`,
+          icon: '/icon-192.png',
+          badge: '/icon-96.png',
+          url: '/inbox',
+          data: {
+            url: '/inbox',
+          },
+        });
+
+        const results = await Promise.allSettled(
+          subscriptions.map(async (sub) => {
+            try {
+              await webpush.sendNotification(
+                {
+                  endpoint: sub.endpoint,
+                  keys: {
+                    p256dh: sub.p256dh,
+                    auth: sub.auth,
+                  },
+                },
+                payload
+              );
+            } catch (error: unknown) {
+              const statusCode =
+                typeof error === 'object' && error !== null && 'statusCode' in error
+                  ? (error as { statusCode?: unknown }).statusCode
+                  : undefined;
+
+              // Delete invalid subscriptions
+              if (statusCode === 410 || statusCode === 404) {
+                await prisma.pushSubscription.delete({ where: { id: sub.id } });
+              }
+
+              throw error;
+            }
+          })
+        );
+
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) {
+          console.warn(`[messages] push failed for ${failed} subscription(s)`);
+        }
+      }
+    }
 
     return NextResponse.json(message, { status: 201 });
   } catch (error) {

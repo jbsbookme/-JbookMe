@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -29,11 +29,135 @@ export function NotificationsBell() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  // Start baseline at mount time so we don't beep for old notifications,
+  // but we DO beep for the first new one even if it arrives before the first poll.
+  const lastNotifAtRef = useRef<number>(Date.now());
+
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioUnlockedRef = useRef(false);
+  const pendingBeepRef = useRef(false);
+
+  const unlockAudio = async () => {
+    if (audioUnlockedRef.current) return;
+    try {
+      const AudioContextCtor =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const ctx: AudioContext = audioCtxRef.current ?? new AudioContextCtor();
+      audioCtxRef.current = ctx;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      // Tiny silent-ish tick to satisfy stricter autoplay policies on some mobile browsers.
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.value = 1;
+      gain.gain.value = 0.0001;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.02);
+
+      if (ctx.state === 'running') {
+        audioUnlockedRef.current = true;
+      }
+
+      if (pendingBeepRef.current) {
+        pendingBeepRef.current = false;
+        void playBeep();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const playBeep = async () => {
+    try {
+      if (!audioUnlockedRef.current) {
+        pendingBeepRef.current = true;
+        return;
+      }
+
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        await ctx.resume().catch(() => null);
+      }
+      if (ctx.state !== 'running') {
+        pendingBeepRef.current = true;
+        return;
+      }
+
+      const beepOnce = (freq: number, startAt: number) => {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(freq, startAt);
+
+        // Envelope to avoid clicks and make it audible.
+        gain.gain.setValueAtTime(0.0001, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.18, startAt + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.18);
+
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+
+        oscillator.start(startAt);
+        oscillator.stop(startAt + 0.2);
+      };
+
+      const t0 = ctx.currentTime;
+      // Double beep (more noticeable)
+      beepOnce(988, t0);
+      beepOnce(1318, t0 + 0.22);
+    } catch {
+      // ignore
+    }
+  };
+
+  const notifySystem = () => {
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        Notification.permission === 'granted' &&
+        document.visibilityState !== 'visible'
+      ) {
+        new Notification('Nuevo mensaje', {
+          body: 'Tienes un mensaje nuevo',
+          icon: '/icon-192.png',
+        });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     if (session && open) {
       fetchNotifications();
     }
   }, [session, open]);
+
+  // Unlock audio on first user gesture (required by browsers for sound).
+  useEffect(() => {
+    if (!session) return;
+    if (typeof window === 'undefined') return;
+    const handler = () => void unlockAudio();
+    window.addEventListener('pointerdown', handler, { passive: true });
+    window.addEventListener('touchstart', handler, { passive: true });
+    window.addEventListener('mousedown', handler);
+    window.addEventListener('keydown', handler);
+    return () => {
+      window.removeEventListener('pointerdown', handler);
+      window.removeEventListener('touchstart', handler);
+      window.removeEventListener('mousedown', handler);
+      window.removeEventListener('keydown', handler);
+    };
+  }, [session]);
 
   // Poll for new notifications every 30 seconds
   useEffect(() => {
@@ -44,7 +168,31 @@ export function NotificationsBell() {
         const res = await fetch('/api/notifications');
         if (res.ok) {
           const data = await res.json();
-          setUnreadCount(data.unreadCount);
+
+          const nextUnread = typeof data?.unreadCount === 'number' ? data.unreadCount : 0;
+          setUnreadCount(nextUnread);
+
+          // Detect new notifications since last poll.
+          const list: Notification[] = Array.isArray(data?.notifications)
+            ? data.notifications
+            : [];
+          const maxAt = list.reduce((max: number, n: Notification) => {
+            const t = new Date(n.createdAt).getTime();
+            return Number.isFinite(t) && t > max ? t : max;
+          }, 0);
+
+          const since = lastNotifAtRef.current;
+          const newOnes = list.filter((n) => new Date(n.createdAt).getTime() > since);
+          lastNotifAtRef.current = Math.max(since, maxAt);
+
+          const newMessages = newOnes.filter((n) => n.type === 'NEW_MESSAGE');
+          if (newMessages.length > 0) {
+            void playBeep();
+            notifySystem();
+          }
+
+          // Keep a fresh cache so opening the popover is instant.
+          setNotifications(list);
         }
       } catch (error) {
         console.error('Error fetching unread count:', error);
@@ -52,7 +200,7 @@ export function NotificationsBell() {
     };
 
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 10000); // Every 10 seconds (faster for beep)
 
     return () => clearInterval(interval);
   }, [session]);
@@ -109,6 +257,7 @@ export function NotificationsBell() {
         <Button
           variant="ghost"
           size="icon"
+          onClick={() => void unlockAudio()}
           className="relative hover:bg-transparent h-7 w-7 sm:h-8 sm:w-8 p-0"
         >
           <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-[#00f0ff] drop-shadow-[0_0_12px_rgba(0,240,255,0.9)]" />

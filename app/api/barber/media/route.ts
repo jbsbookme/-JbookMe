@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { uploadFile, getFileUrl } from '@/lib/s3';
+import { put } from '@vercel/blob';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 // GET /api/barber/media - Get barber's media gallery
@@ -24,12 +24,10 @@ export async function GET(req: NextRequest) {
       });
 
       // Generate URLs for each media item
-      const mediaWithUrls = await Promise.all(
-        mediaRecords.map(async (media) => ({
-          ...media,
-          mediaUrl: await getFileUrl(media.cloud_storage_path, media.isPublic),
-        }))
-      );
+      const mediaWithUrls = mediaRecords.map((media) => ({
+        ...media,
+        mediaUrl: media.cloud_storage_path,
+      }));
 
       return NextResponse.json(mediaWithUrls);
     }
@@ -64,12 +62,10 @@ export async function GET(req: NextRequest) {
     }
 
     // Generate URLs for each media item
-    const mediaWithUrls = await Promise.all(
-      barber.media.map(async (media) => ({
-        ...media,
-        mediaUrl: await getFileUrl(media.cloud_storage_path, media.isPublic),
-      }))
-    );
+    const mediaWithUrls = barber.media.map((media) => ({
+      ...media,
+      mediaUrl: media.cloud_storage_path,
+    }));
 
     return NextResponse.json(mediaWithUrls);
   } catch (error) {
@@ -170,17 +166,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert file to buffer
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const timestamp = Date.now();
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const blobPath = `barber-media/${barber.id}/${year}/${month}/${timestamp}-${sanitizedFileName}`;
 
-    // Upload file to S3 (public files for portfolio)
-    const cloud_storage_path = await uploadFile(buffer, file.name, true);
+    const blob = await put(blobPath, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
     // Create media record
     const media = await prisma.barberMedia.create({
       data: {
         barberId: barber.id,
-        cloud_storage_path,
+        cloud_storage_path: blob.url,
         isPublic: true,
         mediaType,
         title: title || null,
@@ -188,8 +190,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Generate URL for response
-    const mediaUrl = await getFileUrl(cloud_storage_path, true);
+    const mediaUrl = blob.url;
 
     return NextResponse.json(
       {

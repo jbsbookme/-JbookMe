@@ -61,7 +61,9 @@ export async function PUT(request: NextRequest) {
       youtube, 
       whatsapp,
       maleGenderImage,
-      femaleGenderImage
+      femaleGenderImage,
+      galleryMaleCircleImage,
+      galleryFemaleCircleImage
     } = body
 
     let settings = await prisma.settings.findFirst()
@@ -83,6 +85,8 @@ export async function PUT(request: NextRequest) {
     if (whatsapp !== undefined) updateData.whatsapp = whatsapp
     if (maleGenderImage !== undefined) updateData.maleGenderImage = maleGenderImage
     if (femaleGenderImage !== undefined) updateData.femaleGenderImage = femaleGenderImage
+    if (galleryMaleCircleImage !== undefined) updateData.galleryMaleCircleImage = galleryMaleCircleImage
+    if (galleryFemaleCircleImage !== undefined) updateData.galleryFemaleCircleImage = galleryFemaleCircleImage
 
     console.log('[API Settings] Update data:', updateData)
 
@@ -104,7 +108,9 @@ export async function PUT(request: NextRequest) {
           youtube,
           whatsapp,
           maleGenderImage,
-          femaleGenderImage
+          femaleGenderImage,
+          galleryMaleCircleImage,
+          galleryFemaleCircleImage
         }
       })
       console.log('[API Settings] Created:', settings.id)

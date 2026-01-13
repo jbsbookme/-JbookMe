@@ -78,9 +78,10 @@ export async function PUT(request: NextRequest) {
       });
     } else if (notificationId) {
       // Mark specific notification as read
-      await prisma.notification.update({
+      await prisma.notification.updateMany({
         where: {
-          id: notificationId
+          id: notificationId,
+          userId: session.user.id
         },
         data: {
           isRead: true
@@ -100,6 +101,56 @@ export async function PUT(request: NextRequest) {
     console.error('Error updating notifications:', error);
     return NextResponse.json(
       { error: 'Failed to update notifications' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete notification(s)
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const notificationId = typeof body?.notificationId === 'string' ? body.notificationId : undefined;
+    const deleteAll = Boolean(body?.deleteAll);
+
+    if (deleteAll) {
+      const result = await prisma.notification.deleteMany({
+        where: {
+          userId: session.user.id
+        }
+      });
+
+      return NextResponse.json({
+        message: 'All notifications deleted',
+        deletedCount: result.count
+      });
+    }
+
+    if (!notificationId) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    }
+
+    const result = await prisma.notification.deleteMany({
+      where: {
+        id: notificationId,
+        userId: session.user.id
+      }
+    });
+
+    return NextResponse.json({
+      message: 'Notification deleted',
+      deletedCount: result.count
+    });
+  } catch (error) {
+    console.error('Error deleting notifications:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete notifications' },
       { status: 500 }
     );
   }

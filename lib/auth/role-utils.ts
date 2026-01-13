@@ -5,7 +5,8 @@ export function isAdmin(role: AppRole | null | undefined): boolean {
 }
 
 export function isBarberOrAdmin(role: AppRole | null | undefined): boolean {
-  return role === 'BARBER' || role === 'ADMIN';
+  // STYLIST is treated as a barber role throughout the app.
+  return role === 'BARBER' || role === 'STYLIST' || role === 'ADMIN';
 }
 
 export function isClient(role: AppRole | null | undefined): boolean {

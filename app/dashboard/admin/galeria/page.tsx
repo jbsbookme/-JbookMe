@@ -84,6 +84,8 @@ export default function GestionGaleriaPage() {
   // Estados para imágenes de género
   const [uploadingGenderImage, setUploadingGenderImage] = useState<'male' | 'female' | null>(null)
   const [showGenderImagesDialog, setShowGenderImagesDialog] = useState(false)
+  const [maleGenderImageUrl, setMaleGenderImageUrl] = useState<string | null>(null)
+  const [femaleGenderImageUrl, setFemaleGenderImageUrl] = useState<string | null>(null)
 
   // Cargar imágenes y barberos
   useEffect(() => {
@@ -95,8 +97,21 @@ export default function GestionGaleriaPage() {
     if (status === 'authenticated') {
       fetchImages()
       fetchBarbers()
+      fetchGenderImages()
     }
   }, [status, session, router])
+
+  const fetchGenderImages = async () => {
+    try {
+      const res = await fetch('/api/settings', { cache: 'no-store' })
+      if (!res.ok) return
+      const data = await res.json()
+      setMaleGenderImageUrl(data?.maleGenderImage ?? null)
+      setFemaleGenderImageUrl(data?.femaleGenderImage ?? null)
+    } catch {
+      // ignore
+    }
+  }
 
   const fetchImages = async () => {
     try {
@@ -179,7 +194,14 @@ export default function GestionGaleriaPage() {
         toast.success('Image uploaded successfully')
         return data.cloud_storage_path
       } else {
-        toast.error('Error uploading image')
+        let errMsg = 'Error uploading image'
+        try {
+          const errorData = await response.json()
+          if (errorData?.error) errMsg = String(errorData.error)
+        } catch {
+          // ignore
+        }
+        toast.error(errMsg)
         return null
       }
     } catch (error) {
@@ -317,13 +339,19 @@ export default function GestionGaleriaPage() {
       if (response.ok) {
         const data = await response.json()
         toast.success(data.message || 'Image updated successfully')
-        // Forzar recarga de la imagen
-        setTimeout(() => {
-          window.location.reload()
-        }, 500)
+
+        const nextUrl: string | null = data?.url ?? null
+        if (gender === 'male') setMaleGenderImageUrl(nextUrl)
+        else setFemaleGenderImageUrl(nextUrl)
       } else {
-        const errorData = await response.json()
-        toast.error(errorData.error || 'Error uploading image')
+        let errMsg = 'Error uploading image'
+        try {
+          const errorData = await response.json()
+          if (errorData?.error) errMsg = String(errorData.error)
+        } catch {
+          // ignore
+        }
+        toast.error(errMsg)
       }
     } catch (error) {
       console.error('Error uploading gender image:', error)
@@ -391,7 +419,7 @@ export default function GestionGaleriaPage() {
                       <h3 className="text-lg font-semibold text-cyan-400 mb-3">Men</h3>
                       <div className="aspect-video bg-gray-700 rounded-lg mb-3 overflow-hidden relative">
                         <Image
-                          src="/uploads/gender-images/male.jpg"
+                          src={maleGenderImageUrl || '/uploads/gender-images/male.jpg'}
                           alt="Men"
                           fill
                           className="object-cover"
@@ -422,7 +450,7 @@ export default function GestionGaleriaPage() {
                       <h3 className="text-lg font-semibold text-pink-400 mb-3">Women</h3>
                       <div className="aspect-video bg-gray-700 rounded-lg mb-3 overflow-hidden relative">
                         <Image
-                          src="/uploads/gender-images/female.jpg"
+                          src={femaleGenderImageUrl || '/uploads/gender-images/female.jpg'}
                           alt="Women"
                           fill
                           className="object-cover"

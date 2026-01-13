@@ -296,6 +296,27 @@ export async function DELETE(request: NextRequest, context: Params) {
       return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
     }
 
+    // If it's already cancelled, allow the owner (or admin/barber owner) to delete it from history.
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      const role = session.user.role;
+      const userId = session.user.id;
+      const sessionBarberId = (session.user as unknown as { barberId?: string | null }).barberId;
+
+      const isAdmin = role === 'ADMIN';
+      const isClientOwner = appointment.clientId === userId;
+      const isBarberOwner =
+        (role === 'BARBER' || role === 'STYLIST') &&
+        Boolean(sessionBarberId) &&
+        appointment.barberId === sessionBarberId;
+
+      if (!isAdmin && !isClientOwner && !isBarberOwner) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      await prisma.appointment.delete({ where: { id } });
+      return NextResponse.json({ message: 'Appointment deleted' });
+    }
+
     // PERMANENT DELETE (Admin only, for cleaning up cancelled appointments)
     if (permanentDelete) {
       if (session.user.role !== 'ADMIN') {

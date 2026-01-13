@@ -16,6 +16,9 @@ export async function GET(_req: NextRequest) {
       );
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     // Find the barber record
     const barber = await prisma.barber.findUnique({
       where: { userId: session.user.id },
@@ -23,7 +26,7 @@ export async function GET(_req: NextRequest) {
         daysOff: {
           where: {
             date: {
-              gte: new Date(), // Only future days off
+              gte: today, // Include today + future days off
             },
           },
           orderBy: {
@@ -40,7 +43,7 @@ export async function GET(_req: NextRequest) {
       );
     }
 
-    return NextResponse.json(barber.daysOff);
+    return NextResponse.json({ daysOff: barber.daysOff });
   } catch (error) {
     console.error('Error fetching days off:', error);
     return NextResponse.json(
@@ -72,6 +75,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Interpret date as a date-only string (YYYY-MM-DD) in local time.
+    const dayOffDate = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(dayOffDate.getTime())) {
+      return NextResponse.json(
+        { error: 'Invalid date.' },
+        { status: 400 }
+      );
+    }
+
     // Find the barber record
     const barber = await prisma.barber.findUnique({
       where: { userId: session.user.id },
@@ -89,7 +101,7 @@ export async function POST(req: NextRequest) {
       where: {
         barberId_date: {
           barberId: barber.id,
-          date: new Date(date),
+          date: dayOffDate,
         },
       },
     });
@@ -105,7 +117,7 @@ export async function POST(req: NextRequest) {
     const dayOff = await prisma.dayOff.create({
       data: {
         barberId: barber.id,
-        date: new Date(date),
+        date: dayOffDate,
         reason: reason || null,
       },
     });

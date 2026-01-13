@@ -33,7 +33,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await fetch('/api/user/profile');
+      const response = await fetch('/api/user/profile', { cache: 'no-store' });
       if (response.ok) {
         const data = await response.json();
         // For barbers, prefer profileImage over user image
@@ -61,6 +61,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, [status, session?.user?.id]);
+
+  // Keep cached user in sync with NextAuth session updates (e.g. avatar change).
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    const sessionImage = session?.user?.image ?? null;
+    if (!user) return;
+    if (user.image === sessionImage) return;
+
+    setUser({ ...user, image: sessionImage });
+  }, [status, session?.user?.image, user]);
 
   // Update user data locally and in session
   const updateUser = async (updates: Partial<User>) => {

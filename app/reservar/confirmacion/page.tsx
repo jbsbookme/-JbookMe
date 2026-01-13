@@ -3,10 +3,12 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 export default function ConfirmacionReservaPage() {
   const params = useSearchParams();
   const router = useRouter();
+  const { t } = useI18n();
 
   const barber = params.get('barber');
   const service = params.get('service');
@@ -27,22 +29,22 @@ export default function ConfirmacionReservaPage() {
 
         {/* Title */}
         <h1 className="text-3xl font-bold text-white mb-2">
-          Appointment confirmed
+          {t('booking.appointmentConfirmedTitle')}
         </h1>
 
         {/* Message */}
         <p className="text-gray-300 mb-6">
-          Thank you for booking with{' '}
+          {t('booking.thankYouForBookingWith')}{' '}
           <span className="text-[#00f0ff] font-semibold">{shopName}</span>.
         </p>
 
         {/* Summary */}
         <div className="bg-black/40 border border-gray-700 rounded-xl p-5 text-left text-gray-200 space-y-2 mb-6">
-          <p><strong>Professional:</strong> {barber}</p>
-          <p><strong>Service:</strong> {service}</p>
-          <p><strong>Date:</strong> {date}</p>
-          <p><strong>Time:</strong> {time}</p>
-          <p><strong>Price:</strong> <span className="text-[#ffd700] font-semibold">${price}</span></p>
+          <p><strong>{t('booking.professionalLabel')}:</strong> {barber}</p>
+          <p><strong>{t('booking.serviceLabel')}:</strong> {service}</p>
+          <p><strong>{t('booking.dateLabel')}:</strong> {date}</p>
+          <p><strong>{t('booking.timeLabel')}:</strong> {time}</p>
+          <p><strong>{t('booking.priceLabel')}:</strong> <span className="text-[#ffd700] font-semibold">${price}</span></p>
         </div>
 
         {/* Button */}
@@ -52,7 +54,7 @@ export default function ConfirmacionReservaPage() {
           }}
           className="w-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold py-3 text-lg hover:shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all"
         >
-          Go to profile
+          {t('booking.goToProfile')}
         </Button>
       </div>
     </div>

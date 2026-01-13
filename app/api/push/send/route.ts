@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       body: message,
       icon: '/icon-192.png',
       badge: '/icon-96.png',
+      url: link || '/',
       data: {
         url: link || '/',
       },

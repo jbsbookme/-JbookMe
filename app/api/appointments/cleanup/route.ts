@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { AppointmentStatus } from '@prisma/client';
+import { processPromotions } from '@/lib/cron/promotions';
 
 function parseHoursMinutes(time: string): { hours: number; minutes: number } | null {
   const match = time.trim().match(/^\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?\s*$/i);
@@ -33,7 +34,7 @@ function getAppointmentDateTime(date: Date, time: string): Date | null {
 }
 
 /**
- * Cleanup old appointments - Delete cancelled/completed/no-show appointments after 24 hours
+ * Cleanup old appointments - Delete cancelled/completed/no-show appointments after 48 hours
  * This endpoint should be called by a cron job or scheduled task
  */
 type CleanupResult = {
@@ -44,25 +45,30 @@ type CleanupResult = {
 };
 
 async function computeCleanup(cutoff: Date) {
-  const cancelledCount = await prisma.appointment.count({
+  const cancelledCandidates = await prisma.appointment.findMany({
     where: {
-      OR: [
-        {
-          status: AppointmentStatus.CANCELLED,
-          cancelledAt: {
-            lt: cutoff,
-          },
-        },
-        {
-          status: AppointmentStatus.CANCELLED,
-          cancelledAt: null,
-          updatedAt: {
-            lt: cutoff,
-          },
-        },
-      ],
+      status: AppointmentStatus.CANCELLED,
+      date: {
+        lte: cutoff,
+      },
+    },
+    select: {
+      id: true,
+      date: true,
+      time: true,
+      cancelledAt: true,
+      updatedAt: true,
     },
   });
+
+  const cancelledIds = cancelledCandidates
+    .map((a) => {
+      const aptDateTime = getAppointmentDateTime(a.date, a.time);
+      const aptOldEnough = aptDateTime ? aptDateTime < cutoff : a.date < cutoff;
+      const cancelledOldEnough = a.cancelledAt ? a.cancelledAt < cutoff : a.updatedAt < cutoff;
+      return aptOldEnough || cancelledOldEnough ? a.id : null;
+    })
+    .filter((id): id is string => Boolean(id));
 
   const completedCandidates = await prisma.appointment.findMany({
     where: {
@@ -88,31 +94,21 @@ async function computeCleanup(cutoff: Date) {
     })
     .filter((id): id is string => Boolean(id));
 
-  return { cancelledCount, completedIds };
+  return { cancelledIds, completedIds };
 }
 
 async function runCleanup(cutoff: Date): Promise<CleanupResult> {
-  const { completedIds, cancelledCount } = await computeCleanup(cutoff);
+  const { completedIds, cancelledIds } = await computeCleanup(cutoff);
 
-  const cancelledResult = await prisma.appointment.deleteMany({
-    where: {
-      OR: [
-        {
-          status: AppointmentStatus.CANCELLED,
-          cancelledAt: {
-            lt: cutoff,
+  const cancelledResult = cancelledIds.length
+    ? await prisma.appointment.deleteMany({
+        where: {
+          id: {
+            in: cancelledIds,
           },
         },
-        {
-          status: AppointmentStatus.CANCELLED,
-          cancelledAt: null,
-          updatedAt: {
-            lt: cutoff,
-          },
-        },
-      ],
-    },
-  });
+      })
+    : { count: 0 };
 
   const completedResult = completedIds.length
     ? await prisma.appointment.deleteMany({
@@ -154,12 +150,17 @@ function isAuthorizedCron(req: Request): boolean {
   return false;
 }
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    if (!isAuthorizedCron(req)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
     console.log('🧹 Running appointment cleanup (POST). Cutoff:', cutoff.toISOString());
 
     const result = await runCleanup(cutoff);
+    const promotionsResult = await processPromotions(new Date());
 
     console.log(
       `✓ Cleaned up ${result.total} old appointments (cancelled=${result.cancelledCount}, completed/no-show=${result.completedOrNoShowCount})`
@@ -174,6 +175,7 @@ export async function POST() {
         completedOrNoShow: result.completedOrNoShowCount,
       },
       cutoffDate: result.cutoff.toISOString(),
+      promotions: promotionsResult,
     });
   } catch (error) {
     console.error('Error cleaning up appointments:', error);
@@ -189,12 +191,13 @@ export async function POST() {
  */
 export async function GET(req: Request) {
   try {
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
     // If called by Vercel Cron (GET), run the real cleanup.
     if (isAuthorizedCron(req)) {
       console.log('🧹 Running appointment cleanup (GET cron). Cutoff:', cutoff.toISOString());
       const result = await runCleanup(cutoff);
+      const promotionsResult = await processPromotions(new Date());
       return NextResponse.json({
         success: true,
         message: `Cleaned up ${result.total} old appointments`,
@@ -204,16 +207,17 @@ export async function GET(req: Request) {
           completedOrNoShow: result.completedOrNoShowCount,
         },
         cutoffDate: result.cutoff.toISOString(),
+        promotions: promotionsResult,
       });
     }
 
-    const { cancelledCount, completedIds } = await computeCleanup(cutoff);
-    const total = cancelledCount + completedIds.length;
+    const { cancelledIds, completedIds } = await computeCleanup(cutoff);
+    const total = cancelledIds.length + completedIds.length;
 
     return NextResponse.json({
       appointmentsToCleanup: total,
       breakdown: {
-        cancelled: cancelledCount,
+        cancelled: cancelledIds.length,
         completedOrNoShow: completedIds.length,
       },
       cutoffDate: cutoff.toISOString(),

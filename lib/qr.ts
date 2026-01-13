@@ -3,8 +3,10 @@ import QRCode from 'qrcode';
 export async function generateQRCode(url: string, useStandardColors = false): Promise<string> {
   try {
     const qrCodeDataURL = await QRCode.toDataURL(url, {
-      width: 300,
-      margin: 2,
+      // High-res QR renders much better on phone screens (avoids blur from upscaling).
+      width: 900,
+      margin: 4,
+      errorCorrectionLevel: 'H',
       color: useStandardColors
         ? {
             dark: '#000000',

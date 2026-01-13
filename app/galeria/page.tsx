@@ -10,8 +10,8 @@ import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ShareFAB } from '@/components/share-fab';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { HistoryBackButton } from '@/components/layout/history-back-button';
 
 interface GalleryImage {
   id: string;
@@ -43,6 +43,8 @@ export default function GaleriaPage() {
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showGenderSelection, setShowGenderSelection] = useState(true);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const [galleryMaleCircleImage, setGalleryMaleCircleImage] = useState<string | null>(null);
+  const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
 
   useEffect(() => {
     // Proteger la ruta - requiere autenticación
@@ -61,6 +63,22 @@ export default function GaleriaPage() {
       }
     }
   }, [session, status, router, searchParams]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/settings', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        setGalleryMaleCircleImage(data?.galleryMaleCircleImage ?? null);
+        setGalleryFemaleCircleImage(data?.galleryFemaleCircleImage ?? null);
+      } catch {
+        // ignore
+      }
+    })();
+  }, [status]);
 
   const fetchGalleryImages = useCallback(async (): Promise<GalleryImage[]> => {
     try {
@@ -200,6 +218,26 @@ export default function GaleriaPage() {
   if (showGenderSelection) {
     return (
       <div className="min-h-screen bg-black pb-24">
+        <div className="sticky top-0 z-40 bg-black/90 backdrop-blur-sm border-b border-gray-800">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center gap-3">
+              <HistoryBackButton
+                fallbackHref="/menu"
+                variant="ghost"
+                size="icon"
+                aria-label={t('common.back')}
+                className="text-gray-400 hover:text-white"
+              >
+                <span aria-hidden>←</span>
+              </HistoryBackButton>
+              <div className="min-w-0">
+                <div className="text-white font-semibold truncate">{t('gallery.title')}</div>
+                <div className="text-xs text-gray-400 truncate">{t('gallery.chooseWhatToExplore')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="container mx-auto px-4 py-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -208,10 +246,10 @@ export default function GaleriaPage() {
           >
             <h1 className="text-4xl font-bold text-center mb-4">
               <Sparkles className="inline w-10 h-10 text-[#ffd700] mr-3" />
-              <span className="text-white">Get Inspired</span>
+              <span className="text-white">{t('gallery.title')}</span>
             </h1>
             <p className="text-gray-400 text-center text-lg mb-12">
-              Choose your style category
+              {t('gallery.chooseWhatToExplore')}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -226,11 +264,17 @@ export default function GaleriaPage() {
                   <div className="relative h-80 bg-gradient-to-br from-blue-500/20 to-cyan-500/20">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-[0_0_40px_rgba(59,130,246,0.5)]">
-                          <User className="w-16 h-16 text-white" />
+                        <div className="relative w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-[0_0_40px_rgba(59,130,246,0.5)] overflow-hidden">
+                          {galleryMaleCircleImage ? (
+                            <Image src={galleryMaleCircleImage} alt={t('gallery.men')} fill className="object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <User className="w-16 h-16 text-white" />
+                            </div>
+                          )}
                         </div>
-                        <h3 className="text-3xl font-bold text-white mb-2">Men</h3>
-                        <p className="text-gray-400">Barber services & styles</p>
+                        <h3 className="text-3xl font-bold text-white mb-2">{t('gallery.men')}</h3>
+                        <p className="text-gray-400">{t('gallery.menCardSubtitle')}</p>
                       </div>
                     </div>
                   </div>
@@ -248,11 +292,17 @@ export default function GaleriaPage() {
                   <div className="relative h-80 bg-gradient-to-br from-pink-500/20 to-purple-500/20">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
-                        <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center shadow-[0_0_40px_rgba(236,72,153,0.5)]">
-                          <User className="w-16 h-16 text-white" />
+                        <div className="relative w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 shadow-[0_0_40px_rgba(236,72,153,0.5)] overflow-hidden">
+                          {galleryFemaleCircleImage ? (
+                            <Image src={galleryFemaleCircleImage} alt={t('gallery.women')} fill className="object-cover" />
+                          ) : (
+                            <div className="h-full w-full flex items-center justify-center">
+                              <User className="w-16 h-16 text-white" />
+                            </div>
+                          )}
                         </div>
-                        <h3 className="text-3xl font-bold text-white mb-2">Women</h3>
-                        <p className="text-gray-400">Stylist services & looks</p>
+                        <h3 className="text-3xl font-bold text-white mb-2">{t('gallery.women')}</h3>
+                        <p className="text-gray-400">{t('gallery.womenCardSubtitle')}</p>
                       </div>
                     </div>
                   </div>
@@ -271,10 +321,22 @@ export default function GaleriaPage() {
       {/* Título y Filtros */}
       <div className="bg-black/95 backdrop-blur-sm border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-white text-center mb-4">
-            <Sparkles className="inline w-6 h-6 text-[#ffd700] mr-2" />
-            {t('gallery.title')}
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            <HistoryBackButton
+              fallbackHref="/galeria-genero"
+              variant="ghost"
+              size="icon"
+              aria-label={t('common.back')}
+              className="text-gray-400 hover:text-white"
+            >
+              <span aria-hidden>←</span>
+            </HistoryBackButton>
+            <h1 className="text-2xl font-bold text-white text-center flex-1">
+              <Sparkles className="inline w-6 h-6 text-[#ffd700] mr-2" />
+              {t('gallery.title')}
+            </h1>
+            <div className="w-10" />
+          </div>
 
           {/* Filtros de género */}
           <div className="flex gap-2 mb-3">
@@ -451,24 +513,21 @@ export default function GaleriaPage() {
           {t('gallery.showing')} {filteredImages.length} {t('gallery.of')} {images.length} {t('gallery.photos')}
         </div>
       </div>
-      
-      {/* FAB Buttons */}
-      <ShareFAB />
-
       {/* Image Zoom Modal */}
       {selectedImage && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex flex-col"
           onClick={() => setSelectedImage(null)}
         >
           <button
             onClick={() => setSelectedImage(null)}
             className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+            aria-label={t('common.close')}
           >
             <X className="w-6 h-6 text-white" />
           </button>
 
-          <div className="w-full h-full flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex-1 w-full flex items-center justify-center p-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <TransformWrapper
               initialScale={1}
               minScale={0.5}
@@ -480,7 +539,7 @@ export default function GaleriaPage() {
                 wrapperClass="!w-full !h-full flex items-center justify-center"
                 contentClass="!w-auto !h-auto"
               >
-                <div className="relative w-screen h-screen max-w-full max-h-full flex items-center justify-center">
+                <div className="relative w-full h-full max-w-full max-h-full flex items-center justify-center">
                   <Image
                     src={selectedImage.imageUrl}
                     alt={selectedImage.title}
@@ -495,7 +554,7 @@ export default function GaleriaPage() {
           </div>
 
           {/* Image Info */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-6 text-white">
+          <div className="w-full bg-black/90 p-6 text-white">
             <h3 className="text-xl font-bold mb-2">{selectedImage.title}</h3>
             {selectedImage.barber?.user?.name && (
               <p className="text-[#00f0ff] text-sm mb-2">
@@ -515,7 +574,7 @@ export default function GaleriaPage() {
               </div>
             )}
             <p className="text-xs text-gray-400 mt-3">
-              💡 Use two fingers to zoom • Double click to zoom quickly
+              {t('gallery.zoomHint')}
             </p>
           </div>
         </div>

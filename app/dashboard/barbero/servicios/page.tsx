@@ -30,6 +30,7 @@ import {
 import { Scissors, Plus, Edit2, Trash2, Clock, DollarSign, Upload, X, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatPrice } from '@/lib/utils';
 
 interface Service {
   id: string;
@@ -403,8 +404,8 @@ export default function BarberServicesPage() {
                         <DollarSign className="w-4 h-4 mr-2" />
                         Price
                       </span>
-                      <span className="text-[#ffd700] font-semibold text-lg">
-                        ${service.price}
+                      <span className="text-[#ffd700] font-semibold text-lg shrink-0 whitespace-nowrap break-normal tabular-nums">
+                        {formatPrice(service.price)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">

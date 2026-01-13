@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { uploadFile, getFileUrl } from '@/lib/s3';
+import { put } from '@vercel/blob';
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,34 +39,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Convertir a buffer
-    const bytes = await image.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Generar nombre único
     const timestamp = Date.now();
-    const ext = image.name.split('.').pop() || image.type.split('/')[1];
-    const fileName = `profile-${session.user.id}-${timestamp}.${ext}`;
+    const safeName = (image.name || 'profile').replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `profiles/users/${session.user.id}/${timestamp}-${safeName}`;
 
-    // Prefer S3 when available (production safe)
-    let imageUrl: string;
-    try {
-      console.log('[PROFILE IMAGE] Attempting S3 upload...');
-      const cloud_storage_path = await uploadFile(buffer, `profiles/${fileName}`, true);
-      imageUrl = await getFileUrl(cloud_storage_path, true);
-      console.log('[PROFILE IMAGE] S3 upload successful:', imageUrl);
-    } catch (s3Error) {
-      console.log('[PROFILE IMAGE] S3 failed, saving locally:', s3Error);
+    const blob = await put(fileName, image, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
-      // Guardar localmente en public/uploads/profiles/
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'profiles');
-      await mkdir(uploadsDir, { recursive: true });
-
-      const filePath = path.join(uploadsDir, fileName);
-      await writeFile(filePath, buffer);
-
-      // URL pública para acceder a la imagen
-      imageUrl = `/uploads/profiles/${fileName}`;
-    }
+    const imageUrl = blob.url;
 
     // Actualizar usuario en la base de datos
     const updatedUser = await prisma.user.update({

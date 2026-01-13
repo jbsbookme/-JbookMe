@@ -97,6 +97,7 @@ export default function AdminEstilistasPage() {
     password: '',
     contactEmail: '',
     gender: 'FEMALE',
+    isActive: true,
     bio: '',
     specialties: '',
     hourlyRate: '',
@@ -137,7 +138,7 @@ export default function AdminEstilistasPage() {
   const fetchBarbers = useCallback(async () => {
     try {
       // FIXED: Only load FEMALE stylists
-      const response = await fetch('/api/barbers?gender=FEMALE');
+      const response = await fetch('/api/barbers?gender=FEMALE&includeInactive=1');
       if (response.ok) {
         const data = await response.json();
         setBarbers(data.barbers || []);
@@ -149,6 +150,38 @@ export default function AdminEstilistasPage() {
       setLoading(false);
     }
   }, []);
+
+  const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+
+  const toggleActive = async (barber: Barber) => {
+    if (togglingActiveId) return;
+
+    const nextIsActive = !barber.isActive;
+
+    setTogglingActiveId(barber.id);
+    setBarbers((prev) => prev.map((b) => (b.id === barber.id ? { ...b, isActive: nextIsActive } : b)));
+
+    try {
+      const response = await fetch(`/api/barbers/${barber.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || 'Failed to update status');
+      }
+
+      toast.success(nextIsActive ? 'Stylist activated' : 'Stylist deactivated');
+    } catch (e) {
+      console.error('[AdminEstilistas] toggleActive failed:', e);
+      setBarbers((prev) => prev.map((b) => (b.id === barber.id ? { ...b, isActive: barber.isActive } : b)));
+      toast.error(e instanceof Error ? e.message : 'Failed to update status');
+    } finally {
+      setTogglingActiveId(null);
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -279,8 +312,10 @@ export default function AdminEstilistasPage() {
     setSubmitting(true);
     try {
       const body: Record<string, unknown> = {
+        role: 'BARBER',
         contactEmail: newBarberForm.contactEmail || null,
         gender: newBarberForm.gender || 'FEMALE',
+        isActive: newBarberForm.isActive,
         bio: newBarberForm.bio || null,
         specialties: newBarberForm.specialties || null,
         hourlyRate: newBarberForm.hourlyRate ? parseFloat(newBarberForm.hourlyRate) : null,
@@ -320,6 +355,7 @@ export default function AdminEstilistasPage() {
           password: '',
           contactEmail: '',
           gender: 'FEMALE',
+          isActive: true,
           bio: '',
           specialties: '',
           hourlyRate: '',
@@ -483,14 +519,25 @@ export default function AdminEstilistasPage() {
             </h1>
             <p className="text-gray-400">Manage your team of stylists who serve women</p>
           </div>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            size="sm"
-            className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Stylist
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              onClick={() => nextRouter.push('/dashboard/admin/barberos')}
+            >
+              Ver barberos
+            </Button>
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              size="sm"
+              className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Stylist
+            </Button>
+          </div>
         </div>
 
         {barbers.length === 0 ? (
@@ -590,15 +637,18 @@ export default function AdminEstilistasPage() {
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-400">Status</span>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                      <button
+                        type="button"
+                        disabled={togglingActiveId === barber.id}
+                        onClick={() => toggleActive(barber)}
+                        className={`px-2 py-1 rounded text-xs font-semibold transition-opacity ${
                           barber.isActive
                             ? 'bg-green-500/20 text-green-500'
                             : 'bg-red-500/20 text-red-500'
-                        }`}
+                        } ${togglingActiveId === barber.id ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'}`}
                       >
                         {barber.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                      </button>
                     </div>
                   </div>
 
@@ -952,6 +1002,17 @@ export default function AdminEstilistasPage() {
                   placeholder="https://images.pexels.com/photos/2076930/pexels-photo-2076930.jpeg?cs=srgb&dl=pexels-thgusstavo-2076930.jpg&fm=jpg"
                   className="bg-[#0a0a0a] border-gray-700 text-white text-xs"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  id="add-isActive"
+                  type="checkbox"
+                  checked={newBarberForm.isActive}
+                  onChange={(e) => setNewBarberForm({ ...newBarberForm, isActive: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="add-isActive" className="text-gray-300">Active stylist</Label>
               </div>
             </div>
           </div>

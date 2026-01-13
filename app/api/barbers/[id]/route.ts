@@ -57,7 +57,15 @@ export async function GET(
       totalAppointments: barber._count.appointments,
     };
 
-    return NextResponse.json({ barber: barberWithRating });
+    return NextResponse.json(
+      { barber: barberWithRating },
+      {
+        headers: {
+          'Cache-Control': 'private, no-store, max-age=0',
+          Vary: 'Cookie',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching barber:', error);
     return NextResponse.json({ error: 'Failed to fetch barber' }, { status: 500 });

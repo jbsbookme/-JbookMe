@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MapPin, Phone, Mail, Clock, Navigation, ArrowLeft } from 'lucide-react'
+import { MapPin, Phone, Mail, Clock, Navigation, ArrowLeft, Facebook, Instagram, Twitter, Youtube, Music2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -15,12 +15,37 @@ interface Settings {
   email: string | null
   latitude: number | null
   longitude: number | null
+
+  facebook?: string | null
+  instagram?: string | null
+  twitter?: string | null
+  tiktok?: string | null
+  youtube?: string | null
+  whatsapp?: string | null
+
+  // Backward-compat (some older UI used *Url)
+  facebookUrl?: string | null
+  instagramUrl?: string | null
+  twitterUrl?: string | null
+  tiktokUrl?: string | null
+  youtubeUrl?: string | null
+  whatsappUrl?: string | null
 }
 
 export default function UbicacionPage() {
   const { t } = useI18n()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const businessFacebook = settings?.facebookUrl || settings?.facebook || ''
+  const businessInstagram = settings?.instagramUrl || settings?.instagram || ''
+  const businessTwitter = settings?.twitterUrl || settings?.twitter || ''
+  const businessTiktok = settings?.tiktokUrl || settings?.tiktok || ''
+  const businessYoutube = settings?.youtubeUrl || settings?.youtube || ''
+  const businessWhatsapp = settings?.whatsappUrl || settings?.whatsapp || ''
+  const hasSocial = Boolean(
+    businessFacebook || businessInstagram || businessTwitter || businessTiktok || businessYoutube || businessWhatsapp
+  )
 
   useEffect(() => {
     fetchSettings()
@@ -162,6 +187,85 @@ export default function UbicacionPage() {
                   </div>
                 </div>
               </div>
+
+              {hasSocial && (
+                <div className="mt-6 pt-6 border-t border-gray-800">
+                  <p className="text-sm text-gray-400 mb-3">{t('common.followUs')}</p>
+                  <div className="flex flex-wrap gap-3">
+                    {businessFacebook ? (
+                      <a
+                        href={businessFacebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Facebook"
+                        className="w-11 h-11 rounded-full bg-blue-500/20 flex items-center justify-center hover:bg-blue-500/30 transition-colors"
+                      >
+                        <Facebook className="w-5 h-5 text-blue-400" />
+                      </a>
+                    ) : null}
+
+                    {businessInstagram ? (
+                      <a
+                        href={businessInstagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Instagram"
+                        className="w-11 h-11 rounded-full bg-pink-500/20 flex items-center justify-center hover:bg-pink-500/30 transition-colors"
+                      >
+                        <Instagram className="w-5 h-5 text-pink-400" />
+                      </a>
+                    ) : null}
+
+                    {businessTwitter ? (
+                      <a
+                        href={businessTwitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Twitter / X"
+                        className="w-11 h-11 rounded-full bg-[#00f0ff]/20 flex items-center justify-center hover:bg-[#00f0ff]/30 transition-colors"
+                      >
+                        <Twitter className="w-5 h-5 text-[#00f0ff]" />
+                      </a>
+                    ) : null}
+
+                    {businessTiktok ? (
+                      <a
+                        href={businessTiktok}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="TikTok"
+                        className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+                      >
+                        <Music2 className="w-5 h-5 text-white" />
+                      </a>
+                    ) : null}
+
+                    {businessYoutube ? (
+                      <a
+                        href={businessYoutube}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="YouTube"
+                        className="w-11 h-11 rounded-full bg-red-500/20 flex items-center justify-center hover:bg-red-500/30 transition-colors"
+                      >
+                        <Youtube className="w-5 h-5 text-red-400" />
+                      </a>
+                    ) : null}
+
+                    {businessWhatsapp ? (
+                      <a
+                        href={businessWhatsapp}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="WhatsApp"
+                        className="w-11 h-11 rounded-full bg-green-500/20 flex items-center justify-center hover:bg-green-500/30 transition-colors"
+                      >
+                        <MessageCircle className="w-5 h-5 text-green-400" />
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              )}
 
               <Button
                 onClick={openInMaps}

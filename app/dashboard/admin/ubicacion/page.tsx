@@ -1,6 +1,7 @@
+
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -8,8 +9,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { MapPin, Save, ArrowLeft, Navigation, Locate, Clock, MessageCircle, Phone } from 'lucide-react'
+import { formatTime12h } from '@/lib/time'
 
 interface Settings {
   id: string
@@ -59,6 +62,17 @@ export default function GestionUbicacionPage() {
   const [saving, setSaving] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
   const [businessHours, setBusinessHours] = useState<BusinessHours>(defaultHours)
+
+  const timeOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = []
+    for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      const value = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+      options.push({ value, label: formatTime12h(value) })
+    }
+    return options
+  }, [])
 
   const [formData, setFormData] = useState({
     address: '',
@@ -420,19 +434,37 @@ export default function GestionUbicacionPage() {
                       {!businessHours[key].closed ? (
                         <>
                           <div className="flex items-center gap-2">
-                            <Input
-                              type="time"
+                            <Select
                               value={businessHours[key].open}
-                              onChange={(e) => updateBusinessHours(key, 'open', e.target.value)}
-                              className="w-32 bg-gray-700 border-gray-600 text-white"
-                            />
+                              onValueChange={(value) => updateBusinessHours(key, 'open', value)}
+                            >
+                              <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeOptions.map((opt) => (
+                                  <SelectItem key={`open-${key}-${opt.value}`} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <span className="text-gray-400">a</span>
-                            <Input
-                              type="time"
+                            <Select
                               value={businessHours[key].close}
-                              onChange={(e) => updateBusinessHours(key, 'close', e.target.value)}
-                              className="w-32 bg-gray-700 border-gray-600 text-white"
-                            />
+                              onValueChange={(value) => updateBusinessHours(key, 'close', value)}
+                            >
+                              <SelectTrigger className="w-32 bg-gray-700 border-gray-600 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {timeOptions.map((opt) => (
+                                  <SelectItem key={`close-${key}-${opt.value}`} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </>
                       ) : (
@@ -557,7 +589,7 @@ export default function GestionUbicacionPage() {
                         <span className="text-white">
                           {businessHours[key].closed 
                             ? 'Closed' 
-                            : `${businessHours[key].open} - ${businessHours[key].close}`}
+                            : `${formatTime12h(businessHours[key].open)} - ${formatTime12h(businessHours[key].close)}`}
                         </span>
                       </div>
                     ))}

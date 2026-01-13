@@ -140,18 +140,36 @@ export async function PUT(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Define the owner/super admin email
-    const OWNER_EMAIL = 'admin@barberia.com';
+    // Define the owner/super admin email (configurable)
+    const OWNER_EMAIL = process.env.OWNER_EMAIL || 'admin@barberia.com';
     const isOwner = session.user.email === OWNER_EMAIL;
 
-    // Prevent editing ADMIN users unless:
-    // 1. You are the owner (super admin)
-    // 2. You are editing yourself
-    if (existingUser.role === 'ADMIN' && !isOwner && existingUser.id !== session.user.id) {
+    // Prevent promoting users to ADMIN unless you are the owner.
+    if (role === 'ADMIN' && !isOwner && existingUser.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'You cannot edit other admin users' },
+        { error: 'Only the owner can promote users to admin' },
         { status: 400 }
       );
+    }
+
+    // Prevent editing ADMIN users unless:
+    // 1) You are the owner (super admin), OR
+    // 2) You are editing yourself, OR
+    // 3) You are demoting another admin to CLIENT (deactivate test admin)
+    if (existingUser.role === 'ADMIN' && !isOwner && existingUser.id !== session.user.id) {
+      const allowedDemotionOnly =
+        role === 'CLIENT' &&
+        name === undefined &&
+        email === undefined &&
+        phone === undefined &&
+        password === undefined;
+
+      if (!allowedDemotionOnly) {
+        return NextResponse.json(
+          { error: 'You cannot edit other admin users' },
+          { status: 400 }
+        );
+      }
     }
 
     // If email is being changed, check if it's already in use
@@ -255,8 +273,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Define the owner/super admin email
-    const OWNER_EMAIL = 'admin@barberia.com';
+    // Define the owner/super admin email (configurable)
+    const OWNER_EMAIL = process.env.OWNER_EMAIL || 'admin@barberia.com';
     const isOwner = session.user.email === OWNER_EMAIL;
 
     // Prevent deleting ADMIN users unless:

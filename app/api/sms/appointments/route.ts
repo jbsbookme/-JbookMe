@@ -6,6 +6,7 @@ import { sendSMS, isTwilioConfigured } from '@/lib/twilio';
 import { format, subHours, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Prisma } from '@prisma/client';
+import { formatTime12h } from '@/lib/time';
 
 export async function POST(request: NextRequest) {
   try {
@@ -149,13 +150,14 @@ export async function POST(request: NextRequest) {
 
       let message = '';
       const dateFormatted = format(new Date(appointment.date), "EEEE, d 'de' MMMM", { locale: es });
+      const timeDisplay = formatTime12h(appointment.time);
 
       switch (type) {
         case '24h':
-          message = `Recordatorio: Tu cita de ${appointment.service.name} con ${appointment.barber.user.name} es mañana ${dateFormatted} a las ${appointment.time}. ¡Te esperamos!`;
+          message = `Recordatorio: Tu cita de ${appointment.service.name} con ${appointment.barber.user.name} es mañana ${dateFormatted} a las ${timeDisplay}. ¡Te esperamos!`;
           break;
         case '2h':
-          message = `¡Tu cita es en 2 horas! ${appointment.service.name} con ${appointment.barber.user.name} a las ${appointment.time}. ¡Nos vemos pronto!`;
+          message = `¡Tu cita es en 2 horas! ${appointment.service.name} con ${appointment.barber.user.name} a las ${timeDisplay}. ¡Nos vemos pronto!`;
           break;
         case 'thank_you':
           message = `¡Gracias por visitarnos! Esperamos que hayas disfrutado tu ${appointment.service.name} con ${appointment.barber.user.name}. ¡Vuelve pronto!`;

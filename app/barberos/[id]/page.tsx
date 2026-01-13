@@ -8,6 +8,7 @@ import { ArrowLeft, Calendar, Clock, MessageCircle, Phone, User, Facebook, Insta
 import { PublicProfileRating } from '@/components/public-profile-rating';
 import { PublicProfileReviews } from '@/components/public-profile-reviews';
 import { BarberPublicGallery } from '@/components/barber-public-gallery';
+import { formatPrice, resolvePublicMediaUrl } from '@/lib/utils';
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -17,30 +18,7 @@ export default async function BarberProfilePage({ params }: Params) {
   const { id } = await params;
 
   const getMediaUrl = (cloud_storage_path: string) => {
-    if (/^https?:\/\//i.test(cloud_storage_path)) {
-      return cloud_storage_path;
-    }
-
-    if (cloud_storage_path.startsWith('/')) {
-      return cloud_storage_path;
-    }
-
-    const bucketName =
-      process.env.AWS_BUCKET_NAME ||
-      process.env.NEXT_PUBLIC_AWS_BUCKET_NAME ||
-      process.env.S3_BUCKET_NAME ||
-      '';
-    const region =
-      process.env.AWS_REGION ||
-      process.env.AWS_DEFAULT_REGION ||
-      process.env.NEXT_PUBLIC_AWS_REGION ||
-      'us-east-1';
-
-    if (!bucketName) {
-      return cloud_storage_path;
-    }
-
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+    return resolvePublicMediaUrl(cloud_storage_path);
   };
 
   const barber = await prisma.barber.findUnique({
@@ -111,7 +89,36 @@ export default async function BarberProfilePage({ params }: Params) {
     title: img.title,
     imageUrl: getMediaUrl(img.cloud_storage_path),
     likes: img.likes,
+    likeable: true,
   }));
+
+  const barberMediaPhotos = await prisma.barberMedia.findMany({
+    where: {
+      isActive: true,
+      isPublic: true,
+      barberId: barber.id,
+      mediaType: 'PHOTO',
+    },
+    select: {
+      id: true,
+      title: true,
+      cloud_storage_path: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  const barberMediaWithUrls = barberMediaPhotos.map((media) => ({
+    id: media.id,
+    title: media.title?.trim() || 'Photo',
+    imageUrl: getMediaUrl(media.cloud_storage_path),
+    likes: 0,
+    likeable: false,
+  }));
+
+  const allGalleryImages = [...barberMediaWithUrls, ...galleryImagesWithUrls];
 
   const workPosts = await prisma.post.findMany({
     where: {
@@ -133,14 +140,9 @@ export default async function BarberProfilePage({ params }: Params) {
     take: 12,
   });
 
-  const isVideo = (path: string): boolean => {
-    return /\.(mp4|webm|ogg|mov)$/i.test(path);
-  };
 
   const primaryServices = services.slice(0, 4);
   const moreServices = services.slice(4);
-  const primaryGalleryImages = galleryImagesWithUrls.slice(0, 3);
-  const moreGalleryImages = galleryImagesWithUrls.slice(3);
 
   const normalizeUrl = (url: string | null | undefined) => {
     const trimmed = url?.trim();
@@ -172,10 +174,10 @@ export default async function BarberProfilePage({ params }: Params) {
     <div className="min-h-screen bg-[#0a0a0a] pb-24 overflow-x-hidden">
       {/* Header */}
       <div
-        className="sticky top-0 z-40 bg-gradient-to-b from-black via-black/95 to-transparent backdrop-blur-sm border-b border-gray-800"
+        className="sticky top-0 z-40 bg-transparent"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4 py-1">
           <div className="flex items-center justify-between gap-4">
             <Link href="/barberos" aria-label="Back">
               <Button
@@ -188,23 +190,7 @@ export default async function BarberProfilePage({ params }: Params) {
               </Button>
             </Link>
 
-            <div className="min-w-0 flex-1">
-              <h1 className="text-white text-xl font-semibold truncate text-center sm:text-left">
-                {barber.user?.name || 'Barber'}
-              </h1>
-              {barber.specialties ? (
-                <p className="text-gray-400 text-sm truncate text-center sm:text-left">{barber.specialties}</p>
-              ) : null}
-            </div>
-
-            <Link href="/auth">
-              <Button
-                variant="outline"
-                className="border-gray-700 text-white hover:bg-black/40 hover:text-[#00f0ff] px-3"
-              >
-                Login
-              </Button>
-            </Link>
+            <div className="flex-1" />
           </div>
         </div>
       </div>
@@ -217,7 +203,7 @@ export default async function BarberProfilePage({ params }: Params) {
               <div className="flex flex-col md:flex-row gap-6 sm:gap-8 items-center md:items-start text-center md:text-left">
                 {/* Profile Image */}
                 <div className="flex-shrink-0">
-                  <div className="relative w-28 h-28 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-[#00f0ff]/60 bg-gradient-to-br from-[#00f0ff]/10 to-[#0099cc]/10">
+                  <div className="relative w-28 h-28 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-[#00f0ff]/60 bg-transparent">
                     {barber.profileImage || barber.user?.image ? (
                       <Image
                         src={getMediaUrl(barber.profileImage || barber.user?.image || '')}
@@ -239,9 +225,9 @@ export default async function BarberProfilePage({ params }: Params) {
                   <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 leading-tight">
                     {barber.user?.name || 'Barber'}
                   </h1>
-                  {barber.specialties && (
+                  {barber.specialties ? (
                     <p className="text-[#00f0ff] text-sm sm:text-lg mb-4">{barber.specialties}</p>
-                  )}
+                  ) : null}
 
                   {/* Rating */}
                   <PublicProfileRating
@@ -257,8 +243,8 @@ export default async function BarberProfilePage({ params }: Params) {
 
                   {/* CTA Button */}
                   <div className="flex flex-col gap-3 items-center md:items-start">
-                    {telHref || chatHref ? (
-                      <div className="flex gap-2 justify-center md:justify-start">
+                    {telHref || chatHref || fbHref || igHref || ttHref ? (
+                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
                         {telHref ? (
                           <Button
                             asChild
@@ -284,11 +270,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             </a>
                           </Button>
                         ) : null}
-                      </div>
-                    ) : null}
 
-                    {(fbHref || igHref || ttHref) ? (
-                      <div className="flex gap-2 justify-center md:justify-start">
                         {fbHref ? (
                           <Button
                             asChild
@@ -370,7 +352,7 @@ export default async function BarberProfilePage({ params }: Params) {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-3">
                           <p className="truncate text-base font-bold italic text-white">{service.name}</p>
-                          <span className="shrink-0 text-sm font-bold text-[#ffd700]">${service.price}</span>
+                          <span className="shrink-0 whitespace-nowrap break-normal tabular-nums text-sm font-bold text-[#ffd700]">{formatPrice(service.price)}</span>
                         </div>
                         <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
                           <Clock className="h-3.5 w-3.5" />
@@ -428,7 +410,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-3">
                                 <p className="truncate text-base font-bold italic text-white">{service.name}</p>
-                                <span className="shrink-0 text-sm font-bold text-[#ffd700]">${service.price}</span>
+                                <span className="shrink-0 whitespace-nowrap break-normal tabular-nums text-sm font-bold text-[#ffd700]">{formatPrice(service.price)}</span>
                               </div>
                               <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
                                 <Clock className="h-3.5 w-3.5" />
@@ -461,59 +443,7 @@ export default async function BarberProfilePage({ params }: Params) {
         {/* Gallery */}
         <div className="mb-12">
           <h2 className="text-3xl font-bold text-white mb-6">Gallery</h2>
-          <BarberPublicGallery images={primaryGalleryImages} />
-
-          {moreGalleryImages.length > 0 ? (
-            <details className="mt-4">
-              <summary className="list-none cursor-pointer">
-                <div className="w-full rounded-lg border border-gray-800 bg-[#1a1a1a] px-4 py-3 text-center text-gray-300 hover:text-white hover:border-[#00f0ff] transition-colors">
-                  Show more photos ({moreGalleryImages.length})
-                </div>
-              </summary>
-              <div className="mt-4">
-                <BarberPublicGallery images={moreGalleryImages} />
-              </div>
-            </details>
-          ) : null}
-        </div>
-
-        {/* Posts */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-white mb-6">Posts</h2>
-          {workPosts.length === 0 ? (
-            <p className="text-gray-400">No posts yet</p>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
-              {workPosts.map((post) => {
-                const src = getMediaUrl(post.cloud_storage_path);
-                const video = isVideo(post.cloud_storage_path);
-                return (
-                  <div
-                    key={post.id}
-                    className="relative aspect-square overflow-hidden rounded-lg bg-gray-900"
-                  >
-                    {video ? (
-                      <video
-                        src={src}
-                        className="h-full w-full object-cover"
-                        muted
-                        playsInline
-                        preload="metadata"
-                      />
-                    ) : (
-                      <Image
-                        src={src}
-                        alt={post.caption || 'Post'}
-                        fill
-                        sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <BarberPublicGallery images={allGalleryImages} />
         </div>
 
         {/* Reviews */}

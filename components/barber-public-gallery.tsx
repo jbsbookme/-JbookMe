@@ -5,12 +5,14 @@ import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { Heart } from 'lucide-react';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 export type BarberPublicGalleryImage = {
   id: string;
   imageUrl: string;
   title: string;
   likes: number;
+  likeable?: boolean;
 };
 
 type Props = {
@@ -18,6 +20,7 @@ type Props = {
 };
 
 export function BarberPublicGallery({ images }: Props) {
+  const { t } = useI18n();
   const { data: session, status } = useSession();
   const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
   const [localImages, setLocalImages] = useState<BarberPublicGalleryImage[]>(images);
@@ -26,15 +29,22 @@ export function BarberPublicGallery({ images }: Props) {
     setLocalImages(images);
   }, [images]);
 
-  const imageIds = useMemo(() => localImages.map((img) => img.id), [localImages]);
+  const likeableImageIds = useMemo(
+    () => localImages.filter((img) => img.likeable !== false).map((img) => img.id),
+    [localImages]
+  );
 
   const fetchLikedImages = useCallback(async () => {
     if (status !== 'authenticated') return;
     if (!session?.user) return;
+    if (likeableImageIds.length === 0) {
+      setLikedImages(new Set());
+      return;
+    }
 
     try {
       const results = await Promise.all(
-        imageIds.map(async (id) => {
+        likeableImageIds.map(async (id) => {
           const res = await fetch(`/api/gallery/${id}/like`);
           if (!res.ok) return { id, liked: false };
           const data = (await res.json()) as { liked?: boolean };
@@ -50,15 +60,17 @@ export function BarberPublicGallery({ images }: Props) {
     } catch (error) {
       console.error('Error fetching liked images:', error);
     }
-  }, [imageIds, session?.user, status]);
+  }, [likeableImageIds, session?.user, status]);
 
   useEffect(() => {
     void fetchLikedImages();
   }, [fetchLikedImages]);
 
   const handleLike = async (imageId: string) => {
+    const img = localImages.find((i) => i.id === imageId);
+    if (img?.likeable === false) return;
     if (!session?.user) {
-      toast.error('Please login to like photos');
+      toast.error(t('gallery.mustLogin'));
       return;
     }
 
@@ -68,7 +80,7 @@ export function BarberPublicGallery({ images }: Props) {
       });
 
       if (!response.ok) {
-        toast.error('Could not update like');
+        toast.error(t('gallery.likeError'));
         return;
       }
 
@@ -86,12 +98,12 @@ export function BarberPublicGallery({ images }: Props) {
       );
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast.error('Could not update like');
+      toast.error(t('gallery.likeError'));
     }
   };
 
   if (localImages.length === 0) {
-    return <p className="text-gray-400">No gallery photos yet</p>;
+    return <p className="text-gray-400">{t('gallery.noPhotos')}</p>;
   }
 
   return (
@@ -112,21 +124,23 @@ export function BarberPublicGallery({ images }: Props) {
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-3">
             <div className="flex items-end justify-between gap-2">
               <p className="text-white text-xs font-semibold line-clamp-2">{image.title}</p>
-              <button
-                type="button"
-                onClick={() => handleLike(image.id)}
-                className="flex items-center gap-1 text-white"
-                aria-label={likedImages.has(image.id) ? 'Unlike' : 'Like'}
-              >
-                <Heart
-                  className={`w-5 h-5 ${
-                    likedImages.has(image.id)
-                      ? 'fill-red-500 text-red-500'
-                      : 'fill-transparent text-white'
-                  }`}
-                />
-                <span className="text-xs font-semibold">{image.likes || 0}</span>
-              </button>
+              {image.likeable === false ? null : (
+                <button
+                  type="button"
+                  onClick={() => handleLike(image.id)}
+                  className="flex items-center gap-1 text-white"
+                  aria-label={likedImages.has(image.id) ? t('feed.unlike') : t('feed.like')}
+                >
+                  <Heart
+                    className={`w-5 h-5 ${
+                      likedImages.has(image.id)
+                        ? 'fill-red-500 text-red-500'
+                        : 'fill-transparent text-white'
+                    }`}
+                  />
+                  <span className="text-xs font-semibold">{image.likes || 0}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

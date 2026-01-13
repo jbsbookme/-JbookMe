@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 type Props = {
   barberId: string;
@@ -14,6 +15,7 @@ type Props = {
 export function QuickRatingStars({ barberId, onSubmitted }: Props) {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { language, t } = useI18n();
 
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
@@ -30,13 +32,13 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
     if (submitting) return;
 
     if (status === 'unauthenticated') {
-      toast.error('Please log in to leave a rating');
+      toast.error(t('reviews.loginToRate'));
       router.push('/auth');
       return;
     }
 
     if (!canRate) {
-      toast.error('Only clients can leave ratings');
+      toast.error(t('reviews.clientsOnlyToRate'));
       return;
     }
 
@@ -63,12 +65,12 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
       };
 
       if (!res.ok) {
-        toast.error(payload.error || 'Failed to submit rating');
+        toast.error(payload.error || t('reviews.ratingSubmitFailed'));
         return;
       }
 
       setSelectedRating(rating);
-      toast.success(payload.message || 'Rating submitted successfully');
+      toast.success(payload.message || t('reviews.ratingSubmitted'));
       onSubmitted?.({ avgRating: payload.avgRating });
 
       if (typeof window !== 'undefined') {
@@ -80,7 +82,7 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
       }
     } catch (error) {
       console.error('Error submitting rating:', error);
-      toast.error('Network error submitting rating');
+      toast.error(t('reviews.ratingNetworkError'));
     } finally {
       setSubmitting(false);
       setHoverRating(null);
@@ -102,7 +104,11 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
               key={ratingValue}
               type="button"
               className="p-1"
-              aria-label={`Rate ${ratingValue} star${ratingValue > 1 ? 's' : ''}`}
+              aria-label={
+                language === 'es'
+                  ? `Calificar ${ratingValue} estrella${ratingValue > 1 ? 's' : ''}`
+                  : `Rate ${ratingValue} star${ratingValue > 1 ? 's' : ''}`
+              }
               disabled={!canRate || submitting}
               onMouseEnter={() => setHoverRating(ratingValue)}
               onFocus={() => setHoverRating(ratingValue)}
@@ -121,7 +127,7 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
       </div>
 
       {status === 'authenticated' && session?.user?.role !== 'CLIENT' ? (
-        <span className="text-xs text-gray-500">Clients only</span>
+        <span className="text-xs text-gray-500">{t('reviews.clientsOnlyLabel')}</span>
       ) : null}
     </div>
   );

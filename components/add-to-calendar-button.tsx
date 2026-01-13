@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import { generateGoogleCalendarUrl, type AppointmentData } from '@/lib/calendar';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface AddToCalendarButtonProps {
   appointmentId: string;
@@ -20,6 +21,7 @@ export function AddToCalendarButton({
   showText = true,
   appointmentData,
 }: AddToCalendarButtonProps) {
+  const { t } = useI18n();
   const [isLoading, setIsLoading] = useState(false);
 
   // Open in Google Calendar
@@ -28,7 +30,7 @@ export function AddToCalendarButton({
     // We open a placeholder tab immediately on click, then navigate it after data is ready.
     const popup = window.open('about:blank', '_blank');
     if (!popup) {
-      toast.error('Popup blocked. Please allow popups for this site.');
+      toast.error(t('common.popupBlockedAllowPopups'));
       return;
     }
 
@@ -76,7 +78,7 @@ export function AddToCalendarButton({
 
       const url = generateGoogleCalendarUrl(resolvedAppointment);
       popup.location.replace(url);
-      toast.success('Opening Google Calendar...');
+      toast.success(t('common.openingGoogleCalendar'));
     } catch (error) {
       console.error('Error opening Google Calendar:', error);
       try {
@@ -84,7 +86,7 @@ export function AddToCalendarButton({
       } catch {
         // ignore
       }
-      toast.error('Error opening Google Calendar');
+      toast.error(t('common.errorOpeningGoogleCalendar'));
     } finally {
       setIsLoading(false);
     }

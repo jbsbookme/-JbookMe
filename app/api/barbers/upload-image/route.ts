@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
-import { uploadFile, getFileUrl } from '@/lib/s3';
+import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,72 +40,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     // Generate unique filename
     const timestamp = Date.now();
     const ext = file.name.split('.').pop();
     const fileName = `barber-${timestamp}.${ext}`;
 
-    const allowLocalFallback =
-      process.env.NODE_ENV !== 'production' &&
-      process.env.VERCEL !== '1' &&
-      process.env.VERCEL !== 'true';
-
-    // Prefer S3 when available
-    try {
-      console.log('[UPLOAD] Attempting S3 upload...');
-      const cloud_storage_path = await uploadFile(buffer, `barbers/${fileName}`, true);
-      const imageUrl = await getFileUrl(cloud_storage_path, true);
-      console.log('[UPLOAD] S3 upload successful:', imageUrl);
-
-      return NextResponse.json(
-        {
-          url: imageUrl,
-          cloud_storage_path,
-        },
-        { status: 200 }
-      );
-    } catch (s3Error) {
-      console.log('[UPLOAD] S3 upload failed:', s3Error);
-
-      if (!allowLocalFallback) {
-        const hint =
-          'S3 upload is required in production. Check AWS_BUCKET_NAME, AWS_REGION (optional), and AWS credentials (AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY) in your hosting environment.';
-
-        return NextResponse.json(
-          {
-            error: 'Failed to upload image (S3).',
-            hint,
-          },
-          { status: 500 }
-        );
-      }
-
-      console.log('[UPLOAD] Falling back to local upload (dev only).');
-    }
-
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'barbers');
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true });
-    }
-
-    // Save file locally
-    const filePath = join(uploadsDir, fileName);
-    await writeFile(filePath, buffer);
-
-    // Public URL for the image
-    const imageUrl = `/uploads/barbers/${fileName}`;
-
-    console.log('[UPLOAD] Image saved locally:', imageUrl);
+    const blob = await put(`barbers/${fileName}`, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
     return NextResponse.json(
       { 
-        url: imageUrl,
-        cloud_storage_path: imageUrl
+        url: blob.url,
+        cloud_storage_path: blob.url,
       },
       { status: 200 }
     );

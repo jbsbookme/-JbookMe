@@ -18,6 +18,8 @@ import { CheckCircle2, XCircle, Clock, Eye, User, Scissors, Image as ImageIcon, 
 import Link from 'next/link';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { resolvePublicMediaUrl } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 type Post = {
   id: string;
@@ -48,6 +50,7 @@ type Stats = {
 };
 
 export default function AdminModerationPage() {
+  const { t, language } = useI18n();
   const [posts, setPosts] = useState<Post[]>([]);
   const [stats, setStats] = useState<Stats>({ pending: 0, approved: 0, rejected: 0, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -64,12 +67,12 @@ export default function AdminModerationPage() {
   const [_viewingPost, setViewingPost] = useState<Post | null>(null);
 
   const predefinedReasons = [
-    'Inappropriate or offensive content',
-    'Very low image quality',
-    'Not related to barbershop',
-    'Personal information visible',
-    'Duplicate content',
-    'Copyright violation'
+    t('admin.moderationPage.reasons.inappropriate'),
+    t('admin.moderationPage.reasons.lowQuality'),
+    t('admin.moderationPage.reasons.notRelated'),
+    t('admin.moderationPage.reasons.personalInfo'),
+    t('admin.moderationPage.reasons.duplicate'),
+    t('admin.moderationPage.reasons.copyright'),
   ];
 
   const fetchPosts = async (status?: string) => {
@@ -81,7 +84,7 @@ export default function AdminModerationPage() {
       setPosts(data.posts || []);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      toast.error('Error loading posts');
+      toast.error(t('admin.moderationPage.errorLoadingPosts'));
     }
   };
 
@@ -116,7 +119,7 @@ export default function AdminModerationPage() {
   const handleAction = async () => {
     if (!selectedPost) return;
     if (actionType === 'reject' && !rejectionReason.trim()) {
-      toast.error('Please provide a rejection reason');
+      toast.error(t('admin.moderationPage.pleaseProvideRejectionReason'));
       return;
     }
 
@@ -134,10 +137,14 @@ export default function AdminModerationPage() {
 
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || 'Failed to process action');
+        throw new Error(error.error || t('admin.moderationPage.failedToProcessAction'));
       }
 
-      toast.success(`Post ${actionType === 'approve' ? 'approved' : 'rejected'} successfully`);
+      toast.success(
+        actionType === 'approve'
+          ? t('admin.moderationPage.postApprovedSuccess')
+          : t('admin.moderationPage.postRejectedSuccess')
+      );
       
       // Refresh data
       await fetchStats();
@@ -150,7 +157,7 @@ export default function AdminModerationPage() {
     } catch (error: unknown) {
       console.error('Error processing action:', error);
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(message || 'Failed to process action');
+      toast.error(message || t('admin.moderationPage.failedToProcessAction'));
     } finally {
       setProcessing(false);
     }
@@ -163,21 +170,7 @@ export default function AdminModerationPage() {
   };
 
   const getMediaUrl = (cloud_storage_path: string) => {
-    // If already a full URL, return as is
-    if (cloud_storage_path.startsWith('http://') || cloud_storage_path.startsWith('https://')) {
-      return cloud_storage_path;
-    }
-    
-    // Check if it's a local upload
-    if (cloud_storage_path.startsWith('/uploads/')) {
-      return cloud_storage_path;
-    }
-    
-    // Otherwise, assume S3
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-    if (!bucketName) return cloud_storage_path;
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+    return resolvePublicMediaUrl(cloud_storage_path);
   };
 
   const isVideo = (path: string) => {
@@ -207,12 +200,12 @@ export default function AdminModerationPage() {
 
   const handleBulkAction = async (action: 'approve' | 'reject') => {
     if (selectedPosts.size === 0) {
-      toast.error('Select at least one post');
+      toast.error(t('admin.moderationPage.selectAtLeastOnePost'));
       return;
     }
 
     if (action === 'reject' && !rejectionReason.trim()) {
-      toast.error('Provide a reason to reject');
+      toast.error(t('admin.moderationPage.provideReasonToReject'));
       return;
     }
 
@@ -233,12 +226,18 @@ export default function AdminModerationPage() {
         if (res.ok) successCount++;
       }
 
-      toast.success(`${successCount} posts ${action === 'approve' ? 'approved' : 'rejected'}`);
+      toast.success(
+        `${successCount} ${
+          action === 'approve'
+            ? t('admin.moderationPage.postsApproved')
+            : t('admin.moderationPage.postsRejected')
+        }`
+      );
       setSelectedPosts(new Set());
       await fetchStats();
       await fetchPosts(activeTab === 'all' ? undefined : activeTab.toUpperCase());
     } catch (error) {
-      toast.error('Error in bulk action');
+      toast.error(t('admin.moderationPage.errorInBulkAction'));
     } finally {
       setProcessing(false);
       setRejectionReason('');
@@ -248,19 +247,19 @@ export default function AdminModerationPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-cyan-400">Loading...</div>
+        <div className="text-cyan-400">{t('common.loading')}</div>
       </div>
     );
   }
 
   const handleDeletePost = async (post: Post) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    if (!confirm(t('admin.moderationPage.confirmDeletePost'))) return;
 
     try {
       const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data?.error || 'Failed to delete post');
+        throw new Error(data?.error || t('admin.moderationPage.failedToDeletePost'));
       }
 
       setPosts((prev) => prev.filter((p) => p.id !== post.id));
@@ -269,12 +268,25 @@ export default function AdminModerationPage() {
         next.delete(post.id);
         return next;
       });
-      toast.success('Post deleted');
+      toast.success(t('admin.moderationPage.postDeleted'));
       fetchStats();
     } catch (error: unknown) {
       console.error('Error deleting post:', error);
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(message || 'Error deleting post');
+      toast.error(message || t('admin.moderationPage.errorDeletingPost'));
+    }
+  };
+
+  const getStatusLabel = (status: Post['status']) => {
+    switch (status) {
+      case 'PENDING':
+        return t('admin.moderationPage.status.pending');
+      case 'APPROVED':
+        return t('admin.moderationPage.status.approved');
+      case 'REJECTED':
+        return t('admin.moderationPage.status.rejected');
+      default:
+        return status;
     }
   };
 
@@ -293,9 +305,9 @@ export default function AdminModerationPage() {
               </Link>
               <div>
                 <h1 className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                  Content Moderation
+                  {t('admin.moderationPage.title')}
                 </h1>
-                <p className="text-zinc-400 mt-1 text-sm sm:text-base">Review and approve user-generated content</p>
+                <p className="text-zinc-400 mt-1 text-sm sm:text-base">{t('admin.moderationPage.subtitle')}</p>
               </div>
             </div>
             <Button
@@ -304,7 +316,7 @@ export default function AdminModerationPage() {
               onClick={() => {
                 fetchStats();
                 fetchPosts(activeTab === 'all' ? undefined : activeTab.toUpperCase());
-                toast.success('Updated');
+                toast.success(t('messages.success.updated'));
               }}
               className="border-cyan-500 text-cyan-400 hover:bg-cyan-500/10"
             >
@@ -318,7 +330,7 @@ export default function AdminModerationPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by caption, author..."
+                placeholder={t('admin.moderationPage.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500"
@@ -331,9 +343,9 @@ export default function AdminModerationPage() {
               }
               className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-white focus:outline-none focus:border-cyan-500"
             >
-              <option value="all">All types</option>
-              <option value="BARBER_WORK">Barber Work</option>
-              <option value="CLIENT_SHARE">Shared by Client</option>
+              <option value="all">{t('admin.moderationPage.filterAllTypes')}</option>
+              <option value="BARBER_WORK">{t('admin.moderationPage.filterBarberWork')}</option>
+              <option value="CLIENT_SHARE">{t('admin.moderationPage.filterClientShare')}</option>
             </select>
           </div>
 
@@ -342,7 +354,11 @@ export default function AdminModerationPage() {
             <div className="bg-cyan-900/20 border border-cyan-800 rounded-lg p-4">
               <div className="flex items-center justify-between gap-4">
                 <p className="text-cyan-400 font-semibold">
-                  {selectedPosts.size} post{selectedPosts.size !== 1 ? 's' : ''} selected
+                  {selectedPosts.size}{' '}
+                  {selectedPosts.size === 1
+                    ? t('admin.moderationPage.postSelectedSingular')
+                    : t('admin.moderationPage.postSelectedPlural')}{' '}
+                  {t('admin.moderationPage.selectedSuffix')}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -352,7 +368,7 @@ export default function AdminModerationPage() {
                     className="bg-green-600 hover:bg-green-700"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
-                    Approve all
+                    {t('admin.moderationPage.approveAll')}
                   </Button>
                   <Button
                     size="sm"
@@ -364,14 +380,14 @@ export default function AdminModerationPage() {
                     variant="destructive"
                   >
                     <XCircle className="w-4 h-4 mr-2" />
-                    Reject all
+                    {t('admin.moderationPage.rejectAll')}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setSelectedPosts(new Set())}
                   >
-                    Clear
+                    {t('admin.moderationPage.clearSelection')}
                   </Button>
                 </div>
               </div>
@@ -385,7 +401,7 @@ export default function AdminModerationPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-zinc-400">Pending Review</p>
+                  <p className="text-sm text-zinc-400">{t('admin.moderationPage.stats.pendingReview')}</p>
                   <p className="text-3xl font-bold text-yellow-400">{stats.pending}</p>
                 </div>
                 <Clock className="w-8 h-8 text-yellow-400" />
@@ -397,7 +413,7 @@ export default function AdminModerationPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-zinc-400">Approved</p>
+                  <p className="text-sm text-zinc-400">{t('admin.moderationPage.status.approved')}</p>
                   <p className="text-3xl font-bold text-green-400">{stats.approved}</p>
                 </div>
                 <CheckCircle2 className="w-8 h-8 text-green-400" />
@@ -409,7 +425,7 @@ export default function AdminModerationPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-zinc-400">Rejected</p>
+                  <p className="text-sm text-zinc-400">{t('admin.moderationPage.status.rejected')}</p>
                   <p className="text-3xl font-bold text-red-400">{stats.rejected}</p>
                 </div>
                 <XCircle className="w-8 h-8 text-red-400" />
@@ -421,7 +437,7 @@ export default function AdminModerationPage() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-zinc-400">Total Posts</p>
+                  <p className="text-sm text-zinc-400">{t('admin.moderationPage.stats.totalPosts')}</p>
                   <p className="text-3xl font-bold text-cyan-400">{stats.total}</p>
                 </div>
                 <Eye className="w-8 h-8 text-cyan-400" />
@@ -438,8 +454,8 @@ export default function AdminModerationPage() {
               onClick={() => setActiveTab('pending')}
               className="data-[state=active]:bg-yellow-500 data-[state=active]:text-black text-xs sm:text-sm py-2 sm:py-3"
             >
-              <span className="hidden sm:inline">Pending </span>
-              <span className="sm:hidden">Pend. </span>
+              <span className="hidden sm:inline">{t('admin.moderationPage.status.pending')} </span>
+              <span className="sm:hidden">{t('admin.moderationPage.status.pendingShort')} </span>
               ({stats.pending})
             </TabsTrigger>
             <TabsTrigger 
@@ -447,8 +463,8 @@ export default function AdminModerationPage() {
               onClick={() => setActiveTab('approved')}
               className="data-[state=active]:bg-green-500 data-[state=active]:text-black text-xs sm:text-sm py-2 sm:py-3"
             >
-              <span className="hidden sm:inline">Approved </span>
-              <span className="sm:hidden">Appr. </span>
+              <span className="hidden sm:inline">{t('admin.moderationPage.status.approved')} </span>
+              <span className="sm:hidden">{t('admin.moderationPage.status.approvedShort')} </span>
               ({stats.approved})
             </TabsTrigger>
             <TabsTrigger 
@@ -456,8 +472,8 @@ export default function AdminModerationPage() {
               onClick={() => setActiveTab('rejected')}
               className="data-[state=active]:bg-red-500 data-[state=active]:text-black text-xs sm:text-sm py-2 sm:py-3"
             >
-              <span className="hidden sm:inline">Rejected </span>
-              <span className="sm:hidden">Rejec. </span>
+              <span className="hidden sm:inline">{t('admin.moderationPage.status.rejected')} </span>
+              <span className="sm:hidden">{t('admin.moderationPage.status.rejectedShort')} </span>
               ({stats.rejected})
             </TabsTrigger>
             <TabsTrigger 
@@ -465,7 +481,7 @@ export default function AdminModerationPage() {
               onClick={() => setActiveTab('all')}
               className="data-[state=active]:bg-cyan-500 data-[state=active]:text-black text-xs sm:text-sm py-2 sm:py-3"
             >
-              All ({stats.total})
+              {t('admin.moderationPage.all')} ({stats.total})
             </TabsTrigger>
           </TabsList>
 
@@ -475,7 +491,9 @@ export default function AdminModerationPage() {
                 <CardContent className="py-12 text-center">
                   <AlertCircle className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
                   <p className="text-zinc-400">
-                    {searchQuery || filterType !== 'all' ? 'No posts found with these filters' : 'No posts'}
+                    {searchQuery || filterType !== 'all'
+                      ? t('admin.moderationPage.noPostsWithFilters')
+                      : t('admin.moderationPage.noPosts')}
                   </p>
                 </CardContent>
               </Card>
@@ -537,14 +555,14 @@ export default function AdminModerationPage() {
                             <>
                               <Scissors className="w-4 h-4 text-cyan-400" />
                               <span className="text-sm font-semibold text-cyan-400">
-                                {post.barber?.name || 'Barber'}
+                                {post.barber?.name || t('admin.moderationPage.barberFallback')}
                               </span>
                             </>
                           ) : (
                             <>
                               <User className="w-4 h-4 text-pink-400" />
                               <span className="text-sm font-semibold text-pink-400">
-                                {post.author?.name || 'Client'}
+                                {post.author?.name || t('admin.moderationPage.clientFallback')}
                               </span>
                             </>
                           )}
@@ -556,7 +574,9 @@ export default function AdminModerationPage() {
                                 : 'border-pink-500 text-pink-400'
                             }`}
                           >
-                            {post.postType === 'BARBER_WORK' ? 'Barber Work' : 'Client Share'}
+                            {post.postType === 'BARBER_WORK'
+                              ? t('admin.moderationPage.postType.barberWork')
+                              : t('admin.moderationPage.postType.clientShare')}
                           </Badge>
                         </div>
 
@@ -597,10 +617,10 @@ export default function AdminModerationPage() {
                                 : 'bg-red-500/20 text-red-400 border-red-500'
                             }`}
                           >
-                            {post.status}
+                            {getStatusLabel(post.status)}
                           </Badge>
                           <span className="text-xs text-zinc-500">
-                            {new Date(post.createdAt).toLocaleDateString()}
+                            {new Date(post.createdAt).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US')}
                           </span>
                           <Button
                             type="button"
@@ -608,8 +628,8 @@ export default function AdminModerationPage() {
                             variant="ghost"
                             onClick={() => handleDeletePost(post)}
                             className="ml-auto text-zinc-400 hover:text-red-400 hover:bg-red-500/10"
-                            aria-label="Delete post"
-                            title="Delete post"
+                            aria-label={t('admin.moderationPage.deletePostAria')}
+                            title={t('admin.moderationPage.deletePostTitle')}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -619,7 +639,7 @@ export default function AdminModerationPage() {
                         {post.status === 'REJECTED' && post.rejectionReason && (
                           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
                             <p className="text-xs text-red-400">
-                              <strong>Reason:</strong> {post.rejectionReason}
+                              <strong>{t('admin.moderationPage.reasonLabel')}:</strong> {post.rejectionReason}
                             </p>
                           </div>
                         )}
@@ -632,7 +652,7 @@ export default function AdminModerationPage() {
                               className="flex-1 bg-green-600 hover:bg-green-700"
                             >
                               <CheckCircle2 className="w-4 h-4 mr-2" />
-                              Approve
+                              {t('admin.moderationPage.approve')}
                             </Button>
                             <Button
                               onClick={() => openActionDialog(post, 'reject')}
@@ -640,7 +660,7 @@ export default function AdminModerationPage() {
                               className="flex-1"
                             >
                               <XCircle className="w-4 h-4 mr-2" />
-                              Reject
+                              {t('admin.moderationPage.reject')}
                             </Button>
                           </div>
                         )}
@@ -659,22 +679,24 @@ export default function AdminModerationPage() {
         <DialogContent className="bg-zinc-900 border-zinc-800">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {actionType === 'approve' ? 'Approve Post' : 'Reject Post'}
+              {actionType === 'approve'
+                ? t('admin.moderationPage.dialog.approveTitle')
+                : t('admin.moderationPage.dialog.rejectTitle')}
             </DialogTitle>
             <DialogDescription className="text-zinc-400">
               {actionType === 'approve'
-                ? 'This post will be published and visible to all users.'
-                : 'Please provide a reason for rejection. The author will be notified.'}
+                ? t('admin.moderationPage.dialog.approveDescription')
+                : t('admin.moderationPage.dialog.rejectDescription')}
             </DialogDescription>
           </DialogHeader>
 
           {actionType === 'reject' && (
             <div className="space-y-3">
-              <label className="text-sm font-medium text-zinc-300">Rejection Reason *</label>
+              <label className="text-sm font-medium text-zinc-300">{t('admin.moderationPage.dialog.rejectionReasonLabel')}</label>
               
               {/* Predefined Reasons */}
               <div className="space-y-2">
-                <p className="text-xs text-zinc-500">Common reasons:</p>
+                <p className="text-xs text-zinc-500">{t('admin.moderationPage.dialog.commonReasons')}</p>
                 <div className="flex flex-wrap gap-2">
                   {predefinedReasons.map((reason, idx) => (
                     <button
@@ -690,7 +712,7 @@ export default function AdminModerationPage() {
               </div>
               
               <Textarea
-                placeholder="Or write your own reason..."
+                placeholder={t('admin.moderationPage.dialog.customReasonPlaceholder')}
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 className="bg-zinc-800 border-zinc-700 min-h-[100px]"
@@ -707,14 +729,18 @@ export default function AdminModerationPage() {
               }}
               disabled={processing}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleAction}
               disabled={processing}
               className={actionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : ''}
             >
-              {processing ? 'Processing...' : actionType === 'approve' ? 'Approve' : 'Reject'}
+              {processing
+                ? t('admin.moderationPage.processing')
+                : actionType === 'approve'
+                  ? t('admin.moderationPage.approve')
+                  : t('admin.moderationPage.reject')}
             </Button>
           </DialogFooter>
         </DialogContent>

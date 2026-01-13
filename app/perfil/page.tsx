@@ -10,13 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Camera, Save, ArrowLeft, MessageSquare, Calendar, Clock, RefreshCw, XCircle, ChevronRight } from 'lucide-react';
+import { User, Camera, Save, ArrowLeft, MessageSquare, Calendar, Clock, RefreshCw, XCircle, ChevronRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useUser } from '@/contexts/user-context';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
+import { resolvePublicMediaUrl } from '@/lib/utils';
+import { formatTime12h } from '@/lib/time';
 
 type Post = {
   id: string;
@@ -69,20 +71,14 @@ export default function PerfilPage() {
 
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [myPostsLoading, setMyPostsLoading] = useState(false);
+  const [openedPost, setOpenedPost] = useState<{
+    url: string;
+    isVideo: boolean;
+    caption?: string | null;
+  } | null>(null);
 
   const getMediaUrl = (cloud_storage_path: string) => {
-    if (/^https?:\/\//i.test(cloud_storage_path)) {
-      return cloud_storage_path;
-    }
-
-    if (cloud_storage_path.startsWith('/')) {
-      return cloud_storage_path;
-    }
-
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-    if (!bucketName) return cloud_storage_path;
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+    return resolvePublicMediaUrl(cloud_storage_path);
   };
 
   const isVideo = (path: string): boolean => {
@@ -213,7 +209,7 @@ export default function PerfilPage() {
 
   const handleCancel = async (appointment: Appointment) => {
     if (!isActiveAppointment(appointment.status)) {
-      toast.error('Only active appointments can be cancelled');
+      toast.error(t('profile.appointments.onlyActiveCanBeCancelled'));
       return;
     }
 
@@ -222,14 +218,14 @@ export default function PerfilPage() {
     const hoursDiff = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
     if (hoursDiff < 24) {
-      toast.error('Cannot cancel: you must cancel at least 24 hours in advance', {
+      toast.error(t('profile.appointments.mustCancel24HoursInAdvance'), {
         duration: 5000,
         style: { background: '#dc2626', color: '#fff' },
       });
       return;
     }
 
-    const accepted = window.confirm('I accept the 24-hour cancellation policy. Do you want to cancel this appointment?');
+    const accepted = window.confirm(t('profile.appointments.confirmCancelWithPolicy'));
     if (!accepted) return;
 
     try {
@@ -243,15 +239,43 @@ export default function PerfilPage() {
       });
 
       if (res.ok) {
-        toast.success('✓ Appointment cancelled successfully');
+        toast.success(t('profile.appointments.appointmentCancelledSuccess'));
         fetchAppointments();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error || 'Error cancelling appointment');
+        toast.error(data.error || t('profile.appointments.errorCancellingAppointment'));
       }
     } catch (error) {
       console.error('Error cancelling appointment:', error);
-      toast.error('Error cancelling appointment');
+      toast.error(t('profile.appointments.errorCancellingAppointment'));
+    }
+  };
+
+  const handleDeleteCancelled = async (appointment: Appointment) => {
+    const displayStatus = normalizeStatusForDisplay(appointment.status);
+    if (displayStatus !== 'CANCELLED') {
+      toast.error(t('profile.appointments.onlyCancelledCanBeDeleted'));
+      return;
+    }
+
+    const accepted = window.confirm(t('profile.appointments.confirmDeleteCancelledFromHistory'));
+    if (!accepted) return;
+
+    try {
+      const res = await fetch(`/api/appointments/${appointment.id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        toast.success(t('profile.appointments.appointmentDeleted'));
+        setAppointments((prev) => prev.filter((a) => a.id !== appointment.id));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || t('profile.appointments.errorDeletingAppointment'));
+      }
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      toast.error(t('profile.appointments.errorDeletingAppointment'));
     }
   };
 
@@ -545,7 +569,17 @@ export default function PerfilPage() {
                     return (
                       <div
                         key={post.id}
-                        className="relative aspect-square overflow-hidden rounded-lg bg-black/20 border border-gray-800"
+                        className="relative aspect-square overflow-hidden rounded-lg bg-black/20 border border-gray-800 cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={post.caption || 'Open post'}
+                        onClick={() => setOpenedPost({ url: src, isVideo: video, caption: post.caption })}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setOpenedPost({ url: src, isVideo: video, caption: post.caption });
+                          }
+                        }}
                       >
                         {video ? (
                           <video
@@ -571,6 +605,57 @@ export default function PerfilPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Post Viewer Modal */}
+          {openedPost && (
+            <div
+              className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+              onClick={() => setOpenedPost(null)}
+              role="dialog"
+              aria-modal="true"
+            >
+              <div
+                className="relative w-full max-w-3xl max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="absolute -top-12 right-0 text-white/80 hover:text-white"
+                  onClick={() => setOpenedPost(null)}
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+
+                <div className="relative w-full bg-black rounded-xl overflow-hidden border border-white/10">
+                  {openedPost.isVideo ? (
+                    <video
+                      src={openedPost.url}
+                      controls
+                      playsInline
+                      className="w-full max-h-[85vh] object-contain bg-black"
+                    />
+                  ) : (
+                    <div className="relative w-full h-[70vh] bg-black">
+                      <Image
+                        src={openedPost.url}
+                        alt={openedPost.caption || 'Post'}
+                        fill
+                        className="object-contain"
+                        sizes="(max-width: 768px) 100vw, 900px"
+                      />
+                    </div>
+                  )}
+
+                  {openedPost.caption ? (
+                    <div className="p-3 text-white text-sm border-t border-white/10">
+                      {openedPost.caption}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* CHAT CON BARBEROS */}
           <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/30 transition-colors">
@@ -669,7 +754,7 @@ export default function PerfilPage() {
                                   </span>
                                   <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    {appointment.time}
+                                    {formatTime12h(appointment.time)}
                                   </span>
                                 </div>
                               </div>
@@ -728,12 +813,35 @@ export default function PerfilPage() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleCancel(appointment)}
-                                disabled={!isActiveAppointment(appointment.status)}
-                                className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-orange-500"
-                                title="Cancel"
+                                onClick={() => {
+                                  const displayStatus = normalizeStatusForDisplay(appointment.status);
+                                  if (displayStatus === 'CANCELLED') {
+                                    handleDeleteCancelled(appointment);
+                                  } else {
+                                    handleCancel(appointment);
+                                  }
+                                }}
+                                disabled={
+                                  normalizeStatusForDisplay(appointment.status) === 'CANCELLED'
+                                    ? false
+                                    : !isActiveAppointment(appointment.status)
+                                }
+                                className={
+                                  normalizeStatusForDisplay(appointment.status) === 'CANCELLED'
+                                    ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors'
+                                    : 'border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-orange-500'
+                                }
+                                title={
+                                  normalizeStatusForDisplay(appointment.status) === 'CANCELLED'
+                                    ? 'Delete'
+                                    : 'Cancel'
+                                }
                               >
-                                <XCircle className="w-4 h-4" />
+                                {normalizeStatusForDisplay(appointment.status) === 'CANCELLED' ? (
+                                  <Trash2 className="w-4 h-4" />
+                                ) : (
+                                  <XCircle className="w-4 h-4" />
+                                )}
                               </Button>
                             </div>
                           </div>

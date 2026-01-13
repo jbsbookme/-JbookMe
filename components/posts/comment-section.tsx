@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MessageCircle, Send, Trash2, Reply, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface Comment {
   id: string;
@@ -30,6 +31,7 @@ interface CommentSectionProps {
 
 export function CommentSection({ postId, initialCommentCount = 0 }: CommentSectionProps) {
   const { data: session } = useSession();
+  const { t, language } = useI18n();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -37,6 +39,8 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
   const [showComments, setShowComments] = useState(false);
+
+  const dateLocale = language === 'es' ? es : enUS;
 
   useEffect(() => {
     if (showComments) {
@@ -62,12 +66,12 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
 
   const handleAddComment = async () => {
     if (!session) {
-      toast.error('Debes iniciar sesión para comentar');
+      toast.error(t('feed.mustLoginToComment'));
       return;
     }
 
     if (!newComment.trim()) {
-      toast.error('Escribe un comentario');
+      toast.error(t('feed.enterComment'));
       return;
     }
 
@@ -84,13 +88,13 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
       if (data.success) {
         setComments([data.data, ...comments]);
         setNewComment('');
-        toast.success('Comentario publicado');
+        toast.success(t('feed.commentPosted'));
       } else {
-        toast.error(data.error || 'Error al comentar');
+        toast.error(data.error || t('feed.commentError'));
       }
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast.error('Error al publicar comentario');
+      toast.error(t('feed.commentPostError'));
     } finally {
       setLoading(false);
     }
@@ -98,12 +102,12 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
 
   const handleAddReply = async (parentId: string) => {
     if (!session) {
-      toast.error('Debes iniciar sesión para responder');
+      toast.error(t('feed.mustLoginToReply'));
       return;
     }
 
     if (!replyContent.trim()) {
-      toast.error('Escribe una respuesta');
+      toast.error(t('feed.enterReply'));
       return;
     }
 
@@ -132,20 +136,20 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
         }));
         setReplyContent('');
         setReplyingTo(null);
-        toast.success('Respuesta publicada');
+        toast.success(t('feed.replyPosted'));
       } else {
-        toast.error(data.error || 'Error al responder');
+        toast.error(data.error || t('feed.replyError'));
       }
     } catch (error) {
       console.error('Error adding reply:', error);
-      toast.error('Error al publicar respuesta');
+      toast.error(t('feed.replyPostError'));
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteComment = async (commentId: string) => {
-    if (!confirm('¿Eliminar este comentario?')) return;
+    if (!confirm(t('feed.deleteCommentConfirm'))) return;
 
     try {
       const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
@@ -156,13 +160,13 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
 
       if (data.success) {
         setComments(comments.filter(c => c.id !== commentId));
-        toast.success('Comentario eliminado');
+        toast.success(t('feed.commentDeleted'));
       } else {
-        toast.error(data.error || 'Error al eliminar');
+        toast.error(data.error || t('feed.deleteError'));
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      toast.error('Error al eliminar comentario');
+      toast.error(t('feed.deleteCommentError'));
     }
   };
 
@@ -179,7 +183,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                 alt={comment.author.name}
                 width={40}
                 height={40}
-                className="rounded-full"
+                className="block rounded-full object-cover"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00f0ff] to-[#0099cc] flex items-center justify-center">
@@ -194,14 +198,14 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                 <span className="font-semibold text-white">{comment.author.name}</span>
                 {comment.author.role === 'BARBER' && (
                   <span className="text-xs px-2 py-0.5 rounded-full bg-[#00f0ff]/20 text-[#00f0ff]">
-                    Barbero
+                    {t('common.barber')}
                   </span>
                 )}
               </div>
               <span className="text-xs text-gray-500">
                 {formatDistanceToNow(new Date(comment.createdAt), { 
                   addSuffix: true,
-                  locale: es 
+                  locale: dateLocale,
                 })}
               </span>
             </div>
@@ -217,7 +221,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                   className="text-gray-400 hover:text-[#00f0ff] h-7 px-2 text-xs"
                 >
                   <Reply className="w-3 h-3 mr-1" />
-                  Responder
+                  {t('feed.reply')}
                 </Button>
               )}
 
@@ -229,7 +233,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                   className="text-gray-400 hover:text-red-500 h-7 px-2 text-xs"
                 >
                   <Trash2 className="w-3 h-3 mr-1" />
-                  Eliminar
+                  {t('common.delete')}
                 </Button>
               )}
             </div>
@@ -239,7 +243,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                 <Textarea
                   value={replyContent}
                   onChange={(e) => setReplyContent(e.target.value)}
-                  placeholder="Escribe tu respuesta..."
+                  placeholder={t('feed.writeReply')}
                   className="bg-black border-gray-700 text-white text-sm resize-none"
                   rows={2}
                   maxLength={1000}
@@ -291,7 +295,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
         className="w-full text-gray-400 hover:text-white mb-4"
       >
         <MessageCircle className="w-5 h-5 mr-2" />
-        {showComments ? 'Ocultar' : 'Ver'} comentarios ({totalComments || initialCommentCount})
+        {showComments ? t('feed.hideComments') : t('feed.showComments')} ({totalComments || initialCommentCount})
       </Button>
 
       {showComments && (
@@ -302,10 +306,10 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                 {session.user.image ? (
                   <Image
                     src={session.user.image}
-                    alt={session.user.name || 'User'}
+                    alt={session.user.name || t('common.user')}
                     width={40}
                     height={40}
-                    className="rounded-full"
+                    className="block rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00f0ff] to-[#0099cc] flex items-center justify-center">
@@ -317,7 +321,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                 <Textarea
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Escribe un comentario..."
+                  placeholder={t('feed.writeComment')}
                   className="bg-gray-900/50 border-gray-800 text-white resize-none"
                   rows={3}
                   maxLength={1000}
@@ -333,7 +337,7 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
             </div>
           ) : (
             <div className="mb-6 text-center p-4 bg-gray-900/50 rounded-lg border border-gray-800">
-              <p className="text-gray-400">Inicia sesión para comentar</p>
+              <p className="text-gray-400">{t('feed.loginToComment')}</p>
             </div>
           )}
 
@@ -344,8 +348,8 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
           ) : comments.length === 0 ? (
             <div className="text-center py-8">
               <MessageCircle className="w-12 h-12 text-gray-600 mx-auto mb-2" />
-              <p className="text-gray-500">No hay comentarios aún</p>
-              <p className="text-gray-600 text-sm">Sé el primero en comentar</p>
+              <p className="text-gray-500">{t('feed.noCommentsYet')}</p>
+              <p className="text-gray-600 text-sm">{t('feed.beFirstToComment')}</p>
             </div>
           ) : (
             <div>

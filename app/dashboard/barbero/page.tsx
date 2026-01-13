@@ -18,8 +18,8 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 import Image from 'next/image';
-import { ShareFAB } from '@/components/share-fab';
 import { AddToCalendarButton } from '@/components/add-to-calendar-button';
+import { formatTime12h } from '@/lib/time';
 
 interface Appointment {
   id: string;
@@ -78,6 +78,9 @@ export default function BarberoDashboard() {
   const [showQRModal, setShowQRModal] = useState(false);
   const [zelleQR, setZelleQR] = useState<string | null>(null);
   const [cashappQR, setCashappQR] = useState<string | null>(null);
+  type QRLoadState = 'idle' | 'loading' | 'error';
+  const [zelleQRState, setZelleQRState] = useState<QRLoadState>('idle');
+  const [cashappQRState, setCashappQRState] = useState<QRLoadState>('idle');
   type BarberData = {
     zelleEmail?: string | null;
     zellePhone?: string | null;
@@ -191,7 +194,7 @@ export default function BarberoDashboard() {
   }, [session, status, router, fetchProfile, fetchAppointments, fetchPosts]);
 
   const handlePermanentDelete = async (appointmentId: string) => {
-    if (!confirm("Are you sure you want to permanently delete this appointment from the database? This action CANNOT be undone.")) {
+    if (!confirm(t('barber.confirmPermanentDeleteAppointment'))) {
       return;
     }
 
@@ -201,15 +204,15 @@ export default function BarberoDashboard() {
       });
 
       if (res.ok) {
-        toast.success("Appointment permanently deleted");
+        toast.success(t('barber.appointmentPermanentlyDeleted'));
         fetchAppointments(); // Refresh list
       } else {
         const data = await res.json();
-        toast.error(data.error || "Error deleting appointment");
+        toast.error(data.error || t('barber.errorDeletingAppointment'));
       }
     } catch (error) {
       console.error("Error deleting appointment:", error);
-      toast.error("Error deleting appointment");
+      toast.error(t('barber.errorDeletingAppointment'));
     }
   };
 
@@ -231,7 +234,7 @@ export default function BarberoDashboard() {
       return;
     }
 
-    if (!confirm("Are you sure you want to cancel this appointment?")) {
+    if (!confirm(t('barber.confirmCancelAppointment'))) {
       return;
     }
 
@@ -246,7 +249,7 @@ export default function BarberoDashboard() {
       });
 
       if (res.ok) {
-        toast.success("✓ Appointment cancelled successfully");
+        toast.success(t('barber.appointmentCancelledSuccess'));
         fetchAppointments(); // Refresh list
       } else {
         const data = await res.json();
@@ -288,7 +291,7 @@ export default function BarberoDashboard() {
       if (res.ok) {
         const data = await res.json();
         setProfileImage(data.imageUrl);
-        await update();
+        await update({ image: data.imageUrl } as Record<string, unknown>);
         await fetchProfile(); // Refresh profile to get latest image
         toast.success(t('messages.success.profilePhotoUpdated'));
       } else {
@@ -400,7 +403,7 @@ export default function BarberoDashboard() {
   };
 
   const handleMarkAsNoShow = async (appointmentId: string) => {
-    if (!confirm("Mark this appointment as 'No-show'? This action is not easily reversible.")) {
+    if (!confirm(t('barber.confirmMarkNoShow'))) {
       return;
     }
 
@@ -410,15 +413,15 @@ export default function BarberoDashboard() {
       });
 
       if (res.ok) {
-        toast.success("✓ Appointment marked as 'No-show'");
+        toast.success(t('barber.appointmentMarkedNoShow'));
         fetchAppointments(); // Refresh list
       } else {
         const data = await res.json();
-        toast.error(data.error || "Error marking appointment as 'No-show'");
+        toast.error(data.error || t('barber.errorMarkingNoShow'));
       }
     } catch (error) {
       console.error("Error marking appointment as NO_SHOW:", error);
-      toast.error("Error marking appointment as 'No-show'");
+      toast.error(t('barber.errorMarkingNoShow'));
     }
   };
 
@@ -431,15 +434,15 @@ export default function BarberoDashboard() {
       });
 
       if (res.ok) {
-        toast.success("✓ Notes updated");
+        toast.success(t('barber.notesUpdated'));
         fetchAppointments(); // Refresh
       } else {
         const data = await res.json();
-        toast.error(data.error || "Error updating notes");
+        toast.error(data.error || t('barber.errorUpdatingNotes'));
       }
     } catch (error) {
       console.error("Error updating barber notes:", error);
-      toast.error("Error updating notes");
+      toast.error(t('barber.errorUpdatingNotes'));
     }
   };
 
@@ -494,40 +497,81 @@ export default function BarberoDashboard() {
       return;
     }
 
+    const normalizePhone = (phone: string) => phone.replace(/[^0-9+]/g, '');
+    const buildZellePayload = () => {
+      if (barberData.zelleEmail) return `mailto:${String(barberData.zelleEmail).trim()}`;
+      if (barberData.zellePhone) return `tel:${normalizePhone(String(barberData.zellePhone))}`;
+      return null;
+    };
+    const buildCashAppPayload = () => {
+      if (!barberData.cashappTag) return null;
+      const raw = String(barberData.cashappTag).trim();
+      if (/^https?:\/\//i.test(raw)) return raw;
+      const tag = raw.startsWith('$') ? raw : `$${raw}`;
+      return `https://cash.app/${tag}`;
+    };
+
+    setZelleQR(null);
+    setCashappQR(null);
+    setZelleQRState('idle');
+    setCashappQRState('idle');
     setShowQRModal(true);
 
     // Generate QR for Zelle if available
     if (barberData.zelleEmail || barberData.zellePhone) {
       try {
-        const zelleData = barberData.zelleEmail || barberData.zellePhone;
+        setZelleQRState('loading');
+        const zelleData = buildZellePayload();
+        if (!zelleData) {
+          setZelleQRState('error');
+        } else {
         const res = await fetch('/api/qr', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ data: zelleData }),
         });
-        if (res.ok) {
-          const { qr } = await res.json();
-          setZelleQR(qr);
+          if (res.ok) {
+            const { qr } = await res.json();
+            setZelleQR(qr);
+            setZelleQRState('idle');
+          } else {
+            setZelleQRState('error');
+            toast.error('Could not generate Zelle QR');
+          }
         }
       } catch (error) {
         console.error('Error generating Zelle QR:', error);
+        setZelleQRState('error');
+        toast.error('Could not generate Zelle QR');
       }
     }
 
     // Generate QR for CashApp if available
     if (barberData.cashappTag) {
       try {
+        setCashappQRState('loading');
+        const cashappData = buildCashAppPayload();
+        if (!cashappData) {
+          setCashappQRState('error');
+        } else {
         const res = await fetch('/api/qr', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: barberData.cashappTag }),
+          body: JSON.stringify({ data: cashappData }),
         });
-        if (res.ok) {
-          const { qr } = await res.json();
-          setCashappQR(qr);
+          if (res.ok) {
+            const { qr } = await res.json();
+            setCashappQR(qr);
+            setCashappQRState('idle');
+          } else {
+            setCashappQRState('error');
+            toast.error('Could not generate CashApp QR');
+          }
         }
       } catch (error) {
         console.error('Error generating CashApp QR:', error);
+        setCashappQRState('error');
+        toast.error('Could not generate CashApp QR');
       }
     }
   };
@@ -594,33 +638,45 @@ export default function BarberoDashboard() {
           {/* Action Buttons Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Link href="/dashboard/barbero/horarios" className="w-full">
-              <Button variant="outline" className="w-full border-gray-700 hover:border-yellow-500 hover:text-yellow-500 h-12">
+              <Button
+                variant="outline"
+                className="w-full bg-gray-900 text-white border-gray-600 hover:border-yellow-500 hover:text-yellow-500 h-12"
+              >
                 <CalendarClock className="h-4 w-4 mr-2" />
                 <span>{t('barber.schedule')}</span>
               </Button>
             </Link>
             <Link href="/dashboard/barbero/contabilidad" className="w-full">
-              <Button variant="outline" className="w-full border-gray-700 hover:border-yellow-500 hover:text-yellow-500 h-12">
+              <Button
+                variant="outline"
+                className="w-full bg-gray-900 text-white border-gray-600 hover:border-yellow-500 hover:text-yellow-500 h-12"
+              >
                 <DollarSign className="h-4 w-4 mr-2" />
                 <span>{t('accounting.title')}</span>
               </Button>
             </Link>
             <Button 
               variant="outline" 
-              className="w-full border-gray-700 hover:border-yellow-500 hover:text-yellow-500 h-12"
+              className="w-full bg-gray-900 text-white border-gray-600 hover:border-yellow-500 hover:text-yellow-500 h-12"
               onClick={handleShowQRCodes}
             >
               <QrCode className="h-4 w-4 mr-2" />
               <span>Payment QR</span>
             </Button>
             <Link href="/dashboard/barbero/reviews" className="w-full">
-              <Button variant="outline" className="w-full border-gray-700 hover:border-yellow-500 hover:text-yellow-500 h-12">
+              <Button
+                variant="outline"
+                className="w-full bg-gray-900 text-white border-gray-600 hover:border-yellow-500 hover:text-yellow-500 h-12"
+              >
                 <Star className="h-4 w-4 mr-2" />
                 <span>{t('barber.myReviews')}</span>
               </Button>
             </Link>
             <Link href="/inbox" className="w-full">
-              <Button variant="outline" className="w-full border-gray-700 hover:border-yellow-500 hover:text-yellow-500 h-12">
+              <Button
+                variant="outline"
+                className="w-full bg-gray-900 text-white border-gray-600 hover:border-yellow-500 hover:text-yellow-500 h-12"
+              >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 <span>{t('nav.chat')}</span>
               </Button>
@@ -638,7 +694,14 @@ export default function BarberoDashboard() {
               {/* Foto de perfil */}
               <div className="flex flex-col items-center">
                 <div className="relative group cursor-pointer" onClick={() => !isLoading && fileInputRef.current?.click()}>
-                  <Avatar key={profileImage} className="w-32 h-32 border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.3)]">
+                  <Avatar
+                    key={profileImage}
+                    className={`w-32 h-32 ${
+                      profileImage
+                        ? 'border border-gray-800 shadow-none'
+                        : 'border-4 border-[#00f0ff] shadow-[0_0_20px_rgba(0,240,255,0.3)]'
+                    }`}
+                  >
                     <AvatarImage src={profileImage || undefined} />
                     <AvatarFallback className="bg-gray-800 text-white text-2xl">
                       {session?.user?.name?.charAt(0).toUpperCase() || "U"}
@@ -782,7 +845,7 @@ export default function BarberoDashboard() {
           <Collapsible open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
             <Card className="lg:col-span-2 bg-gray-900 border-gray-800">
               <CardHeader>
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                   <div>
                     <CardTitle className="text-[#ffd700]">{t('profile.changePassword')}</CardTitle>
                     <CardDescription className="text-gray-400">
@@ -794,7 +857,7 @@ export default function BarberoDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-gray-300 hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                      className="border-gray-700 text-gray-300 hover:border-[#00f0ff] hover:text-[#00f0ff] w-full sm:w-auto"
                     >
                       {isChangePasswordOpen ? 'Hide' : 'Show'}
                       <ChevronDown
@@ -866,7 +929,7 @@ export default function BarberoDashboard() {
         <Collapsible open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
           <Card className="mt-6 bg-gray-900 border-gray-800">
             <CardHeader>
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <CardTitle className="text-[#00f0ff] flex items-center gap-2">
                     <ImageIcon className="w-5 h-5" />
@@ -877,9 +940,9 @@ export default function BarberoDashboard() {
                   </CardDescription>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
                   <Link href="/dashboard/barbero/publicar">
-                    <Button className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] hover:from-[#00d4e6] hover:to-[#0088bb] text-black font-semibold">
+                    <Button className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] hover:from-[#00d4e6] hover:to-[#0088bb] text-black font-semibold w-full sm:w-auto">
                       <Camera className="w-4 h-4 mr-2" />
                       {t('barber.publish')}
                     </Button>
@@ -889,7 +952,7 @@ export default function BarberoDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-gray-300 hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                      className="border-gray-700 text-gray-300 hover:border-[#00f0ff] hover:text-[#00f0ff] w-full sm:w-auto"
                     >
                       {isGalleryOpen ? 'Hide' : 'Show'}
                       <ChevronDown
@@ -1082,7 +1145,7 @@ export default function BarberoDashboard() {
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {appointment.time}
+                          {formatTime12h(appointment.time)}
                         </span>
                       </div>
 
@@ -1362,6 +1425,11 @@ export default function BarberoDashboard() {
                   <div className="bg-white p-4 rounded-lg">
                     <Image src={zelleQR} alt="Zelle QR Code" width={600} height={600} className="w-full h-auto" unoptimized />
                   </div>
+                ) : zelleQRState === 'error' ? (
+                  <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <p className="text-sm text-gray-300">Could not generate the Zelle QR.</p>
+                    <p className="text-xs text-gray-500 mt-1">Please try again. If it persists, re-check your Zelle email/phone.</p>
+                  </div>
                 ) : (
                   <div className="bg-gray-800 p-8 rounded-lg flex items-center justify-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
@@ -1380,6 +1448,11 @@ export default function BarberoDashboard() {
                 {cashappQR ? (
                   <div className="bg-white p-4 rounded-lg">
                     <Image src={cashappQR} alt="CashApp QR Code" width={600} height={600} className="w-full h-auto" unoptimized />
+                  </div>
+                ) : cashappQRState === 'error' ? (
+                  <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <p className="text-sm text-gray-300">Could not generate the CashApp QR.</p>
+                    <p className="text-xs text-gray-500 mt-1">Please try again. If it persists, re-check your CashApp tag.</p>
                   </div>
                 ) : (
                   <div className="bg-gray-800 p-8 rounded-lg flex items-center justify-center">
@@ -1409,9 +1482,6 @@ export default function BarberoDashboard() {
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* FAB Buttons */}
-      <ShareFAB />
     </div>
   );
 }

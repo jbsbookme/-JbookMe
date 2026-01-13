@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { uploadFile, getFileUrl } from '@/lib/s3';
+import { put } from '@vercel/blob';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,47 +43,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert to Buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     // Generate unique filename
     const timestamp = Date.now();
     const ext = file.name.split('.').pop();
     const fileName = `${timestamp}.${ext}`;
 
-    // Prefer S3 when available
-    try {
-      console.log('[Upload Local] Attempting S3 upload...');
-      const cloud_storage_path = await uploadFile(buffer, `gender-images/${fileName}`, true);
-      const imageUrl = await getFileUrl(cloud_storage_path, true);
-      console.log('[Upload Local] S3 upload successful:', imageUrl);
-
-      return NextResponse.json({
-        success: true,
-        url: imageUrl,
-        cloud_storage_path,
-      });
-    } catch (s3Error) {
-      console.log('[Upload Local] S3 failed, saving locally:', s3Error);
-    }
-
-    // Ensure public/uploads directory exists
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'gender-images');
-    await mkdir(uploadsDir, { recursive: true });
-
-    // Save file
-    const filePath = path.join(uploadsDir, fileName);
-    await writeFile(filePath, buffer);
-
-    // Generate public URL
-    const imageUrl = `/uploads/gender-images/${fileName}`;
-
-    console.log('[Upload Local] Image saved successfully:', imageUrl);
+    const blob = await put(`uploads/gender-images/${fileName}`, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
     return NextResponse.json({
       success: true,
-      url: imageUrl,
+      url: blob.url,
     });
   } catch (error) {
     console.error('[Upload Local] Error uploading image:', error);

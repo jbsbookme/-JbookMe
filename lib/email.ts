@@ -1,6 +1,8 @@
 // Email notification utilities
 // This module handles sending email notifications for appointments
 
+import { formatTime12h } from '@/lib/time';
+
 export interface EmailNotificationData {
   to: string;
   subject: string;
@@ -167,6 +169,7 @@ export function generate24HourReminderEmail(
   date: string,
   time: string
 ): string {
+  const timeDisplay = formatTime12h(time);
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0a0a0a; color: #ffffff;">
       <div style="background: linear-gradient(135deg, #00f0ff, #0099cc); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -184,7 +187,7 @@ export function generate24HourReminderEmail(
           <p style="margin: 5px 0; color: #ffffff;"><strong>Servicio:</strong> ${serviceName}</p>
           <p style="margin: 5px 0; color: #ffffff;"><strong>Barbero:</strong> ${barberName}</p>
           <p style="margin: 5px 0; color: #ffffff;"><strong>Fecha:</strong> ${date}</p>
-          <p style="margin: 5px 0; color: #ffffff;"><strong>Hora:</strong> ${time}</p>
+          <p style="margin: 5px 0; color: #ffffff;"><strong>Hora:</strong> ${timeDisplay}</p>
         </div>
         
         <p style="font-size: 14px; color: #888888; margin-top: 20px;">
@@ -210,6 +213,7 @@ export function generate12HourReminderEmail(
   date: string,
   time: string
 ): string {
+  const timeDisplay = formatTime12h(time);
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0a0a0a; color: #ffffff;">
       <div style="background: linear-gradient(135deg, #8b5cf6, #6366f1); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -227,7 +231,7 @@ export function generate12HourReminderEmail(
           <p style="margin: 5px 0; color: #ffffff;"><strong>Servicio:</strong> ${serviceName}</p>
           <p style="margin: 5px 0; color: #ffffff;"><strong>Barbero:</strong> ${barberName}</p>
           <p style="margin: 5px 0; color: #ffffff;"><strong>Fecha:</strong> ${date}</p>
-          <p style="margin: 5px 0; color: #ffffff;"><strong>Hora:</strong> ${time}</p>
+          <p style="margin: 5px 0; color: #ffffff;"><strong>Hora:</strong> ${timeDisplay}</p>
         </div>
         
         <p style="font-size: 14px; color: #888888; margin-top: 20px;">
@@ -253,6 +257,7 @@ export function generate2HourReminderEmail(
   date: string,
   time: string
 ): string {
+  const timeDisplay = formatTime12h(time);
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0a0a0a; color: #ffffff;">
       <div style="background: linear-gradient(135deg, #ffd700, #ff9500); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -270,7 +275,7 @@ export function generate2HourReminderEmail(
           <p style="margin: 5px 0; color: #ffffff;"><strong>Servicio:</strong> ${serviceName}</p>
           <p style="margin: 5px 0; color: #ffffff;"><strong>Barbero:</strong> ${barberName}</p>
           <p style="margin: 5px 0; color: #ffffff;"><strong>Fecha:</strong> ${date}</p>
-          <p style="margin: 5px 0; color: #ffffff;"><strong>Hora:</strong> ${time}</p>
+          <p style="margin: 5px 0; color: #ffffff;"><strong>Hora:</strong> ${timeDisplay}</p>
         </div>
         
         <p style="font-size: 14px; color: #888888; margin-top: 20px;">
@@ -296,6 +301,7 @@ export function generate30MinuteReminderEmail(
   date: string,
   time: string
 ): string {
+  const timeDisplay = formatTime12h(time);
   return `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0a0a0a; color: #ffffff;">
       <div style="background: linear-gradient(135deg, #ef4444, #dc2626); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -310,14 +316,14 @@ export function generate30MinuteReminderEmail(
         <p style="font-size: 18px; color: #00f0ff; margin-bottom: 20px;">Hola ${clientName},</p>
         
         <p style="font-size: 16px; line-height: 1.6; color: #ffffff; background-color: #ef4444; padding: 15px; border-radius: 8px; text-align: center;">
-          <strong>¡Es hora de salir! Tu cita comienza a las ${time}</strong>
+          <strong>¡Es hora de salir! Tu cita comienza a las ${timeDisplay}</strong>
         </p>
         
         <div style="background-color: #0a0a0a; padding: 20px; border-left: 4px solid #ef4444; margin: 20px 0;">
           <p style="margin: 5px 0; color: #ffffff; font-size: 16px;"><strong>Servicio:</strong> ${serviceName}</p>
           <p style="margin: 5px 0; color: #ffffff; font-size: 16px;"><strong>Barbero:</strong> ${barberName}</p>
           <p style="margin: 5px 0; color: #ffffff; font-size: 16px;"><strong>Fecha:</strong> ${date}</p>
-          <p style="margin: 5px 0; color: #ffffff; font-size: 16px;"><strong>Hora:</strong> <span style="color: #ef4444; font-weight: bold;">${time}</span></p>
+          <p style="margin: 5px 0; color: #ffffff; font-size: 16px;"><strong>Hora:</strong> <span style="color: #ef4444; font-weight: bold;">${timeDisplay}</span></p>
         </div>
         
         <p style="font-size: 14px; color: #ffff00; margin-top: 20px; text-align: center; font-weight: bold;">

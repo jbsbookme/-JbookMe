@@ -33,10 +33,11 @@ export async function sendSMS(to: string, message: string) {
   }
 
   try {
+    const normalizedTo = normalizePhoneNumber(to);
     const result = await twilioClient.messages.create({
       body: message,
       from: twilioPhoneNumber,
-      to: to
+      to: normalizedTo
     });
 
     console.log('SMS sent successfully:', result.sid);
@@ -53,6 +54,21 @@ export async function sendSMS(to: string, message: string) {
       error: message || 'Error al enviar SMS'
     };
   }
+}
+
+export function normalizePhoneNumber(phone: string): string {
+  const trimmed = String(phone || '').trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith('+')) return trimmed;
+
+  // Strip non-digits
+  const digits = trimmed.replace(/\D/g, '');
+  // Common US formats: 10 digits or 11 digits starting with 1
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+
+  // Fallback: return original; Twilio may still accept it depending on formatting.
+  return trimmed;
 }
 
 export function isTwilioConfigured(): boolean {

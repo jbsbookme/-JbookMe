@@ -1,5 +1,5 @@
 // Service Worker for BookMe PWA
-const CACHE_NAME = 'bookme-v6';
+const CACHE_NAME = 'bookme-v7';
 const urlsToCache = [
   '/manifest.json',
   '/icon-192.png',
@@ -44,6 +44,16 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   const isSameOrigin = url.origin === self.location.origin;
+
+  // Never cache Next.js internal assets or App Router RSC/Flight requests.
+  // Caching these can cause the app UI to stay stuck on old deployments.
+  const acceptHeader = request.headers.get('accept') || '';
+  const isNextInternal = isSameOrigin && url.pathname.startsWith('/_next/');
+  const isRscRequest = isSameOrigin && (url.searchParams.has('_rsc') || acceptHeader.includes('text/x-component'));
+  if (isNextInternal || isRscRequest) {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // Never cache API responses; always go to the network.
   // This avoids serving stale data (e.g. /api/version, feeds, auth/session state).
@@ -103,6 +113,7 @@ self.addEventListener('push', (event) => {
   }
   
   const title = data.title || 'BookMe';
+  const resolvedUrl = data.url || (data.data && data.data.url) || '/';
   const options = {
     body: data.body || 'You have a new notification',
     icon: '/icon-192.png',
@@ -110,7 +121,7 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     data: {
       dateOfArrival: Date.now(),
-      url: data.url || '/',
+      url: resolvedUrl,
     },
     actions: [
       {

@@ -8,7 +8,7 @@
     "dev:3001:detached": "bash scripts/dev-3001-detached.sh",
     "dev:side:detached": "bash scripts/dev-3001-detached.sh",
     "build": "next build",
-    "vercel-build": "prisma generate && next build",
+    "vercel-build": "node scripts/vercel-build.js",
     "db:migrate:deploy": "prisma migrate deploy",
     "start": "next start",
     "prod:build": "next build",
@@ -52,8 +52,6 @@
     "typescript": "5.2.2"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.943.0",
-    "@aws-sdk/s3-request-presigner": "^3.943.0",
     "@floating-ui/react": "0.26.0",
     "@headlessui/react": "1.7.18",
     "@hookform/resolvers": "3.9.0",

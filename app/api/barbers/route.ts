@@ -40,12 +40,23 @@ export async function GET(request: NextRequest) {
     // FIXED: Add gender filter
     const { searchParams } = new URL(request.url);
     const gender = searchParams.get('gender');
+    const includeInactive = searchParams.get('includeInactive') === '1';
+
+    const session = await getServerSession(authOptions);
+    const isAdmin = session?.user?.role === 'ADMIN';
 
     // Build where clause
-    const whereClause: Prisma.BarberWhereInput = { isActive: true };
+    const whereClause: Prisma.BarberWhereInput = {};
+    if (!includeInactive || !isAdmin) {
+      whereClause.isActive = true;
+    }
     
-    if (gender && (gender === 'MALE' || gender === 'FEMALE' || gender === 'BOTH')) {
-      whereClause.gender = gender;
+    if (gender === 'MALE') {
+      whereClause.gender = { in: ['MALE', 'BOTH'] };
+    } else if (gender === 'FEMALE') {
+      whereClause.gender = { in: ['FEMALE', 'BOTH'] };
+    } else if (gender === 'BOTH') {
+      whereClause.gender = 'BOTH';
     }
 
     const barbers = await prisma.barber.findMany({
@@ -53,6 +64,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         userId: true,
+        isActive: true,
         bio: true,
         specialties: true,
         hourlyRate: true,
@@ -60,14 +72,24 @@ export async function GET(request: NextRequest) {
         phone: true,
         rating: true,
         gender: true,
+        contactEmail: true,
         facebookUrl: true,
         instagramUrl: true,
         twitterUrl: true,
         tiktokUrl: true,
+        youtubeUrl: true,
         whatsappUrl: true,
         zelleEmail: true,
         zellePhone: true,
         cashappTag: true,
+        galleryImages: {
+          where: { isActive: true, isPublic: true },
+          orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+          take: 1,
+          select: {
+            cloud_storage_path: true,
+          },
+        },
         user: {
           select: {
             id: true,
@@ -75,6 +97,7 @@ export async function GET(request: NextRequest) {
             email: true,
             image: true,
             phone: true,
+            role: true,
           },
         },
         services: {
@@ -110,7 +133,16 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ barbers: barbersWithRatings });
+    return NextResponse.json(
+      { barbers: barbersWithRatings },
+      {
+        headers: {
+          // Session-dependent (admin can see inactive); never cache
+          'Cache-Control': 'private, no-store, max-age=0',
+          Vary: 'Cookie',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error fetching barbers:', error);
     return NextResponse.json({ error: 'Failed to fetch barbers' }, { status: 500 });
@@ -133,6 +165,7 @@ export async function POST(request: NextRequest) {
       email,
       password,
       role,
+      isActive,
       bio, 
       specialties, 
       hourlyRate, 
@@ -150,11 +183,17 @@ export async function POST(request: NextRequest) {
       cashappTag
     } = body;
 
+    // Prisma Role enum is ADMIN | BARBER | CLIENT.
+    // The UI sometimes sends role = 'STYLIST' for “estilistas”, but in DB we store them as BARBER
+    // (they are differentiated elsewhere, e.g. via Barber.gender).
+    const normalizedRole = role === 'BARBER' || role === 'STYLIST' ? 'BARBER' : undefined;
+
     // If userId is provided, use existing user
     if (userId) {
       const barber = await prisma.barber.create({
         data: {
           userId,
+          isActive: isActive ?? true,
           bio: bio || null,
           specialties: specialties || null,
           hourlyRate: hourlyRate || null,
@@ -175,6 +214,13 @@ export async function POST(request: NextRequest) {
           user: true,
         },
       });
+
+      if (normalizedRole) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { role: normalizedRole },
+        });
+      }
 
       // Create default availability schedule for the new barber
       await createDefaultAvailability(barber.id);
@@ -216,6 +262,7 @@ export async function POST(request: NextRequest) {
     // Create user and barber in a transaction
     const barber = await prisma.barber.create({
       data: {
+        isActive: isActive ?? true,
         bio: bio || null,
         specialties: specialties || null,
         hourlyRate: hourlyRate || null,
@@ -236,7 +283,7 @@ export async function POST(request: NextRequest) {
             name,
             email,
             password: hashedPassword,
-            role: role || 'BARBER',
+            role: normalizedRole || 'BARBER',
             image: profileImage || null,
           },
         },

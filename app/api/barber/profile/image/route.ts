@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { uploadFile, getFileUrl } from '@/lib/s3';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 
 export async function POST(request: NextRequest) {
@@ -45,35 +43,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Convert to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Generate unique filename
+    // Upload to Vercel Blob (public) - production safe on Vercel.
     const timestamp = Date.now();
-    const ext = file.name.split('.').pop();
-    const fileName = `barber-profile-${session.user.id}-${timestamp}.${ext}`;
+    const safeName = (file.name || 'profile').replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `profiles/barbers/${session.user.id}/${timestamp}-${safeName}`;
 
-    let imageUrl: string;
+    const blob = await put(fileName, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    });
 
-    try {
-      // Try uploading to S3 first
-      console.log('[BARBER IMAGE] Attempting S3 upload...');
-      const cloud_storage_path = await uploadFile(buffer, fileName, true);
-      imageUrl = await getFileUrl(cloud_storage_path, true);
-      console.log('[BARBER IMAGE] S3 upload successful:', imageUrl);
-    } catch (s3Error) {
-      // If S3 fails, save locally
-      console.log('[BARBER IMAGE] S3 failed, saving locally:', s3Error);
-      
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'barbers');
-      await mkdir(uploadsDir, { recursive: true });
-      
-      const filePath = path.join(uploadsDir, fileName);
-      await writeFile(filePath, buffer);
-      
-      imageUrl = `/uploads/barbers/${fileName}`;
-      console.log('[BARBER IMAGE] Saved locally:', imageUrl);
-    }
+    const imageUrl = blob.url;
 
     // Find barber record
     const barber = await prisma.barber.findFirst({
@@ -88,10 +68,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Update barber profile photo
-    await prisma.barber.update({
-      where: { id: barber.id },
-      data: { profileImage: imageUrl }
-    });
+    await prisma.$transaction([
+      prisma.barber.update({
+        where: { id: barber.id },
+        data: { profileImage: imageUrl },
+      }),
+      prisma.user.update({
+        where: { id: session.user.id },
+        data: { image: imageUrl },
+      }),
+    ]);
 
     return NextResponse.json(
       { 
@@ -103,7 +89,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error uploading barber profile image:', error);
     return NextResponse.json(
-      { error: 'Failed to upload image' },
+      {
+        error: 'Failed to upload image',
+        message: 'Failed to upload image',
+      },
       { status: 500 }
     );
   }

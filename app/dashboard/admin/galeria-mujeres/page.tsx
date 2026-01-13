@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import { Upload, Trash2, Image as ImageIcon, Loader2, ImagePlus, ArrowLeft } fro
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface GalleryImage {
   id: string;
@@ -28,12 +29,33 @@ interface GalleryImage {
 export default function GaleriaMujeresPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
+  const { t } = useI18n();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+
+  const fetchImages = useCallback(async () => {
+    try {
+      const res = await fetch('/api/gallery?gender=FEMALE&includeInactive=false');
+      const data = await res.json();
+      if (res.ok) {
+        // Filtrar solo imágenes FEMALE (doble verificación)
+        const femaleImages = Array.isArray(data) ? data.filter((img: GalleryImage) => img.gender === 'FEMALE') : [];
+        setImages(femaleImages);
+        console.log(`✅ Women's Gallery: ${femaleImages.length} images loaded`);
+      } else {
+        toast.error(t('admin.galleryFemale.toastErrorLoadingImages'));
+      }
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      toast.error(t('admin.galleryFemale.toastErrorLoadingImages'));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -47,37 +69,17 @@ export default function GaleriaMujeresPage() {
     }
 
     fetchImages();
-  }, [session, status, router]);
-
-  const fetchImages = async () => {
-    try {
-      const res = await fetch('/api/gallery?gender=FEMALE&includeInactive=false');
-      const data = await res.json();
-      if (res.ok) {
-        // Filtrar solo imágenes FEMALE (doble verificación)
-        const femaleImages = Array.isArray(data) ? data.filter((img: GalleryImage) => img.gender === 'FEMALE') : [];
-        setImages(femaleImages);
-        console.log(`✅ Women's Gallery: ${femaleImages.length} images loaded`);
-      } else {
-        toast.error('Error loading images');
-      }
-    } catch (error) {
-      console.error('Error fetching images:', error);
-      toast.error('Error loading images');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [session, status, router, fetchImages]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        toast.error('Please select a valid image');
+        toast.error(t('admin.galleryFemale.toastSelectValidImage'));
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must not exceed 5MB');
+        toast.error(t('admin.galleryFemale.toastImageMustNotExceed5mb'));
         return;
       }
       setSelectedFile(file);
@@ -87,7 +89,7 @@ export default function GaleriaMujeresPage() {
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      toast.error('Please select an image');
+      toast.error(t('admin.galleryFemale.toastPleaseSelectImage'));
       return;
     }
 
@@ -105,7 +107,7 @@ export default function GaleriaMujeresPage() {
       const uploadData = await uploadRes.json();
 
       if (!uploadRes.ok) {
-        toast.error(uploadData.error || 'Error al subir imagen');
+        toast.error(uploadData.error || t('admin.galleryFemale.toastErrorUploadingImage'));
         setUploading(false);
         return;
       }
@@ -116,8 +118,8 @@ export default function GaleriaMujeresPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cloud_storage_path: uploadData.cloud_storage_path,
-          title: caption || 'Corte femenino',
-          description: caption || 'Corte femenino',
+          title: caption || t('admin.galleryFemale.defaultTitle'),
+          description: caption || t('admin.galleryFemale.defaultDescription'),
           gender: 'FEMALE',
           tags: [],
           order: 0
@@ -125,25 +127,25 @@ export default function GaleriaMujeresPage() {
       });
 
       if (createRes.ok) {
-        toast.success('Image uploaded successfully');
+        toast.success(t('admin.galleryFemale.toastImageUploadedSuccessfully'));
         setSelectedFile(null);
         setPreviewUrl(null);
         setCaption('');
         fetchImages();
       } else {
         const createData = await createRes.json();
-        toast.error(createData.error || 'Error creating record');
+        toast.error(createData.error || t('admin.galleryFemale.toastErrorCreatingRecord'));
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Error uploading image');
+      toast.error(t('admin.galleryFemale.toastErrorUploadingImage'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+    if (!confirm(t('admin.galleryFemale.confirmDeleteImage'))) return;
 
     try {
       const res = await fetch(`/api/gallery/${id}`, {
@@ -151,14 +153,14 @@ export default function GaleriaMujeresPage() {
       });
 
       if (res.ok) {
-        toast.success('Image deleted');
+        toast.success(t('admin.galleryFemale.toastImageDeleted'));
         fetchImages();
       } else {
-        toast.error('Error deleting image');
+        toast.error(t('admin.galleryFemale.toastErrorDeletingImage'));
       }
     } catch (error) {
       console.error('Error deleting image:', error);
-      toast.error('Error deleting image');
+      toast.error(t('admin.galleryFemale.toastErrorDeletingImage'));
     }
   };
 
@@ -191,12 +193,14 @@ export default function GaleriaMujeresPage() {
               </Button>
               <div>
                 <h1 className="text-4xl font-bold text-white">
-                  <span className="text-pink-400">Women&apos;s </span>
-                  <span className="text-white">Gallery</span>
+                  <span className="text-pink-400">{t('admin.galleryFemale.titlePrefix')}</span>
+                  <span className="text-white">{t('admin.galleryFemale.titleSuffix')}</span>
                 </h1>
               </div>
             </div>
-            <p className="text-gray-400">Manage women&apos;s haircut images ({images.length} photos)</p>
+            <p className="text-gray-400">
+              {t('admin.galleryFemale.subtitlePrefix')} ({images.length} {t('common.photos')})
+            </p>
           </div>
 
           {/* Upload Section */}
@@ -204,7 +208,7 @@ export default function GaleriaMujeresPage() {
             <CardHeader>
               <CardTitle className="text-pink-400 flex items-center gap-2">
                 <ImagePlus className="w-5 h-5" />
-                Upload New Image (Women)
+                {t('admin.galleryFemale.uploadNewImageTitle')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -212,7 +216,7 @@ export default function GaleriaMujeresPage() {
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Select Image
+                      {t('admin.galleryFemale.selectImageLabel')}
                     </label>
                     <div className="relative">
                       <input
@@ -228,7 +232,7 @@ export default function GaleriaMujeresPage() {
                       >
                         <Upload className="w-5 h-5 text-gray-400" />
                         <span className="text-gray-300">
-                          {selectedFile ? selectedFile.name : 'Click to select'}
+                          {selectedFile ? selectedFile.name : t('admin.galleryFemale.clickToSelect')}
                         </span>
                       </label>
                     </div>
@@ -236,13 +240,13 @@ export default function GaleriaMujeresPage() {
 
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Description (optional)
+                      {t('admin.galleryFemale.descriptionOptional')}
                     </label>
                     <input
                       type="text"
                       value={caption}
                       onChange={(e) => setCaption(e.target.value)}
-                      placeholder="E.g.: Balayage, Layered cut..."
+                      placeholder={t('admin.galleryFemale.descriptionPlaceholder')}
                       className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent"
                     />
                   </div>
@@ -250,11 +254,11 @@ export default function GaleriaMujeresPage() {
 
                 {previewUrl && (
                   <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-300 mb-2">Preview:</p>
+                    <p className="text-sm font-medium text-gray-300 mb-2">{t('admin.galleryFemale.previewLabel')}</p>
                     <div className="relative w-full h-64 rounded-lg overflow-hidden bg-gray-800">
                       <Image
                         src={previewUrl}
-                        alt="Preview"
+                        alt={t('admin.galleryFemale.previewAlt')}
                         fill
                         className="object-cover"
                       />
@@ -273,7 +277,7 @@ export default function GaleriaMujeresPage() {
                     disabled={!selectedFile || uploading}
                     className="border-gray-700 text-gray-300 hover:bg-gray-800"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={handleUpload}
@@ -283,12 +287,12 @@ export default function GaleriaMujeresPage() {
                     {uploading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Uploading...
+                        {t('admin.galleryFemale.uploading')}
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4 mr-2" />
-                        Upload Image
+                        {t('admin.galleryFemale.uploadImageButton')}
                       </>
                     )}
                   </Button>
@@ -302,8 +306,8 @@ export default function GaleriaMujeresPage() {
             <Card className="bg-gray-900 border-gray-800">
               <CardContent className="py-16 text-center">
                 <ImageIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-lg">No images yet</p>
-                <p className="text-gray-500 text-sm mt-2">Upload the first women&apos;s haircut image</p>
+                <p className="text-gray-400 text-lg">{t('admin.galleryFemale.emptyTitle')}</p>
+                <p className="text-gray-500 text-sm mt-2">{t('admin.galleryFemale.emptySubtitle')}</p>
               </CardContent>
             </Card>
           ) : (
@@ -321,7 +325,7 @@ export default function GaleriaMujeresPage() {
                         {image.imageUrl ? (
                           <Image
                             src={image.imageUrl}
-                            alt={image.caption || 'Gallery image'}
+                            alt={image.caption || t('admin.galleryFemale.galleryImageAlt')}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-300"
                           />
@@ -337,7 +341,7 @@ export default function GaleriaMujeresPage() {
                             )}
                             <div className="flex justify-between items-center">
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-pink-500/20 text-pink-400 border border-pink-400/50">
-                                👩 Woman
+                                {t('admin.galleryFemale.femaleBadge')}
                               </span>
                               <Button
                                 size="sm"

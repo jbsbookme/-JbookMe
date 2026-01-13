@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { uploadFile, getFileUrl } from '@/lib/s3'
+import { prisma } from '@/lib/db'
+import { put } from '@vercel/blob'
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,44 +49,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Convert to Buffer
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-
     // Determine extension
     const ext = file.name.split('.').pop() || 'jpg'
-    const fileName = `${gender}.${ext}`
+    const fileName = `${gender}-${Date.now()}.${ext}`
 
-    // Prefer S3 when available
-    try {
-      const cloud_storage_path = await uploadFile(buffer, `gender-images/${fileName}`, true)
-      const publicUrl = await getFileUrl(cloud_storage_path, true)
-      return NextResponse.json({
-        success: true,
-        url: publicUrl,
-        cloud_storage_path,
-        gender,
-        message: `${gender === 'male' ? 'Men\'s' : 'Women\'s'} image updated successfully`
-      })
-    } catch (s3Error) {
-      console.log('[Gender Images] S3 failed, saving locally:', s3Error)
-    }
+    const blob = await put(`uploads/gender-images/${fileName}`, file, {
+      access: 'public',
+      addRandomSuffix: false,
+    })
 
-    // Create directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads', 'gender-images')
-    await mkdir(uploadDir, { recursive: true })
-
-    // Save file
-    const filePath = join(uploadDir, fileName)
-    await writeFile(filePath, buffer)
-
-    // Public URL
-    const publicUrl = `/uploads/gender-images/${fileName}`
+    // Persist in Settings so frontend can read without relying on filesystem.
+    const existing = await prisma.settings.findFirst({ select: { id: true } })
+    const settings = existing
+      ? await prisma.settings.update({
+          where: { id: existing.id },
+          data: gender === 'male' ? { maleGenderImage: blob.url } : { femaleGenderImage: blob.url },
+          select: { maleGenderImage: true, femaleGenderImage: true },
+        })
+      : await prisma.settings.create({
+          data: gender === 'male' ? { maleGenderImage: blob.url } : { femaleGenderImage: blob.url },
+          select: { maleGenderImage: true, femaleGenderImage: true },
+        })
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
+      url: blob.url,
       gender,
+      settings,
       message: `${gender === 'male' ? 'Men\'s' : 'Women\'s'} image updated successfully`
     })
   } catch (error) {

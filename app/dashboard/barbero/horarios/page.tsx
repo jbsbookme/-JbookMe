@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -26,9 +27,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { format, isSameDay } from 'date-fns';
+import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatTime12h } from '@/lib/time';
 
 interface Availability {
   id: string;
@@ -59,6 +61,17 @@ export default function HorariosPage() {
   const [showDayOffDialog, setShowDayOffDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [dayOffReason, setDayOffReason] = useState('');
+
+  const timeOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [];
+    for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      const value = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+      options.push({ value, label: formatTime12h(value) });
+    }
+    return options;
+  }, []);
 
   const DAYS_OF_WEEK = [
     { value: 'MONDAY', label: t('barber.monday'), icon: '📅' },
@@ -102,7 +115,14 @@ export default function HorariosPage() {
       const res = await fetch('/api/barber/days-off');
       if (res.ok) {
         const data = await res.json();
-        setDaysOff(data.daysOff || []);
+        const rawDaysOff = Array.isArray(data) ? data : data.daysOff;
+        const normalized: DayOff[] = (rawDaysOff || []).map((d: any) => ({
+          id: d.id,
+          // Normalize to date-only string to avoid timezone shifting in comparisons/rendering.
+          date: format(new Date(d.date), 'yyyy-MM-dd'),
+          reason: d.reason ?? undefined,
+        }));
+        setDaysOff(normalized);
       }
     } catch (error) {
       console.error('Error fetching days off:', error);
@@ -217,9 +237,8 @@ export default function HorariosPage() {
   };
 
   const isDayOff = (date: Date) => {
-    return daysOff.some(dayOff => 
-      isSameDay(new Date(dayOff.date), date)
-    );
+    const key = format(date, 'yyyy-MM-dd');
+    return daysOff.some((d) => d.date === key);
   };
 
   if (status === 'loading' || isLoading) {
@@ -305,48 +324,66 @@ export default function HorariosPage() {
 
                   return (
                     <div key={day.value} className="border border-gray-700 rounded-lg p-4 bg-gray-800/50">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <span className="text-2xl">{day.icon}</span>
-                          <span className="text-lg font-semibold text-white">{day.label}</span>
+                          <span className="text-base sm:text-lg font-semibold text-white truncate">{day.label}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm text-gray-400">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+                          <Label className="text-sm text-gray-400 whitespace-nowrap">
                             {isAvailable ? 'Disponible' : 'No disponible'}
                           </Label>
                           <Switch
                             checked={isAvailable}
                             onCheckedChange={() => handleToggleDay(day.value)}
-                            className="data-[state=checked]:bg-[#00f0ff]"
+                            className="shrink-0 data-[state=checked]:bg-[#00f0ff]"
                           />
                         </div>
                       </div>
 
                       {isAvailable && dayAvailability && (
-                        <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 flex items-center gap-1">
                               <Sun className="w-3 h-3" />
                               {t('barber.startTime')}
                             </Label>
-                            <Input
-                              type="time"
+                            <Select
                               value={dayAvailability.startTime}
-                              onChange={(e) => handleTimeChange(day.value, 'startTime', e.target.value)}
-                              className="bg-gray-700 border-gray-600 text-white"
-                            />
+                              onValueChange={(value) => handleTimeChange(day.value, 'startTime', value)}
+                            >
+                              <SelectTrigger className="bg-gray-700 border-gray-600 text-white text-base sm:text-sm">
+                                <SelectValue placeholder={t('barber.startTime')} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-gray-900 border-gray-700 text-white max-h-72">
+                                {timeOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 flex items-center gap-1">
                               <Moon className="w-3 h-3" />
                               {t('barber.endTime')}
                             </Label>
-                            <Input
-                              type="time"
+                            <Select
                               value={dayAvailability.endTime}
-                              onChange={(e) => handleTimeChange(day.value, 'endTime', e.target.value)}
-                              className="bg-gray-700 border-gray-600 text-white"
-                            />
+                              onValueChange={(value) => handleTimeChange(day.value, 'endTime', value)}
+                            >
+                              <SelectTrigger className="bg-gray-700 border-gray-600 text-white text-base sm:text-sm">
+                                <SelectValue placeholder={t('barber.endTime')} />
+                              </SelectTrigger>
+                              <SelectContent className="bg-gray-900 border-gray-700 text-white max-h-72">
+                                {timeOptions.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
                       )}

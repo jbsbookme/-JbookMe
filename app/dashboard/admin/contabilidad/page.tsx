@@ -15,8 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DollarSign, TrendingUp, TrendingDown, Wallet, AlertCircle, Plus, Trash2, Calendar, ArrowLeft, Check, ChevronsUpDown, ChevronDown } from 'lucide-react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
-import { enUS } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n/i18n-context';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
@@ -104,6 +105,8 @@ interface BarberOption {
 export default function ContabilidadPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
+  const { t, language } = useI18n();
+  const dateLocale = language === 'es' ? es : enUS;
   
   const [summary, setSummary] = useState<AccountingSummary | null>(null);
   const [payments, setPayments] = useState<BarberPayment[]>([]);
@@ -260,7 +263,7 @@ export default function ContabilidadPage() {
       }
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Error loading data');
+      toast.error(t('admin.accountingPage.errorLoadingData'));
       // Reset to empty arrays on error
       setPayments([]);
       setExpenses([]);
@@ -271,7 +274,7 @@ export default function ContabilidadPage() {
     } finally {
       setLoading(false);
     }
-  }, [getDateRangeParams]);
+  }, [getDateRangeParams, t]);
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -295,7 +298,7 @@ export default function ContabilidadPage() {
       });
 
       if (res.ok) {
-        toast.success('Payment registered successfully');
+        toast.success(t('admin.accountingPage.paymentRegisteredSuccess'));
         setShowPaymentDialog(false);
         setPaymentForm({
           barberId: '',
@@ -307,11 +310,11 @@ export default function ContabilidadPage() {
         });
         fetchData();
       } else {
-        toast.error('Error registering payment');
+        toast.error(t('admin.accountingPage.errorRegisteringPayment'));
       }
     } catch (error) {
       console.error('Error creating payment:', error);
-      toast.error('Error registering payment');
+      toast.error(t('admin.accountingPage.errorRegisteringPayment'));
     }
   };
 
@@ -324,14 +327,14 @@ export default function ContabilidadPage() {
       });
 
       if (res.ok) {
-        toast.success('Status updated');
+        toast.success(t('messages.success.updated'));
         fetchData();
       } else {
-        toast.error('Error updating status');
+        toast.error(t('admin.accountingPage.errorUpdatingStatus'));
       }
     } catch (error) {
       console.error('Error updating payment status:', error);
-      toast.error('Error updating status');
+      toast.error(t('admin.accountingPage.errorUpdatingStatus'));
     }
   };
 
@@ -349,7 +352,7 @@ export default function ContabilidadPage() {
 
     // Validate custom category
     if (expenseData.category === 'OTHER' && !expenseData.customCategory) {
-      toast.error('Please enter the custom category name');
+      toast.error(t('admin.accountingPage.pleaseEnterCategoryName'));
       return;
     }
     
@@ -361,7 +364,7 @@ export default function ContabilidadPage() {
       });
 
       if (res.ok) {
-        toast.success('Expense registered successfully');
+        toast.success(t('admin.accountingPage.expenseRegisteredSuccess'));
         setShowExpenseDialog(false);
         setExpenseForm({
           category: '',
@@ -375,16 +378,16 @@ export default function ContabilidadPage() {
         fetchData();
       } else {
         const errorData = await res.json();
-        toast.error(errorData.error || 'Error registering expense');
+        toast.error(errorData.error || t('admin.accountingPage.errorRegisteringExpense'));
       }
     } catch (error) {
       console.error('Error creating expense:', error);
-      toast.error('Error registering expense');
+      toast.error(t('admin.accountingPage.errorRegisteringExpense'));
     }
   };
 
   const handleDeleteExpense = async (expenseId: string) => {
-    if (!confirm('Are you sure you want to delete this expense?')) return;
+    if (!confirm(t('admin.accountingPage.confirmDeleteExpense'))) return;
 
     try {
       const res = await fetch(`/api/expenses/${expenseId}`, {
@@ -392,14 +395,14 @@ export default function ContabilidadPage() {
       });
 
       if (res.ok) {
-        toast.success('Expense deleted');
+        toast.success(t('admin.accountingPage.expenseDeleted'));
         fetchData();
       } else {
-        toast.error('Error deleting expense');
+        toast.error(t('admin.accountingPage.errorDeletingExpense'));
       }
     } catch (error) {
       console.error('Error deleting expense:', error);
-      toast.error('Error deleting expense');
+      toast.error(t('admin.accountingPage.errorDeletingExpense'));
     }
   };
 
@@ -418,28 +421,28 @@ export default function ContabilidadPage() {
       });
 
       if (res.ok) {
-        toast.success(`Invoice marked as ${action}`);
+        toast.success(`${t('admin.accountingPage.invoiceMarkedAs')} ${action}`);
         fetchData();
       } else {
-        toast.error('Error updating invoice status');
+        toast.error(t('admin.accountingPage.errorUpdatingInvoiceStatus'));
       }
     } catch (error) {
       console.error('Error updating invoice:', error);
-      toast.error('Error updating invoice status');
+      toast.error(t('admin.accountingPage.errorUpdatingInvoiceStatus'));
     }
   };
 
   const handleAddItem = () => {
     if (!currentItem.description || !currentItem.description.trim()) {
-      toast.error('Please enter a description for the item');
+      toast.error(t('admin.accountingPage.pleaseEnterDescription'));
       return;
     }
     if (!currentItem.price || currentItem.price <= 0) {
-      toast.error('Please enter a valid price (greater than 0)');
+      toast.error(t('admin.accountingPage.pleaseEnterValidPrice'));
       return;
     }
     if (!currentItem.quantity || currentItem.quantity < 1) {
-      toast.error('Quantity must be at least 1');
+      toast.error(t('admin.accountingPage.quantityAtLeastOne'));
       return;
     }
     
@@ -451,7 +454,7 @@ export default function ContabilidadPage() {
     
     setInvoiceItems([...invoiceItems, newItem]);
     setCurrentItem({description: '', quantity: 1, price: 0});
-    toast.success('Item added successfully');
+    toast.success(t('admin.accountingPage.itemAdded'));
   };
 
   const handleRemoveItem = (index: number) => {
@@ -470,17 +473,17 @@ export default function ContabilidadPage() {
       price: savedItem.price
     };
     setInvoiceItems([...invoiceItems, newItem]);
-    toast.success('Item added');
+    toast.success(t('admin.accountingPage.itemAdded'));
   };
 
   // Save current item as a template
   const handleSaveAsTemplate = async () => {
     if (!currentItem.description || !currentItem.description.trim()) {
-      toast.error('Add a description first');
+      toast.error(t('admin.accountingPage.addDescriptionFirst'));
       return;
     }
     if (!currentItem.price || currentItem.price <= 0) {
-      toast.error('Add a valid price first');
+      toast.error(t('admin.accountingPage.addValidPriceFirst'));
       return;
     }
 
@@ -497,14 +500,14 @@ export default function ContabilidadPage() {
       if (res.ok) {
         const newItem = await res.json();
         setSavedItems([...savedItems, newItem]);
-        toast.success('Item saved for later use');
+        toast.success(t('admin.accountingPage.itemSavedForLater'));
         setShowSaveItemDialog(false);
       } else {
-        toast.error('Error saving item');
+        toast.error(t('admin.accountingPage.errorSavingItem'));
       }
     } catch (error) {
       console.error('Error saving item template:', error);
-      toast.error('Error saving item');
+      toast.error(t('admin.accountingPage.errorSavingItem'));
     }
   };
 
@@ -517,13 +520,13 @@ export default function ContabilidadPage() {
 
       if (res.ok) {
         setSavedItems(savedItems.filter(item => item.id !== id));
-        toast.success('Item deleted');
+        toast.success(t('admin.accountingPage.itemDeleted'));
       } else {
-        toast.error('Error deleting item');
+        toast.error(t('admin.accountingPage.errorDeletingItem'));
       }
     } catch (error) {
       console.error('Error deleting item template:', error);
-      toast.error('Error deleting item');
+      toast.error(t('admin.accountingPage.errorDeletingItem'));
     }
   };
 
@@ -533,24 +536,24 @@ export default function ContabilidadPage() {
     // Validation
     if (useExistingRecipient) {
       if (!invoiceForm.recipientId) {
-        toast.error('Please select a recipient');
+        toast.error(t('admin.accountingPage.pleaseSelectRecipient'));
         return;
       }
     } else {
       if (!invoiceForm.recipientName || !invoiceForm.recipientEmail) {
-        toast.error('Please complete the recipient name and email');
+        toast.error(t('admin.accountingPage.completeRecipientNameAndEmail'));
         return;
       }
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(invoiceForm.recipientEmail)) {
-        toast.error('Please enter a valid email');
+        toast.error(t('admin.accountingPage.enterValidEmail'));
         return;
       }
     }
 
     if (invoiceItems.length === 0) {
-      toast.error('Please add at least one item to the invoice');
+      toast.error(t('admin.accountingPage.addAtLeastOneItem'));
       return;
     }
     
@@ -561,7 +564,7 @@ export default function ContabilidadPage() {
       type: invoiceForm.type,
       amount: total,
       items: invoiceItems,
-      description: invoiceForm.description || 'Service invoice',
+      description: invoiceForm.description || t('admin.accountingPage.serviceInvoiceDefaultDescription'),
       dueDate: invoiceForm.dueDate || null,
     };
 
@@ -583,7 +586,7 @@ export default function ContabilidadPage() {
 
       if (res.ok) {
         const invoice = await res.json();
-        toast.success('Invoice created successfully');
+        toast.success(t('admin.accountingPage.invoiceCreatedSuccess'));
         setShowInvoiceDialog(false);
         setInvoiceForm({
           type: 'CLIENT_SERVICE',
@@ -600,23 +603,23 @@ export default function ContabilidadPage() {
         fetchData();
         
         // Ask if they want to send via email
-        if (confirm('Do you want to send this invoice by email?')) {
+        if (confirm(t('admin.accountingPage.confirmSendInvoiceEmail'))) {
           const emailRes = await fetch(`/api/invoices/${invoice.id}/send`, {
             method: 'POST',
           });
           if (emailRes.ok) {
-            toast.success('Invoice sent by email');
+            toast.success(t('admin.accountingPage.invoiceSentByEmail'));
           } else {
-            toast.error('Error sending email');
+            toast.error(t('admin.accountingPage.errorSendingEmail'));
           }
         }
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Error creating invoice');
+        toast.error(data.error || t('admin.accountingPage.errorCreatingInvoice'));
       }
     } catch (error) {
       console.error('Error creating invoice:', error);
-      toast.error('Error creating invoice');
+      toast.error(t('admin.accountingPage.errorCreatingInvoice'));
     }
   };
 
@@ -628,9 +631,9 @@ export default function ContabilidadPage() {
     };
 
     const labels: Record<string, string> = {
-      PAID: 'Paid',
-      PENDING: 'Pending',
-      OVERDUE: 'Overdue',
+      PAID: t('admin.accountingPage.status.paid'),
+      PENDING: t('admin.accountingPage.status.pending'),
+      OVERDUE: t('admin.accountingPage.status.overdue'),
     };
 
     return (
@@ -1763,7 +1766,7 @@ export default function ContabilidadPage() {
                           </p>
                           {invoice.isPaid && invoice.paidAt && (
                             <p className="text-green-400 text-xs sm:text-sm">
-                              <strong>Paid on:</strong> {format(new Date(invoice.paidAt), 'MM/dd/yyyy HH:mm', { locale: enUS })}
+                              <strong>Paid on:</strong> {format(new Date(invoice.paidAt), 'MM/dd/yyyy h:mm a', { locale: enUS })}
                             </p>
                           )}
                         </div>

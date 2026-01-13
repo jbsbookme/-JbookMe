@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth/auth-options'
 import { prisma } from '@/lib/db'
-import { deleteFile } from '@/lib/s3'
+import { del } from '@vercel/blob'
 
 // PUT: Update gallery image
 export async function PUT(
@@ -67,12 +67,14 @@ export async function DELETE(
       )
     }
 
-    // Delete from S3
+    // Best-effort delete from Blob when the stored value is a URL.
     try {
-      await deleteFile(image.cloud_storage_path)
-    } catch (s3Error) {
-      console.error('Error deleting from S3:', s3Error)
-      // Continue deleting from DB even if S3 fails
+      if (typeof image.cloud_storage_path === 'string' && /^https?:\/\//i.test(image.cloud_storage_path)) {
+        await del(image.cloud_storage_path)
+      }
+    } catch (blobError) {
+      console.error('Error deleting from Blob:', blobError)
+      // Continue deleting from DB even if Blob delete fails
     }
 
     // Delete from DB

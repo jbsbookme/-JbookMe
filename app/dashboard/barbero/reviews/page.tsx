@@ -125,7 +125,7 @@ export default function BarberReviewsPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">
+              <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
                 <span className="text-[#ffd700]">{t('barber.myReviews')}</span>
               </h1>
               <p className="text-gray-400">{t('barber.clientOpinions')}</p>
@@ -134,15 +134,15 @@ export default function BarberReviewsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card className="bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 border-yellow-500/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">{t('reviews.averageRating')}</CardTitle>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm text-gray-400">{t('reviews.averageRating')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-3">
-                <Star className="w-8 h-8 text-yellow-500 fill-yellow-500" />
-                <span className="text-4xl font-bold text-yellow-500">
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500 fill-yellow-500" />
+                <span className="text-3xl sm:text-4xl font-bold text-yellow-500 leading-none">
                   {stats.average > 0 ? stats.average.toFixed(1) : '0.0'}
                 </span>
               </div>
@@ -150,33 +150,33 @@ export default function BarberReviewsPage() {
           </Card>
 
           <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">{t('reviews.totalReviews')}</CardTitle>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm text-gray-400">{t('reviews.totalReviews')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold text-[#00f0ff]">{stats.total}</div>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-3xl sm:text-4xl font-bold text-[#00f0ff] leading-none">{stats.total}</div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 border-green-500/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">{t('reviews.fiveStars')}</CardTitle>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm text-gray-400">{t('reviews.fiveStars')}</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-green-500" />
-                <span className="text-4xl font-bold text-green-500">{stats.distribution[5]}</span>
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
+                <span className="text-3xl sm:text-4xl font-bold text-green-500 leading-none">{stats.distribution[5]}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gray-900 border-gray-800">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-gray-400">{t('reviews.fourPlusStars')}</CardTitle>
+            <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm text-gray-400">{t('reviews.fourPlusStars')}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-4xl font-bold text-cyan-500">{stats.distribution[4] + stats.distribution[5]}</div>
-              <p className="text-xs text-gray-500 mt-1">
+            <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+              <div className="text-3xl sm:text-4xl font-bold text-cyan-500 leading-none">{stats.distribution[4] + stats.distribution[5]}</div>
+              <p className="text-[11px] sm:text-xs text-gray-500 mt-1">
                 {stats.total > 0
                   ? Math.round(((stats.distribution[4] + stats.distribution[5]) / stats.total) * 100)
                   : 0}
@@ -188,18 +188,18 @@ export default function BarberReviewsPage() {
 
         {/* Distribution Chart */}
         <Card className="bg-gray-900 border-gray-800 mb-8">
-          <CardHeader>
-            <CardTitle className="text-white">{t('reviews.distribution')}</CardTitle>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-white text-base sm:text-lg">{t('reviews.distribution')}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="space-y-2 sm:space-y-3">
               {[5, 4, 3, 2, 1].map((stars) => (
                 <div key={stars} className="flex items-center gap-3">
-                  <div className="flex items-center gap-1 w-20">
+                  <div className="flex items-center gap-1 w-16 sm:w-20">
                     <span className="text-sm text-gray-400">{stars}</span>
                     <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
                   </div>
-                  <div className="flex-1 h-6 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="flex-1 h-4 sm:h-6 bg-gray-800 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-yellow-500 to-yellow-600 transition-all"
                       style={{
@@ -210,7 +210,7 @@ export default function BarberReviewsPage() {
                       }}
                     />
                   </div>
-                  <span className="text-sm text-gray-400 w-12 text-right">
+                  <span className="text-sm text-gray-400 w-10 sm:w-12 text-right">
                     {stats.distribution[stars as keyof typeof stats.distribution]}
                   </span>
                 </div>
@@ -221,7 +221,7 @@ export default function BarberReviewsPage() {
 
         {/* Reviews List */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-white mb-4">{t('reviews.clientComments')}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">{t('reviews.clientComments')}</h2>
 
           {reviews.length === 0 ? (
             <Card className="bg-gray-900 border-gray-800">
@@ -237,11 +237,15 @@ export default function BarberReviewsPage() {
                 key={review.id}
                 className="bg-gray-900 border-gray-800 hover:border-cyan-500/50 transition-colors"
               >
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   {/* Header */}
                   <div className="flex items-start gap-4 mb-4">
                     {/* Client Avatar */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div
+                      className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
+                        review.client.image ? 'bg-transparent' : 'bg-gradient-to-br from-cyan-500 to-purple-500'
+                      }`}
+                    >
                       {review.client.image ? (
                         <Image
                           src={review.client.image}
@@ -251,7 +255,7 @@ export default function BarberReviewsPage() {
                           className="object-cover"
                         />
                       ) : (
-                        <User className="w-6 h-6 text-white" />
+                        <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       )}
                     </div>
 
@@ -279,7 +283,7 @@ export default function BarberReviewsPage() {
                         <CollapsibleTrigger asChild>
                           <button
                             type="button"
-                            className="w-full flex items-center justify-between gap-3 p-4 text-left [&[data-state=open]>svg]:rotate-180"
+                            className="w-full flex items-center justify-between gap-3 p-3 sm:p-4 text-left [&[data-state=open]>svg]:rotate-180"
                             aria-label="Toggle comment"
                           >
                             <span className="min-w-0 text-gray-300">
@@ -292,7 +296,7 @@ export default function BarberReviewsPage() {
                           </button>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <div className="px-4 pb-4">
+                          <div className="px-3 pb-3 sm:px-4 sm:pb-4">
                             <p className="text-gray-300 whitespace-pre-line">{review.comment}</p>
                           </div>
                         </CollapsibleContent>

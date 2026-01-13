@@ -168,6 +168,9 @@ model Appointment {
   notes               String?
   cancelledAt         DateTime?
   cancellationReason  String?
+  sms24hSent           Boolean           @default(false)
+  sms2hSent            Boolean           @default(false)
+  smsConfirmationSent  Boolean           @default(false)
   notification24hSent Boolean           @default(false)
   notification12hSent Boolean           @default(false)
   notification2hSent  Boolean           @default(false)
@@ -281,6 +284,8 @@ model Settings {
   updatedAt           DateTime @updatedAt
   femaleGenderImage   String?
   maleGenderImage     String?
+  galleryMaleCircleImage   String?
+  galleryFemaleCircleImage String?
   businessHours       String?
   whatsappBusinessUrl String?
 }

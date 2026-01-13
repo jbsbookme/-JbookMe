@@ -24,6 +24,17 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Hide scrollbars (useful for horizontal carousels on mobile). */
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
 }
 
 @layer base {
@@ -55,11 +66,11 @@ body {
     --radius: 0.5rem;
   }
   .dark {
-    --background: 0 0% 3.9%;
+    --background: 0 0% 0%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
+    --card: 0 0% 0%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
+    --popover: 0 0% 0%;
     --popover-foreground: 0 0% 98%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 9%;
@@ -96,6 +107,32 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
   position: relative;
+  background: #000;
+  background-color: #000;
+}
+
+html {
+  color-scheme: dark;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: none;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  min-height: 100vh;
+}
+
+/* iOS overscroll (rubber-band) can reveal the browser background; keep a fixed black layer behind everything. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: -1;
+  pointer-events: none;
 }
 
 * {
@@ -132,23 +169,14 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
-/* Custom scrollbar */
+/* Hide scrollbars globally (keeps scrolling). Helps remove the visible right-edge line on desktop and iOS scroll indicators. */
+* {
+  scrollbar-width: none; /* Firefox */
+}
+
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  width: 0;
+  height: 0;
 }
 
 /* Glass morphism effects */

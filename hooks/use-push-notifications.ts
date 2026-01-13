@@ -1,7 +1,26 @@
-import { useState, useEffect } from 'react';
-import { getToken, onMessage } from 'firebase/messaging';
-import { messaging } from '@/lib/firebase';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function getServiceWorkerRegistration() {
+  if (typeof window === 'undefined') return null;
+  if (!('serviceWorker' in navigator)) return null;
+
+  const existing = await navigator.serviceWorker.getRegistration('/');
+  if (existing) return existing;
+
+  return navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+}
 
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
@@ -29,25 +48,27 @@ export function usePushNotifications() {
   }, []);
 
   useEffect(() => {
-    // Listen for foreground messages
-    if (messaging && isSubscribed) {
-      try {
-        const unsubscribe = onMessage(messaging, (payload) => {
-          console.log('Foreground message received:', payload);
-          
-          if (payload.notification) {
-            toast(payload.notification.title || 'Notification', {
-              description: payload.notification.body,
-            });
-          }
-        });
+    // On mount, register SW and detect existing subscription
+    if (!isSupported) return;
 
-        return () => unsubscribe();
+    let cancelled = false;
+    (async () => {
+      try {
+        const reg = await getServiceWorkerRegistration();
+        if (!reg) return;
+        const existing = await reg.pushManager.getSubscription();
+        if (!cancelled) {
+          setIsSubscribed(!!existing);
+        }
       } catch (error) {
-        console.error('[PushNotifications] Error setting up message listener:', error);
+        console.error('[PushNotifications] Error checking subscription:', error);
       }
-    }
-  }, [isSubscribed]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSupported]);
 
   const subscribe = async () => {
     if (!isSupported) {
@@ -55,8 +76,8 @@ export function usePushNotifications() {
       return;
     }
 
-    if (!messaging) {
-      console.log('[PushNotifications] Messaging not available');
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) {
       toast.error('Notifications are not configured');
       return;
     }
@@ -73,14 +94,21 @@ export function usePushNotifications() {
         return;
       }
 
-      // Get FCM token
-      const token = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-      });
-
-      if (!token) {
-        throw new Error('Unable to get FCM token');
+      const reg = await getServiceWorkerRegistration();
+      if (!reg) {
+        toast.error('Service worker is not available');
+        return;
       }
+
+      const existing = await reg.pushManager.getSubscription();
+      const subscription =
+        existing ||
+        (await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        }));
+
+      const json = subscription.toJSON();
 
       // Save subscription to backend
       const response = await fetch('/api/push/subscribe', {
@@ -89,11 +117,10 @@ export function usePushNotifications() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          token,
-          endpoint: token, // Using FCM token as endpoint
+          endpoint: subscription.endpoint,
           keys: {
-            p256dh: token, // Placeholder for FCM
-            auth: token, // Placeholder for FCM
+            p256dh: json.keys?.p256dh,
+            auth: json.keys?.auth,
           },
         }),
       });
@@ -113,33 +140,32 @@ export function usePushNotifications() {
   };
 
   const unsubscribe = async () => {
-    if (!messaging) {
-      console.log('[PushNotifications] Messaging not available for unsubscribe');
-      toast.error('Notifications are not configured');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const token = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
-      });
+      const reg = await getServiceWorkerRegistration();
+      const subscription = reg ? await reg.pushManager.getSubscription() : null;
+      if (!subscription) {
+        setIsSubscribed(false);
+        return;
+      }
 
       // Remove subscription from backend
-      const response = await fetch('/api/push/subscribe', {
-        method: 'DELETE',
+      const response = await fetch('/api/push/unsubscribe', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          endpoint: token,
+          endpoint: subscription.endpoint,
         }),
       });
 
       if (!response.ok) {
         throw new Error('Error removing subscription');
       }
+
+      await subscription.unsubscribe();
 
       setIsSubscribed(false);
       toast.success('Notifications disabled');

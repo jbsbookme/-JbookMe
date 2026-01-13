@@ -7,10 +7,13 @@ async function main() {
     select: {
       id: true,
       gender: true,
+      isActive: true,
       user: {
         select: {
+          id: true,
           name: true,
-          email: true
+          email: true,
+          role: true,
         }
       }
     }
@@ -18,7 +21,9 @@ async function main() {
   
   console.log('Barberos en la base de datos:');
   barbers.forEach(b => {
-    console.log(`- ${b.user.name} (${b.user.email}) - Atiende: ${b.gender} - ID: ${b.id}`);
+    console.log(
+      `- ${b.user.name} (${b.user.email}) - role=${b.user.role} - active=${b.isActive} - gender=${b.gender} - barberId=${b.id} - userId=${b.user.id}`
+    );
   });
 }
 

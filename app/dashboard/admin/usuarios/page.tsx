@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
@@ -71,6 +71,7 @@ interface UserData {
     id: string;
     specialties?: string;
     bio?: string;
+    isActive?: boolean;
     services?: unknown[];
     _count?: {
       appointments?: number;
@@ -110,6 +111,8 @@ interface UserDetails extends UserData {
 export default function AdminUsuariosPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'admin@barberia.com';
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -162,6 +165,105 @@ export default function AdminUsuariosPage() {
   });
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+
+  const toggleBarberActive = useCallback(
+    async (user: UserData) => {
+      if (!user.barber?.id) return;
+
+      const nextIsActive = !(user.barber?.isActive ?? true);
+      setSubmitting(true);
+      try {
+        const res = await fetch(`/api/barbers/${user.barber.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isActive: nextIsActive }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || 'Failed to update barber status');
+        }
+
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === user.id
+              ? {
+                  ...u,
+                  barber: u.barber ? { ...u.barber, isActive: nextIsActive } : u.barber,
+                }
+              : u
+          )
+        );
+
+        toast.success(nextIsActive ? 'Barber activated' : 'Barber deactivated');
+      } catch (err) {
+        console.error('Error toggling barber status:', err);
+        toast.error(err instanceof Error ? err.message : 'Failed to update barber');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    []
+  );
+
+  const deactivateAdminToClient = useCallback(
+    async (user: UserData) => {
+      if (!user?.id) return;
+      if (user.role !== 'ADMIN') return;
+      if (user.email === OWNER_EMAIL) return;
+      if (user.id === session?.user?.id) return;
+
+      setSubmitting(true);
+      try {
+        const res = await fetch(`/api/admin/users/${user.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'CLIENT' }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.error || 'Failed to deactivate admin');
+        }
+
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: 'CLIENT' } : u)));
+        toast.success('Admin deactivated (role set to CLIENT)');
+      } catch (err) {
+        console.error('Error deactivating admin:', err);
+        toast.error(err instanceof Error ? err.message : 'Failed to deactivate admin');
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [session?.user?.id, OWNER_EMAIL]
+  );
+
+  const selectAllClients = useCallback(() => {
+    const ids = users.filter((u) => u.role === 'CLIENT').map((u) => u.id);
+    setSelectedUserIds(ids);
+    setSelectAll(false);
+    toast.success(`Selected ${ids.length} client(s)`);
+  }, [users]);
+
+  const selectAllFiltered = useCallback(() => {
+    const ids = filteredUsers.map((u) => u.id);
+    setSelectedUserIds(ids);
+    setSelectAll(false);
+    toast.success(`Selected ${ids.length} user(s)`);
+  }, [filteredUsers]);
+
+  const clearRecipients = useCallback(() => {
+    setSelectedUserIds([]);
+    setSelectAll(false);
+  }, []);
+
+  useEffect(() => {
+    // Optional shortcut from /dashboard/admin to open the notify modal.
+    // Users still need to select recipients.
+    if (searchParams?.get('notify') === '1') {
+      setIsNotifyDialogOpen(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     // Filter users based on search term and filters
@@ -507,6 +609,11 @@ export default function AdminUsuariosPage() {
   };
 
   const handleSendNotifications = async () => {
+    if (!selectedUserIds || selectedUserIds.length === 0) {
+      toast.error('You must select at least one user');
+      return;
+    }
+
     if (!notifyForm.message.trim()) {
       toast.error('Message cannot be empty');
       return;
@@ -515,7 +622,14 @@ export default function AdminUsuariosPage() {
     setSubmitting(true);
     try {
       const isSms = notifyForm.notificationType === 'sms';
-      const response = await fetch(isSms ? '/api/admin/users/sms' : '/api/admin/users/notify', {
+      const isPush = notifyForm.notificationType === 'push';
+      const response = await fetch(
+        isSms
+          ? '/api/admin/users/sms'
+          : isPush
+            ? '/api/admin/users/push'
+            : '/api/admin/users/notify',
+        {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -526,6 +640,12 @@ export default function AdminUsuariosPage() {
                 userIds: selectedUserIds,
                 message: notifyForm.message,
               }
+            : isPush
+              ? {
+                  userIds: selectedUserIds,
+                  title: notifyForm.subject,
+                  message: notifyForm.message,
+                }
             : {
                 userIds: selectedUserIds,
                 subject: notifyForm.subject,
@@ -533,7 +653,8 @@ export default function AdminUsuariosPage() {
                 notificationType: notifyForm.notificationType,
               }
         ),
-      });
+      }
+      );
 
       const data = await response.json();
 
@@ -916,6 +1037,36 @@ export default function AdminUsuariosPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2 flex-shrink-0">
+                      {user.barber?.id && (
+                        <Button
+                          onClick={() => toggleBarberActive(user)}
+                          disabled={submitting}
+                          variant="outline"
+                          size="sm"
+                          className={
+                            user.barber?.isActive
+                              ? 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
+                              : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                          }
+                        >
+                          {user.barber?.isActive ? 'Activo' : 'Inactivo'}
+                        </Button>
+                      )}
+
+                      {user.role === 'ADMIN' &&
+                        user.email !== OWNER_EMAIL &&
+                        user.id !== session?.user?.id && (
+                          <Button
+                            onClick={() => deactivateAdminToClient(user)}
+                            disabled={submitting}
+                            variant="outline"
+                            size="sm"
+                            className="border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black"
+                          >
+                            Inactivar
+                          </Button>
+                        )}
+
                       <Button
                         onClick={() => openDetailsDialog(user)}
                         variant="outline"
@@ -927,7 +1078,7 @@ export default function AdminUsuariosPage() {
                       
                       {/* Owner can edit anyone, other admins can only edit themselves, non-admins can be edited */}
                       {(user.role !== 'ADMIN' || 
-                        session?.user?.email === 'admin@barberia.com' || 
+                        session?.user?.email === OWNER_EMAIL || 
                         user.id === session?.user?.id) && (
                         <Button
                           onClick={() => openEditDialog(user)}
@@ -941,7 +1092,7 @@ export default function AdminUsuariosPage() {
                       
                       {/* Owner can delete anyone except themselves, others can only delete non-admins */}
                       {(user.role !== 'ADMIN' || 
-                        (session?.user?.email === 'admin@barberia.com' && user.id !== session?.user?.id)) && (
+                        (session?.user?.email === OWNER_EMAIL && user.id !== session?.user?.id)) && (
                         <Button
                           onClick={() => openDeleteDialog(user)}
                           variant="outline"
@@ -1393,6 +1544,39 @@ export default function AdminUsuariosPage() {
           
           <div className="space-y-4">
             <div>
+              <Label className="text-gray-300">Recipients</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={selectAllClients}
+                  className="border-gray-700"
+                >
+                  Select all clients
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={selectAllFiltered}
+                  className="border-gray-700"
+                >
+                  Select all filtered
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={clearRecipients}
+                  className="text-gray-300 hover:text-white"
+                >
+                  Clear
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Tip: use search/filters in the Users list, then click “Select all filtered”.
+              </p>
+            </div>
+
+            <div>
               <Label htmlFor="notify-type" className="text-gray-300">Notification Type</Label>
               <Select value={notifyForm.notificationType} onValueChange={(value) => setNotifyForm({ ...notifyForm, notificationType: value })}>
                 <SelectTrigger className="bg-gray-900 border-gray-700 text-white mt-1">
@@ -1402,6 +1586,7 @@ export default function AdminUsuariosPage() {
                   <SelectItem value="both">Email + In-app Notification</SelectItem>
                   <SelectItem value="email">Email only</SelectItem>
                   <SelectItem value="notification">In-app notification only</SelectItem>
+                  <SelectItem value="push">Push notification only</SelectItem>
                   <SelectItem value="sms">SMS only</SelectItem>
                 </SelectContent>
               </Select>

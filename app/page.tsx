@@ -47,8 +47,9 @@ export default function HomePage() {
           loop
           muted
           playsInline
+          preload="metadata"
           className="absolute inset-0 w-full h-full object-cover"
-          onLoadedData={() => setVideoLoaded(true)}
+          onLoadedMetadata={() => setVideoLoaded(true)}
         >
           <source src="/intro-video.mp4" type="video/mp4" />
         </video>

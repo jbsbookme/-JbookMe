@@ -1,5 +1,7 @@
 'use client';
 
+import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -10,6 +12,22 @@ import { useI18n } from '@/lib/i18n/i18n-context';
 export default function GaleriaGeneroPage() {
   const router = useRouter();
   const { t } = useI18n();
+  const [galleryMaleCircleImage, setGalleryMaleCircleImage] = useState<string | null>(null);
+  const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        setGalleryMaleCircleImage(data?.galleryMaleCircleImage ?? null);
+        setGalleryFemaleCircleImage(data?.galleryFemaleCircleImage ?? null);
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
 
   const handleGenderSelect = (gender: 'MALE' | 'FEMALE') => {
     router.push(`/galeria?gender=${gender}`);
@@ -30,7 +48,7 @@ export default function GaleriaGeneroPage() {
                 variant="ghost"
                 size="icon"
                 className="text-gray-400 hover:text-white"
-                aria-label="Back"
+                aria-label={t('common.back')}
                 onClick={() => {
                   if (typeof window !== 'undefined' && window.history.length > 1) {
                     router.back();
@@ -61,9 +79,9 @@ export default function GaleriaGeneroPage() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-10">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <h2 className="text-2xl sm:text-3xl font-bold">
-            Select a <span className="text-[#00f0ff]">gallery</span>
+            {t('gallery.selectGalleryTitle')}
           </h2>
-          <p className="text-gray-400 mt-2">Men or Women styles</p>
+          <p className="text-gray-400 mt-2">{t('gallery.selectGallerySubtitle')}</p>
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -79,11 +97,17 @@ export default function GaleriaGeneroPage() {
             >
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-[#00f0ff]/10 flex items-center justify-center">
-                  <User className="w-7 h-7 text-[#00f0ff]" />
+                  {galleryMaleCircleImage ? (
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden">
+                      <Image src={galleryMaleCircleImage} alt={t('gallery.men')} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <User className="w-7 h-7 text-[#00f0ff]" />
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold">Men&apos;s Cuts</h3>
-                  <p className="text-sm text-gray-400">Modern & classic styles</p>
+                  <h3 className="text-lg font-bold text-white">{t('gallery.men')}</h3>
+                  <p className="text-sm text-gray-300">{t('gallery.menCardSubtitle')}</p>
                 </div>
               </CardContent>
             </Card>
@@ -101,11 +125,17 @@ export default function GaleriaGeneroPage() {
             >
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-[#ffd700]/10 flex items-center justify-center">
-                  <Users className="w-7 h-7 text-[#ffd700]" />
+                  {galleryFemaleCircleImage ? (
+                    <div className="relative w-14 h-14 rounded-full overflow-hidden">
+                      <Image src={galleryFemaleCircleImage} alt={t('gallery.women')} fill className="object-cover" />
+                    </div>
+                  ) : (
+                    <Users className="w-7 h-7 text-[#ffd700]" />
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-lg font-bold">Women&apos;s Cuts</h3>
-                  <p className="text-sm text-gray-400">Elegant & trending looks</p>
+                  <h3 className="text-lg font-bold text-white">{t('gallery.women')}</h3>
+                  <p className="text-sm text-gray-300">{t('gallery.womenCardSubtitle')}</p>
                 </div>
               </CardContent>
             </Card>

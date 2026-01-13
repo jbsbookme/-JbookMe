@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Star, ArrowLeft, MessageSquare, Calendar, User, Filter, TrendingUp, Award, BarChart3, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
+import { useI18n } from '@/lib/i18n/i18n-context';
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,7 @@ interface Review {
 export default function AdminResenasPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
+  const { t, language } = useI18n();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
@@ -60,10 +62,10 @@ export default function AdminResenasPage() {
   // Templates
   const [showTemplates, setShowTemplates] = useState(false);
   const responseTemplates = [
-    { id: 1, name: 'General thanks', text: `Thank you so much for your review! We're glad to hear you enjoyed our service. We look forward to seeing you again soon. 😊` },
-    { id: 2, name: 'Positive response', text: `Thank you for your kind words! It's a pleasure to serve you. Your satisfaction is our greatest reward. See you next time! ✨` },
-    { id: 3, name: 'Apology for inconvenience', text: `We're sorry your experience wasn't perfect. We value your feedback and will work to improve. Could we speak with you to better understand the situation? 🙏` },
-    { id: 4, name: 'First visit', text: `Welcome! We're delighted you chose to visit us. We hope this is the first of many visits. Thank you for trusting us! 🎉` },
+    { id: 1, name: t('admin.reviewsPage.templates.generalThanks.name'), text: t('admin.reviewsPage.templates.generalThanks.text') },
+    { id: 2, name: t('admin.reviewsPage.templates.positiveResponse.name'), text: t('admin.reviewsPage.templates.positiveResponse.text') },
+    { id: 3, name: t('admin.reviewsPage.templates.apology.name'), text: t('admin.reviewsPage.templates.apology.text') },
+    { id: 4, name: t('admin.reviewsPage.templates.firstVisit.name'), text: t('admin.reviewsPage.templates.firstVisit.text') },
   ];
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function AdminResenasPage() {
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
-      toast.error('Error loading reviews');
+      toast.error(t('admin.reviewsPage.errorLoadingReviews'));
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,7 @@ export default function AdminResenasPage() {
 
   const handleSubmitResponse = async () => {
     if (!selectedReview || !responseText.trim()) {
-      toast.error('Please write a response');
+      toast.error(t('admin.reviewsPage.writeResponse'));
       return;
     }
 
@@ -112,24 +114,24 @@ export default function AdminResenasPage() {
       });
 
       if (response.ok) {
-        toast.success('Response published successfully');
+        toast.success(t('admin.reviewsPage.responsePublished'));
         setIsDialogOpen(false);
         setResponseText('');
         fetchReviews();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error publishing response');
+        toast.error(error.error || t('admin.reviewsPage.responsePublishError'));
       }
     } catch (error) {
       console.error('Error submitting response:', error);
-      toast.error('Error publishing response');
+      toast.error(t('admin.reviewsPage.responsePublishError'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteResponse = async (reviewId: string) => {
-    if (!window.confirm('Delete this admin response?')) return;
+    if (!window.confirm(t('admin.reviewsPage.confirmDeleteAdminResponse'))) return;
 
     try {
       const response = await fetch(`/api/reviews/${reviewId}`, {
@@ -137,25 +139,25 @@ export default function AdminResenasPage() {
       });
 
       if (response.ok) {
-        toast.success('Response deleted successfully');
+        toast.success(t('admin.reviewsPage.responseDeletedSuccess'));
         fetchReviews();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error deleting response');
+        toast.error(error.error || t('admin.reviewsPage.responseDeleteError'));
       }
     } catch (error) {
       console.error('Error deleting response:', error);
-      toast.error('Error deleting response');
+      toast.error(t('admin.reviewsPage.responseDeleteError'));
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
     const confirmed = window.confirm(
-      'Permanently delete this review? This cannot be undone.'
+      t('admin.reviewsPage.confirmDeleteReview')
     );
     if (!confirmed) return;
 
-    const reason = window.prompt('Internal reason for deletion (only admins can see):') || '';
+    const reason = window.prompt(t('admin.reviewsPage.promptDeletionReason')) || '';
 
     try {
       const response = await fetch(`/api/reviews/${reviewId}/hard-delete`, {
@@ -165,15 +167,15 @@ export default function AdminResenasPage() {
       });
 
       if (response.ok) {
-        toast.success('Review deleted successfully');
+        toast.success(t('admin.reviewsPage.reviewDeletedSuccess'));
         fetchReviews();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error deleting review');
+        toast.error(error.error || t('admin.reviewsPage.reviewDeleteError'));
       }
     } catch (error) {
       console.error('Error deleting review:', error);
-      toast.error('Error deleting review');
+      toast.error(t('admin.reviewsPage.reviewDeleteError'));
     }
   };
 
@@ -195,7 +197,7 @@ export default function AdminResenasPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(language === 'es' ? 'es-ES' : 'en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
@@ -449,7 +451,13 @@ export default function AdminResenasPage() {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-start gap-4">
-                      <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-[#00f0ff]/20 to-[#0099cc]/20 flex items-center justify-center flex-shrink-0">
+                      <div
+                        className={`relative w-12 h-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${
+                          review.client.image
+                            ? 'bg-transparent'
+                            : 'bg-gradient-to-br from-[#00f0ff]/20 to-[#0099cc]/20'
+                        }`}
+                      >
                         {review.client.image ? (
                           <Image
                             src={review.client.image}

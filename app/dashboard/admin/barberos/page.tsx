@@ -37,6 +37,7 @@ import {
 import { Scissors, Star, Calendar, Mail, Phone, Plus, Edit2, Trash2, Upload, X, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter as useNextRouter } from 'next/navigation';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface Barber {
   id: string;
@@ -82,6 +83,7 @@ export default function AdminBarberosPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const nextRouter = useNextRouter();
+  const { t } = useI18n();
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -105,6 +107,7 @@ export default function AdminBarberosPage() {
     role: 'BARBER',
     contactEmail: '',
     gender: 'MALE',
+    isActive: true,
     bio: '',
     specialties: '',
     hourlyRate: '',
@@ -145,18 +148,50 @@ export default function AdminBarberosPage() {
   const fetchBarbers = useCallback(async () => {
     try {
       // FIXED: Only load MALE barbers
-      const response = await fetch('/api/barbers?gender=MALE');
+      const response = await fetch('/api/barbers?gender=MALE&includeInactive=1');
       if (response.ok) {
         const data = await response.json();
         setBarbers(data.barbers || []);
       }
     } catch (error) {
       console.error('Error fetching barbers:', error);
-      toast.error('Error loading barbers');
+      toast.error(t('admin.barbersPage.errorLoadingBarbers'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
+
+  const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+
+  const toggleActive = async (barber: Barber) => {
+    if (togglingActiveId) return;
+
+    const nextIsActive = !barber.isActive;
+
+    setTogglingActiveId(barber.id);
+    setBarbers((prev) => prev.map((b) => (b.id === barber.id ? { ...b, isActive: nextIsActive } : b)));
+
+    try {
+      const response = await fetch(`/api/barbers/${barber.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: nextIsActive }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || t('admin.barbersPage.failedToUpdateStatus'));
+      }
+
+      toast.success(nextIsActive ? t('admin.barbersPage.barberActivated') : t('admin.barbersPage.barberDeactivated'));
+    } catch (e) {
+      console.error('[AdminBarberos] toggleActive failed:', e);
+      setBarbers((prev) => prev.map((b) => (b.id === barber.id ? { ...b, isActive: barber.isActive } : b)));
+      toast.error(e instanceof Error ? e.message : t('admin.barbersPage.failedToUpdateStatus'));
+    } finally {
+      setTogglingActiveId(null);
+    }
+  };
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -200,12 +235,12 @@ export default function AdminBarberosPage() {
   // Image upload function
   const handleImageUpload = async (file: File, isEdit = false) => {
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image');
+      toast.error(t('admin.barbersPage.pleaseSelectValidImage'));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image must not exceed 10MB');
+      toast.error(t('admin.barbersPage.imageMustNotExceed10MB'));
       return;
     }
 
@@ -228,15 +263,15 @@ export default function AdminBarberosPage() {
           setPreviewImage(data.url);
           setNewBarberForm({ ...newBarberForm, profileImage: data.url });
         }
-        toast.success('Image uploaded successfully');
+        toast.success(t('admin.barbersPage.imageUploadedSuccess'));
       } else {
         const error = await response.json();
-        const message = error?.hint ? `${error.error || 'Error uploading image'} ${error.hint}` : (error.error || 'Error uploading image');
+        const message = error?.hint ? `${error.error || t('admin.barbersPage.errorUploadingImage')} ${error.hint}` : (error.error || t('admin.barbersPage.errorUploadingImage'));
         toast.error(message);
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error('Error uploading image');
+      toast.error(t('admin.barbersPage.errorUploadingImage'));
     } finally {
       setUploadingImage(false);
     }
@@ -263,23 +298,23 @@ export default function AdminBarberosPage() {
     // Validation
     if (useExistingUser) {
       if (!newBarberForm.userId) {
-        toast.error('Please select a user');
+        toast.error(t('admin.barbersPage.pleaseSelectUser'));
         return;
       }
     } else {
       if (!newBarberForm.name || !newBarberForm.email) {
-        toast.error('Please complete name and email');
+        toast.error(t('admin.barbersPage.completeNameAndEmail'));
         return;
       }
       // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(newBarberForm.email)) {
-        toast.error('Please enter a valid email');
+        toast.error(t('admin.barbersPage.enterValidEmail'));
         return;
       }
       // Password validation for new users
       if (!newBarberForm.password || newBarberForm.password.length < 6) {
-        toast.error('Password must be at least 6 characters');
+        toast.error(t('admin.barbersPage.passwordAtLeast6Chars'));
         return;
       }
     }
@@ -289,6 +324,7 @@ export default function AdminBarberosPage() {
       const body: Record<string, unknown> = {
         contactEmail: newBarberForm.contactEmail || null,
         gender: newBarberForm.gender || 'MALE',
+        isActive: newBarberForm.isActive,
         bio: newBarberForm.bio || null,
         specialties: newBarberForm.specialties || null,
         hourlyRate: newBarberForm.hourlyRate ? parseFloat(newBarberForm.hourlyRate) : null,
@@ -320,7 +356,7 @@ export default function AdminBarberosPage() {
       });
 
       if (response.ok) {
-        toast.success('Barber added successfully');
+        toast.success(t('admin.barbersPage.barberAddedSuccess'));
         setIsAddDialogOpen(false);
         setNewBarberForm({
           userId: '',
@@ -330,6 +366,7 @@ export default function AdminBarberosPage() {
           role: 'BARBER',
           contactEmail: '',
           gender: 'MALE',
+          isActive: true,
           bio: '',
           specialties: '',
           hourlyRate: '',
@@ -350,11 +387,11 @@ export default function AdminBarberosPage() {
         fetchUsers();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error adding barber');
+        toast.error(error.error || t('admin.barbersPage.errorAddingBarber'));
       }
     } catch (error) {
       console.error('Error adding barber:', error);
-      toast.error('Error adding barber');
+      toast.error(t('admin.barbersPage.errorAddingBarber'));
     } finally {
       setSubmitting(false);
     }
@@ -390,17 +427,17 @@ export default function AdminBarberosPage() {
       });
 
       if (response.ok) {
-        toast.success('Barber updated successfully');
+        toast.success(t('admin.barbersPage.barberUpdatedSuccess'));
         setIsEditDialogOpen(false);
         setSelectedBarber(null);
         fetchBarbers();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error updating barber');
+        toast.error(error.error || t('admin.barbersPage.errorUpdatingBarber'));
       }
     } catch (error) {
       console.error('Error updating barber:', error);
-      toast.error('Error updating barber');
+      toast.error(t('admin.barbersPage.errorUpdatingBarber'));
     } finally {
       setSubmitting(false);
     }
@@ -416,17 +453,17 @@ export default function AdminBarberosPage() {
       });
 
       if (response.ok) {
-        toast.success('Barber deleted successfully');
+        toast.success(t('admin.barbersPage.barberDeletedSuccess'));
         setIsDeleteDialogOpen(false);
         setSelectedBarber(null);
         fetchBarbers();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Error deleting barber');
+        toast.error(error.error || t('admin.barbersPage.errorDeletingBarber'));
       }
     } catch (error) {
       console.error('Error deleting barber:', error);
-      toast.error('Error deleting barber');
+      toast.error(t('admin.barbersPage.errorDeletingBarber'));
     } finally {
       setSubmitting(false);
     }
@@ -465,7 +502,7 @@ export default function AdminBarberosPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+        <div className="text-white">{t('common.loading')}</div>
       </div>
     );
   }
@@ -480,7 +517,7 @@ export default function AdminBarberosPage() {
             variant="outline"
             size="icon"
             className="border-gray-700 text-gray-300 hover:bg-gray-800 active:bg-gray-800 active:text-gray-300"
-            aria-label="Back to Dashboard"
+            aria-label={t('admin.barbersPage.backToDashboardAria')}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
@@ -489,32 +526,43 @@ export default function AdminBarberosPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">
-              <span className="text-[#00f0ff]">Barbers</span> Management (Men)
+              <span className="text-[#00f0ff]">{t('admin.barbersPage.titleEntity')}</span> {t('admin.barbersPage.titleSuffix')}
             </h1>
-            <p className="text-gray-400">Manage your team of barbers who serve men</p>
+            <p className="text-gray-400">{t('admin.barbersPage.subtitle')}</p>
           </div>
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            size="sm"
-            className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Barber
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              onClick={() => nextRouter.push('/dashboard/admin/estilistas')}
+            >
+              {t('admin.barbersPage.viewStylistsButton')}
+            </Button>
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              size="sm"
+              className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {t('admin.barbersPage.addBarberButton')}
+            </Button>
+          </div>
         </div>
 
         {barbers.length === 0 ? (
           <Card className="bg-[#1a1a1a] border-gray-800">
             <CardContent className="py-12 text-center">
               <Scissors className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-              <p className="text-gray-400 mb-4">No barbers registered</p>
+              <p className="text-gray-400 mb-4">{t('admin.barbersPage.emptyNoBarbers')}</p>
               <Button
                 onClick={() => setIsAddDialogOpen(true)}
                 variant="outline"
                 className="border-[#00f0ff] text-[#00f0ff] hover:bg-[#00f0ff] hover:text-black"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add first barber
+                {t('admin.barbersPage.emptyAddFirstBarber')}
               </Button>
             </CardContent>
           </Card>
@@ -531,7 +579,7 @@ export default function AdminBarberosPage() {
                     {barber.user?.image || barber.profileImage ? (
                       <Image
                         src={barber.user?.image || barber.profileImage || ''}
-                        alt={barber.user?.name || 'Barber'}
+                        alt={barber.user?.name || t('common.barber')}
                         fill
                         className="object-cover"
                       />
@@ -544,7 +592,7 @@ export default function AdminBarberosPage() {
 
                   {/* Barber Info */}
                   <h3 className="text-xl font-bold text-white mb-1">
-                    {barber.user?.name || 'Barber'}
+                    {barber.user?.name || t('common.barber')}
                   </h3>
                   {barber.specialties && (
                     <p className="text-[#00f0ff] text-sm mb-3">{barber.specialties}</p>
@@ -569,16 +617,16 @@ export default function AdminBarberosPage() {
                   {/* Stats */}
                   <div className="space-y-2 pt-4 border-t border-gray-800 mb-4">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Rating</span>
+                      <span className="text-gray-400">{t('admin.barbersPage.statsRating')}</span>
                       <div className="flex items-center">
                         <Star className="w-4 h-4 text-[#ffd700] fill-current mr-1" />
                         <span className="text-[#ffd700] font-semibold">
-                          {barber.avgRating > 0 ? barber.avgRating : 'N/A'}
+                          {barber.avgRating > 0 ? barber.avgRating : t('common.notAvailable')}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Appointments</span>
+                      <span className="text-gray-400">{t('admin.barbersPage.statsAppointments')}</span>
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 text-[#00f0ff] mr-1" />
                         <span className="text-white font-semibold">
@@ -587,28 +635,31 @@ export default function AdminBarberosPage() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Services</span>
+                      <span className="text-gray-400">{t('admin.barbersPage.statsServices')}</span>
                       <span className="text-white font-semibold">
                         {barber.services?.length || 0}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Hourly Rate</span>
+                      <span className="text-gray-400">{t('admin.barbersPage.statsHourlyRate')}</span>
                       <span className="text-[#ffd700] font-semibold">
-                        {barber.hourlyRate ? `$${barber.hourlyRate}` : 'N/A'}
+                        {barber.hourlyRate ? `$${barber.hourlyRate}` : t('common.notAvailable')}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Status</span>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                      <span className="text-gray-400">{t('admin.barbersPage.statsStatus')}</span>
+                      <button
+                        type="button"
+                        disabled={togglingActiveId === barber.id}
+                        onClick={() => toggleActive(barber)}
+                        className={`px-2 py-1 rounded text-xs font-semibold transition-opacity ${
                           barber.isActive
                             ? 'bg-green-500/20 text-green-500'
                             : 'bg-red-500/20 text-red-500'
-                        }`}
+                        } ${togglingActiveId === barber.id ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'}`}
                       >
-                        {barber.isActive ? 'Active' : 'Inactive'}
-                      </span>
+                        {barber.isActive ? t('admin.barbersPage.statusActive') : t('admin.barbersPage.statusInactive')}
+                      </button>
                     </div>
                   </div>
 
@@ -620,7 +671,7 @@ export default function AdminBarberosPage() {
                       className="flex-1 border-[#00f0ff] text-[#00f0ff] hover:bg-[#00f0ff] hover:text-black"
                     >
                       <Edit2 className="w-4 h-4 mr-2" />
-                      Edit
+                      {t('common.edit')}
                     </Button>
                     <Button
                       onClick={() => openDeleteDialog(barber)}
@@ -641,9 +692,9 @@ export default function AdminBarberosPage() {
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#00f0ff]">Add New Barber</DialogTitle>
+            <DialogTitle className="text-[#00f0ff]">{t('admin.barbersPage.addDialogTitle')}</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Complete the new barber&apos;s information
+              {t('admin.barbersPage.addDialogDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -657,20 +708,20 @@ export default function AdminBarberosPage() {
                 className="w-4 h-4 text-[#00f0ff] bg-[#0a0a0a] border-gray-700 rounded focus:ring-[#00f0ff]"
               />
               <Label htmlFor="useExistingUser" className="text-gray-300">
-                Use existing user
+                {t('admin.barbersPage.useExistingUserLabel')}
               </Label>
             </div>
 
             {useExistingUser ? (
               <div>
-                <Label htmlFor="userId" className="text-gray-300">User *</Label>
+                <Label htmlFor="userId" className="text-gray-300">{t('admin.barbersPage.userLabelRequired')}</Label>
                 <select
                   id="userId"
                   value={newBarberForm.userId}
                   onChange={(e) => setNewBarberForm({ ...newBarberForm, userId: e.target.value })}
                   className="w-full mt-1 px-3 py-2 bg-[#0a0a0a] border border-gray-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#00f0ff]"
                 >
-                  <option value="">Select user</option>
+                  <option value="">{t('admin.barbersPage.selectUserOption')}</option>
                   {users.map((user) => (
                     <option key={user.id} value={user.id}>
                       {user.name || user.email}
@@ -681,103 +732,103 @@ export default function AdminBarberosPage() {
             ) : (
               <>
                 <div>
-                  <Label htmlFor="name" className="text-gray-300">Full Name *</Label>
+                  <Label htmlFor="name" className="text-gray-300">{t('admin.barbersPage.fullNameLabelRequired')}</Label>
                   <Input
                     id="name"
                     value={newBarberForm.name}
                     onChange={(e) => setNewBarberForm({ ...newBarberForm, name: e.target.value })}
-                    placeholder="E.g: Juan Perez"
+                    placeholder={t('admin.barbersPage.fullNamePlaceholder')}
                     className="bg-[#0a0a0a] border-gray-700 text-white"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="email" className="text-gray-300">Email *</Label>
+                  <Label htmlFor="email" className="text-gray-300">{t('admin.barbersPage.emailLabelRequired')}</Label>
                   <Input
                     id="email"
                     type="email"
                     value={newBarberForm.email}
                     onChange={(e) => setNewBarberForm({ ...newBarberForm, email: e.target.value })}
-                    placeholder="Ej: juan@ejemplo.com"
+                    placeholder={t('admin.barbersPage.emailPlaceholder')}
                     className="bg-[#0a0a0a] border-gray-700 text-white"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="password" className="text-gray-300">Password *</Label>
+                  <Label htmlFor="password" className="text-gray-300">{t('admin.barbersPage.passwordLabelRequired')}</Label>
                   <Input
                     id="password"
                     type="password"
                     value={newBarberForm.password}
                     onChange={(e) => setNewBarberForm({ ...newBarberForm, password: e.target.value })}
-                    placeholder="Minimum 6 characters"
+                    placeholder={t('admin.barbersPage.passwordPlaceholder')}
                     className="bg-[#0a0a0a] border-gray-700 text-white"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Password to access the system</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('admin.barbersPage.passwordHelp')}</p>
                 </div>
                 
                 <div>
-                  <Label htmlFor="role" className="text-gray-300">User Role</Label>
-                  <Select 
-                    value={newBarberForm.role} 
+                  <Label htmlFor="role" className="text-gray-300">{t('admin.barbersPage.userRoleLabel')}</Label>
+                  <Select
+                    value={newBarberForm.role}
                     onValueChange={(value) => setNewBarberForm({ ...newBarberForm, role: value })}
                   >
                     <SelectTrigger className="bg-[#0a0a0a] border-gray-700 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a1a] border-gray-700">
-                      <SelectItem value="BARBER">Barber</SelectItem>
-                      <SelectItem value="CLIENT">Client</SelectItem>
-                      <SelectItem value="ADMIN">Administrator</SelectItem>
+                      <SelectItem value="BARBER">{t('admin.barbersPage.roleBarber')}</SelectItem>
+                      <SelectItem value="CLIENT">{t('admin.barbersPage.roleClient')}</SelectItem>
+                      <SelectItem value="ADMIN">{t('admin.barbersPage.roleAdmin')}</SelectItem>
                     </SelectContent>
                   </Select>
-                    <p className="text-xs text-gray-500 mt-1">Define the user&apos;s access level</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('admin.barbersPage.userRoleHelp')}</p>
                 </div>
               </>
             )}
             
             <div>
-              <Label htmlFor="contactEmail" className="text-gray-300">Barber&apos;s Personal Email</Label>
+              <Label htmlFor="contactEmail" className="text-gray-300">{t('admin.barbersPage.contactEmailLabel')}</Label>
               <Input
                 id="contactEmail"
                 type="email"
                 value={newBarberForm.contactEmail}
                 onChange={(e) => setNewBarberForm({ ...newBarberForm, contactEmail: e.target.value })}
-                placeholder="E.g.: adolfoboome@gmail.com"
+                placeholder={t('admin.barbersPage.contactEmailPlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
-              <p className="text-xs text-gray-500 mt-1">Personal email for contact and notifications</p>
+              <p className="text-xs text-gray-500 mt-1">{t('admin.barbersPage.contactEmailHelp')}</p>
             </div>
 
             {/* REMOVED: Gender selector - This page only manages MALE barbers */}
             <input type="hidden" name="gender" value="MALE" />
             
             <div>
-              <Label htmlFor="specialties" className="text-gray-300">Specialties</Label>
+              <Label htmlFor="specialties" className="text-gray-300">{t('admin.barbersPage.specialtiesLabel')}</Label>
               <Input
                 id="specialties"
                 value={newBarberForm.specialties}
                 onChange={(e) => setNewBarberForm({ ...newBarberForm, specialties: e.target.value })}
-                placeholder="E.g: Classic cuts, Beard, Design"
+                placeholder={t('admin.barbersPage.specialtiesPlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
             </div>
             <div>
-              <Label htmlFor="hourlyRate" className="text-gray-300">Hourly Rate ($)</Label>
+              <Label htmlFor="hourlyRate" className="text-gray-300">{t('admin.barbersPage.hourlyRateLabel')}</Label>
               <Input
                 id="hourlyRate"
                 type="number"
                 value={newBarberForm.hourlyRate}
                 onChange={(e) => setNewBarberForm({ ...newBarberForm, hourlyRate: e.target.value })}
-                placeholder="25"
+                placeholder={t('admin.barbersPage.hourlyRatePlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
             </div>
             <div>
-              <Label htmlFor="bio" className="text-gray-300">Biography</Label>
+              <Label htmlFor="bio" className="text-gray-300">{t('admin.barbersPage.biographyLabel')}</Label>
               <Textarea
                 id="bio"
                 value={newBarberForm.bio}
                 onChange={(e) => setNewBarberForm({ ...newBarberForm, bio: e.target.value })}
-                placeholder="Describe the barber&apos;s experience and style..."
+                placeholder={t('admin.barbersPage.biographyPlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
                 rows={3}
               />
@@ -785,7 +836,7 @@ export default function AdminBarberosPage() {
 
             {/* Social Media Links */}
             <div className="border-t border-gray-700 pt-4 space-y-3">
-              <h3 className="text-gray-300 font-semibold mb-2">Redes Sociales (opcional)</h3>
+              <h3 className="text-gray-300 font-semibold mb-2">{t('admin.barbersPage.socialLinksTitleOptional')}</h3>
               
               <div>
                 <Label htmlFor="facebookUrl" className="text-gray-400 text-sm">Facebook</Label>
@@ -862,8 +913,8 @@ export default function AdminBarberosPage() {
 
             {/* Payment Methods */}
             <div className="border-t border-gray-700 pt-4 space-y-3">
-              <h3 className="text-gray-300 font-semibold mb-2">Payment Methods</h3>
-              <p className="text-xs text-gray-500 mb-3">Configure the payment methods this barber accepts</p>
+              <h3 className="text-gray-300 font-semibold mb-2">{t('admin.barbersPage.paymentMethodsTitle')}</h3>
+              <p className="text-xs text-gray-500 mb-3">{t('admin.barbersPage.paymentMethodsDescription')}</p>
               
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -874,7 +925,7 @@ export default function AdminBarberosPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="zelleEmail" className="text-gray-400 text-sm">Email de Zelle</Label>
+                  <Label htmlFor="zelleEmail" className="text-gray-400 text-sm">{t('admin.barbersPage.zelleEmailLabel')}</Label>
                   <Input
                     id="zelleEmail"
                     type="email"
@@ -886,7 +937,7 @@ export default function AdminBarberosPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="zellePhone" className="text-gray-400 text-sm">Zelle Phone</Label>
+                  <Label htmlFor="zellePhone" className="text-gray-400 text-sm">{t('admin.barbersPage.zellePhoneLabel')}</Label>
                   <Input
                     id="zellePhone"
                     type="tel"
@@ -915,19 +966,19 @@ export default function AdminBarberosPage() {
                     placeholder="$username"
                     className="bg-[#0a0a0a] border-gray-700 text-white"
                   />
-                  <p className="text-xs text-gray-600 mt-1">Include the $ sign at the beginning</p>
+                  <p className="text-xs text-gray-600 mt-1">{t('admin.barbersPage.cashAppHelp')}</p>
                 </div>
               </div>
             </div>
 
             <div>
-              <Label className="text-gray-300">Profile image</Label>
+              <Label className="text-gray-300">{t('admin.barbersPage.profileImageLabel')}</Label>
               {previewImage ? (
                 <div className="relative mt-2">
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900">
                     <Image
                       src={previewImage}
-                      alt="Preview"
+                      alt={t('admin.barbersPage.profileImagePreviewAlt')}
                       fill
                       className="object-cover"
                       unoptimized
@@ -943,7 +994,7 @@ export default function AdminBarberosPage() {
                     className="mt-2 w-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Remove image
+                    {t('admin.barbersPage.removeImageButton')}
                   </Button>
                 </div>
               ) : (
@@ -962,14 +1013,14 @@ export default function AdminBarberosPage() {
                   <label htmlFor="barber-image-upload" className="cursor-pointer">
                     <Upload className="w-12 h-12 text-gray-500 mx-auto mb-2" />
                     <p className="text-gray-400 text-sm">
-                      {uploadingImage ? 'Uploading...' : 'Drag an image or click to select'}
+                      {uploadingImage ? t('admin.barbersPage.uploading') : t('admin.barbersPage.dragOrClickToSelect')}
                     </p>
-                    <p className="text-gray-600 text-xs mt-1">Max. 10MB</p>
+                    <p className="text-gray-600 text-xs mt-1">{t('admin.barbersPage.max10MB')}</p>
                   </label>
                 </div>
               )}
               <div className="mt-2">
-                <Label htmlFor="profileImage-url" className="text-gray-500 text-xs">Or enter a URL (optional)</Label>
+                <Label htmlFor="profileImage-url" className="text-gray-500 text-xs">{t('admin.barbersPage.orEnterUrlOptional')}</Label>
                 <Input
                   id="profileImage-url"
                   value={newBarberForm.profileImage}
@@ -990,14 +1041,14 @@ export default function AdminBarberosPage() {
               className="border-gray-700 text-gray-300"
               disabled={submitting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleAddBarber}
               className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90"
               disabled={submitting}
             >
-              {submitting ? 'Adding...' : 'Add Barber'}
+              {submitting ? t('admin.barbersPage.adding') : t('admin.barbersPage.addBarberButton')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1007,67 +1058,69 @@ export default function AdminBarberosPage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="bg-[#1a1a1a] border-gray-800 text-white max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-[#00f0ff]">Edit Barber</DialogTitle>
+            <DialogTitle className="text-[#00f0ff]">{t('admin.barbersPage.editDialogTitle')}</DialogTitle>
             <DialogDescription className="text-gray-400">
-              Update {selectedBarber?.user?.name}&apos;s information
+              {t('admin.barbersPage.editDialogDescriptionPrefix')}
+              {selectedBarber?.user?.name}
+              {t('admin.barbersPage.editDialogDescriptionSuffix')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="edit-name" className="text-gray-300">Name</Label>
+              <Label htmlFor="edit-name" className="text-gray-300">{t('admin.barbersPage.editNameLabel')}</Label>
               <Input
                 id="edit-name"
                 value={editBarberForm.name}
                 onChange={(e) => setEditBarberForm({ ...editBarberForm, name: e.target.value })}
-                placeholder="Barber name"
+                placeholder={t('admin.barbersPage.editNamePlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
             </div>
             
             <div>
-              <Label htmlFor="edit-contactEmail" className="text-gray-300">Barber Personal Email</Label>
+              <Label htmlFor="edit-contactEmail" className="text-gray-300">{t('admin.barbersPage.contactEmailLabel')}</Label>
               <Input
                 id="edit-contactEmail"
                 type="email"
                 value={editBarberForm.contactEmail}
                 onChange={(e) => setEditBarberForm({ ...editBarberForm, contactEmail: e.target.value })}
-                placeholder="E.g.: adolfoboome@gmail.com"
+                placeholder={t('admin.barbersPage.contactEmailPlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
-              <p className="text-xs text-gray-500 mt-1">Personal email for contact and notifications</p>
+              <p className="text-xs text-gray-500 mt-1">{t('admin.barbersPage.contactEmailHelp')}</p>
             </div>
 
             {/* REMOVED: Gender selector - This page only manages MALE barbers */}
             <input type="hidden" name="edit-gender" value="MALE" />
             
             <div>
-              <Label htmlFor="edit-specialties" className="text-gray-300">Specialties</Label>
+              <Label htmlFor="edit-specialties" className="text-gray-300">{t('admin.barbersPage.specialtiesLabel')}</Label>
               <Input
                 id="edit-specialties"
                 value={editBarberForm.specialties}
                 onChange={(e) => setEditBarberForm({ ...editBarberForm, specialties: e.target.value })}
-                placeholder="Ex: Classic cuts, Beard, Design"
+                placeholder={t('admin.barbersPage.specialtiesPlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
             </div>
             <div>
-              <Label htmlFor="edit-hourlyRate" className="text-gray-300">Hourly Rate ($)</Label>
+              <Label htmlFor="edit-hourlyRate" className="text-gray-300">{t('admin.barbersPage.hourlyRateLabel')}</Label>
               <Input
                 id="edit-hourlyRate"
                 type="number"
                 value={editBarberForm.hourlyRate}
                 onChange={(e) => setEditBarberForm({ ...editBarberForm, hourlyRate: e.target.value })}
-                placeholder="25"
+                placeholder={t('admin.barbersPage.hourlyRatePlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
               />
             </div>
             <div>
-              <Label htmlFor="edit-bio" className="text-gray-300">Biography</Label>
+              <Label htmlFor="edit-bio" className="text-gray-300">{t('admin.barbersPage.biographyLabel')}</Label>
               <Textarea
                 id="edit-bio"
                 value={editBarberForm.bio}
                 onChange={(e) => setEditBarberForm({ ...editBarberForm, bio: e.target.value })}
-                  placeholder="Describe the barber&apos;s experience and style..."
+                  placeholder={t('admin.barbersPage.biographyPlaceholder')}
                 className="bg-[#0a0a0a] border-gray-700 text-white"
                 rows={3}
               />
@@ -1075,7 +1128,7 @@ export default function AdminBarberosPage() {
 
             {/* Social Media Links */}
             <div className="border-t border-gray-700 pt-4 space-y-3">
-              <h3 className="text-gray-300 font-semibold mb-2">Social Media (optional)</h3>
+              <h3 className="text-gray-300 font-semibold mb-2">{t('admin.barbersPage.socialLinksTitleOptional')}</h3>
               
               <div>
                 <Label htmlFor="edit-facebookUrl" className="text-gray-400 text-sm">Facebook</Label>
@@ -1152,8 +1205,8 @@ export default function AdminBarberosPage() {
 
             {/* Payment Methods */}
             <div className="border-t border-gray-700 pt-4 space-y-3">
-              <h3 className="text-gray-300 font-semibold mb-2">Payment Methods</h3>
-              <p className="text-xs text-gray-500 mb-3">Configure the payment methods this barber accepts</p>
+              <h3 className="text-gray-300 font-semibold mb-2">{t('admin.barbersPage.paymentMethodsTitle')}</h3>
+              <p className="text-xs text-gray-500 mb-3">{t('admin.barbersPage.paymentMethodsDescription')}</p>
               
               <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 space-y-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -1164,7 +1217,7 @@ export default function AdminBarberosPage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="edit-zelleEmail" className="text-gray-400 text-sm">Email de Zelle</Label>
+                  <Label htmlFor="edit-zelleEmail" className="text-gray-400 text-sm">{t('admin.barbersPage.zelleEmailLabel')}</Label>
                   <Input
                     id="edit-zelleEmail"
                     type="email"
@@ -1176,7 +1229,7 @@ export default function AdminBarberosPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="edit-zellePhone" className="text-gray-400 text-sm">Zelle Phone</Label>
+                  <Label htmlFor="edit-zellePhone" className="text-gray-400 text-sm">{t('admin.barbersPage.zellePhoneLabel')}</Label>
                   <Input
                     id="edit-zellePhone"
                     type="tel"
@@ -1205,19 +1258,19 @@ export default function AdminBarberosPage() {
                     placeholder="$username"
                     className="bg-[#0a0a0a] border-gray-700 text-white"
                   />
-                  <p className="text-xs text-gray-600 mt-1">Include the $ sign at the beginning</p>
+                  <p className="text-xs text-gray-600 mt-1">{t('admin.barbersPage.cashAppHelp')}</p>
                 </div>
               </div>
             </div>
 
             <div>
-              <Label className="text-gray-300">Profile Image</Label>
+              <Label className="text-gray-300">{t('admin.barbersPage.profileImageLabel')}</Label>
               {editPreviewImage ? (
                 <div className="relative mt-2">
                   <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-gray-900">
                     <Image
                       src={editPreviewImage}
-                      alt="Preview"
+                      alt={t('admin.barbersPage.profileImagePreviewAlt')}
                       fill
                       className="object-cover"
                       unoptimized
@@ -1233,7 +1286,7 @@ export default function AdminBarberosPage() {
                     className="mt-2 w-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
                   >
                     <X className="w-4 h-4 mr-2" />
-                    Delete image
+                    {t('admin.barbersPage.deleteImageButton')}
                   </Button>
                 </div>
               ) : (
@@ -1252,14 +1305,14 @@ export default function AdminBarberosPage() {
                   <label htmlFor="edit-barber-image-upload" className="cursor-pointer">
                     <Upload className="w-12 h-12 text-gray-500 mx-auto mb-2" />
                     <p className="text-gray-400 text-sm">
-                      {uploadingImage ? 'Uploading...' : 'Drag an image or click to select'}
+                      {uploadingImage ? t('admin.barbersPage.uploading') : t('admin.barbersPage.dragOrClickToSelect')}
                     </p>
-                    <p className="text-gray-600 text-xs mt-1">Max. 10MB</p>
+                    <p className="text-gray-600 text-xs mt-1">{t('admin.barbersPage.max10MB')}</p>
                   </label>
                 </div>
               )}
               <div className="mt-2">
-                <Label htmlFor="edit-profileImage-url" className="text-gray-500 text-xs">O ingresa una URL (opcional)</Label>
+                <Label htmlFor="edit-profileImage-url" className="text-gray-500 text-xs">{t('admin.barbersPage.orEnterUrlOptional')}</Label>
                 <Input
                   id="edit-profileImage-url"
                   value={editBarberForm.profileImage}
@@ -1280,7 +1333,7 @@ export default function AdminBarberosPage() {
                 onChange={(e) => setEditBarberForm({ ...editBarberForm, isActive: e.target.checked })}
                 className="w-4 h-4 text-[#00f0ff] bg-[#0a0a0a] border-gray-700 rounded focus:ring-[#00f0ff]"
               />
-              <Label htmlFor="edit-isActive" className="text-gray-300">Active barber</Label>
+              <Label htmlFor="edit-isActive" className="text-gray-300">{t('admin.barbersPage.activeBarberLabel')}</Label>
             </div>
           </div>
           <DialogFooter>
@@ -1290,14 +1343,14 @@ export default function AdminBarberosPage() {
               className="border-gray-700 text-gray-300"
               disabled={submitting}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               onClick={handleEditBarber}
               className="bg-gradient-to-r from-[#00f0ff] to-[#0099cc] text-black hover:opacity-90"
               disabled={submitting}
             >
-              {submitting ? 'Saving...' : 'Save Changes'}
+              {submitting ? t('admin.barbersPage.saving') : t('admin.barbersPage.saveChangesButton')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1307,36 +1360,36 @@ export default function AdminBarberosPage() {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="bg-[#1a1a1a] border-gray-800 text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-500">⚠️ Delete barber permanently?</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-500">{t('admin.barbersPage.deleteDialogTitle')}</AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              Are you sure you want to delete <span className="text-white font-semibold">{selectedBarber?.user?.name}</span>? 
+              {t('admin.barbersPage.deleteDialogConfirm')} <span className="text-white font-semibold">{selectedBarber?.user?.name}</span>? 
               <br/><br/>
-              <span className="text-red-400 font-semibold">This action CANNOT be undone.</span>
+              <span className="text-red-400 font-semibold">{t('admin.barbersPage.deleteDialogIrreversible')}</span>
               <br/><br/>
-              The following will be permanently deleted:
+              {t('admin.barbersPage.deleteDialogDeletedIntro')}
               <ul className="list-disc list-inside mt-2 text-gray-300 space-y-1">
-                <li>Barber profile</li>
-                <li>Schedule and availability</li>
-                <li>Photo/video gallery</li>
-                <li>Payment history</li>
-                <li><span className="text-red-400">All their appointments (will be automatically cancelled)</span></li>
-                <li>Associated reviews</li>
-                <li><span className="text-red-400 font-semibold">User account and login credentials</span></li>
+                <li>{t('admin.barbersPage.deleteItemProfile')}</li>
+                <li>{t('admin.barbersPage.deleteItemSchedule')}</li>
+                <li>{t('admin.barbersPage.deleteItemGallery')}</li>
+                <li>{t('admin.barbersPage.deleteItemPaymentHistory')}</li>
+                <li><span className="text-red-400">{t('admin.barbersPage.deleteItemAppointmentsCancelled')}</span></li>
+                <li>{t('admin.barbersPage.deleteItemReviews')}</li>
+                <li><span className="text-red-400 font-semibold">{t('admin.barbersPage.deleteItemUserAccount')}</span></li>
               </ul>
               <br/>
-              <span className="text-red-400 font-semibold">⚠️ WARNING:</span> This deletion is PERMANENT and IRREVERSIBLE. The barber will NOT be able to log in again. Clients with appointments will be notified of the cancellation.
+              <span className="text-red-400 font-semibold">{t('admin.barbersPage.deleteDialogWarningLabel')}</span> {t('admin.barbersPage.deleteDialogWarningText')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-gray-700 text-gray-300 hover:bg-gray-800" disabled={submitting}>
-              Cancel
+              {t('common.cancel')}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteBarber}
               className="bg-red-500 text-white hover:bg-red-600"
               disabled={submitting}
             >
-              {submitting ? 'Deleting...' : 'Yes, Delete Permanently'}
+              {submitting ? t('admin.barbersPage.deleting') : t('admin.barbersPage.deleteDialogConfirmButton')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

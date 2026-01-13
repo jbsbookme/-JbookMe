@@ -55,13 +55,8 @@ export async function GET(request: NextRequest) {
       // No filtrar por barberId
     } else if (barberId) {
       // Cliente con barbero específico: mostrar servicios de ese barbero + generales
-      where.OR = [
-        { barberId: null }, // Servicios generales
-        { barberId: barberId }, // Servicios del barbero específico
-      ];
+      where.OR = [{ barberId: null }, { barberId }];
     }
-    // Si no hay barberId, mostrar TODOS los servicios (no filtrar por barberId)
-    // Esto permite que los clientes vean servicios disponibles antes de elegir barbero
 
     // Filtrar por género si se especifica (aplica para clientes)
     // NO INCLUIR UNISEX - Solo el género exacto
@@ -87,6 +82,42 @@ export async function GET(request: NextRequest) {
         createdAt: 'asc',
       },
     });
+
+    // Client views: defensively dedupe services to avoid legacy per-barber clones
+    if (adminView !== 'true') {
+      const requestedBarberId = barberId;
+      const keyFor = (s: { name: string; duration: number; price: number; gender: string | null }) => {
+        const normalizedName = s.name.trim().toLowerCase();
+        return `${s.gender ?? ''}::${normalizedName}::${s.duration}::${s.price}`;
+      };
+
+      const rank = (s: (typeof services)[number]) => {
+        // If a barber is selected, prefer that barber's row, then general.
+        if (requestedBarberId) {
+          if (s.barberId === requestedBarberId) return 2;
+          if (s.barberId === null) return 1;
+          return 0;
+        }
+        // If no barber selected, prefer general services.
+        if (s.barberId === null) return 2;
+        return 1;
+      };
+
+      const byKey = new Map<string, (typeof services)[number]>();
+      for (const service of services) {
+        const key = keyFor(service);
+        const existing = byKey.get(key);
+        if (!existing) {
+          byKey.set(key, service);
+          continue;
+        }
+
+        // Keep the "best" row for this key based on context
+        if (rank(service) > rank(existing)) byKey.set(key, service);
+      }
+
+      return NextResponse.json({ services: Array.from(byKey.values()) });
+    }
 
     return NextResponse.json({ services });
   } catch (error) {
@@ -122,52 +153,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Si barberId es null (General), asignar a todos los barberos del género correcto
+    const normalizedGender = gender || 'UNISEX';
+
+    const findExisting = async (targetBarberId: string | null) => {
+      return prisma.service.findFirst({
+        where: {
+          isActive: true,
+          barberId: targetBarberId,
+          gender: normalizedGender,
+          duration,
+          price,
+          name: {
+            equals: name,
+            mode: 'insensitive',
+          },
+        },
+      });
+    };
+
+    // Si barberId no viene, crear/retornar un servicio GENERAL (barberId: null)
+    // (Evita duplicar servicios por cada barbero y también protege contra múltiples submits.)
     if (!barberId || barberId === '') {
-      // Buscar barberos del género correcto
-      const whereGender: Prisma.BarberWhereInput = {};
-      if (gender === 'MALE') {
-        whereGender.gender = 'MALE';
-      } else if (gender === 'FEMALE') {
-        whereGender.gender = 'FEMALE';
-      }
-      // Si es UNISEX, no filtrar por género (asignar a todos)
-
-      const targetBarbers = await prisma.barber.findMany({
-        where: whereGender,
-      });
-
-      if (targetBarbers.length === 0) {
-        return NextResponse.json(
-          { error: 'No hay barberos del género seleccionado' },
-          { status: 400 }
-        );
+      const existing = await findExisting(null);
+      if (existing) {
+        return NextResponse.json({ service: existing, alreadyExists: true }, { status: 200 });
       }
 
-      // Crear un servicio para cada barbero
-      const servicesCreated = await Promise.all(
-        targetBarbers.map((barber) =>
-          prisma.service.create({
-            data: {
-              name,
-              description: description || null,
-              duration,
-              price,
-              image: image || null,
-              barberId: barber.id,
-              gender: gender || 'UNISEX',
-            },
-          })
-        )
-      );
-
-      return NextResponse.json({
-        message: `${servicesCreated.length} servicios creados para barberos ${gender}`,
-        services: servicesCreated,
+      const service = await prisma.service.create({
+        data: {
+          name,
+          description: description || null,
+          duration,
+          price,
+          image: image || null,
+          barberId: null,
+          gender: normalizedGender,
+        },
       });
+
+      return NextResponse.json({ service }, { status: 201 });
     }
 
-    // Si hay barberId específico, crear solo ese servicio
+    // Si hay barberId específico, crear solo ese servicio (idempotente)
+    const existingForBarber = await findExisting(barberId);
+    if (existingForBarber) {
+      return NextResponse.json({ service: existingForBarber, alreadyExists: true }, { status: 200 });
+    }
+
     const service = await prisma.service.create({
       data: {
         name,
@@ -176,7 +208,7 @@ export async function POST(request: NextRequest) {
         price,
         image: image || null,
         barberId: barberId,
-        gender: gender || 'UNISEX',
+        gender: normalizedGender,
       },
       include: {
         barber: {

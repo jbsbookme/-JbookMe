@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { NotificationType } from '@prisma/client';
+import { formatTime12h } from '@/lib/time';
 
 export type CreateNotificationInput = {
   userId: string;
@@ -49,19 +50,21 @@ export async function sendAppointmentCreatedNotifications(data: AppointmentNotif
     barberEmail: false,
   };
 
+  const timeDisplay = formatTime12h(data.time);
+
   if (data.clientEmail) {
     results.clientEmail = await sendEmail({
       to: data.clientEmail,
-      subject: 'Appointment booked',
-      text: `Hi ${data.clientName}, your appointment for ${data.serviceName} was booked for ${data.date.toDateString()} at ${data.time}.`,
+      subject: 'Appointment request received',
+      text: `Hi ${data.clientName}, we received your appointment request for ${data.serviceName} on ${data.date.toDateString()} at ${timeDisplay}.\n\nPlease confirm by replying YES to the SMS we sent you (or reply NO to cancel).`,
     });
   }
 
   if (data.barberEmail) {
     results.barberEmail = await sendEmail({
       to: data.barberEmail,
-      subject: 'New appointment',
-      text: `Hi ${data.barberName}, you have a new appointment (${data.serviceName}) for ${data.date.toDateString()} at ${data.time}.\n\n⭐ Thanks for being part of JBBarbershop.`,
+      subject: 'New appointment (pending confirmation)',
+      text: `Hi ${data.barberName}, a new appointment request (${data.serviceName}) was created for ${data.date.toDateString()} at ${timeDisplay}.\n\nStatus: PENDING (awaiting client SMS confirmation).`,
     });
   }
 

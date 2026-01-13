@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { motion, useMotionValue } from 'framer-motion';
 import Image from 'next/image';
@@ -19,15 +19,25 @@ import {
   MessageCircle,
   Send,
   Share2,
-  Trash2
+  Trash2,
+  Link2,
+  Image as ImageIcon,
+  Play
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { BookFAB } from '@/components/book-fab';
+import { resolvePublicMediaUrl } from '@/lib/utils';
+import { formatTime12h } from '@/lib/time';
 import { DashboardNavbar } from '@/components/dashboard/navbar';
 import PromotionsCarousel from '@/components/promotions-carousel';
 import { CommentsModal } from '@/components/posts/comments-modal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Comment {
   id: string;
@@ -46,6 +56,7 @@ interface Post {
   caption: string;
   hashtags: string[];
   cloud_storage_path: string;
+  imageUrl?: string;
   postType: 'BARBER_WORK' | 'CLIENT_SHARE';
   authorType: 'USER' | 'BARBER';
   likes: number;
@@ -117,6 +128,8 @@ export default function FeedPage() {
   const { data: session, status } = useSession();
   const { t, language } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sharedPostId = searchParams.get('post');
   const [posts, setPosts] = useState<Post[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [stylists, setStylists] = useState<Barber[]>([]);
@@ -126,6 +139,74 @@ export default function FeedPage() {
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
   const [commentsModalOpen, setCommentsModalOpen] = useState<string | null>(null);
+
+  const sharePost = useCallback(async (post: Post) => {
+    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const barbershopName = "JB's Barbershop";
+    const title = barbershopName;
+    const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
+
+    try {
+      if (!navigator.share) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success(t('common.linkCopied'));
+        return;
+      }
+
+      // Try to share the actual media file when supported.
+      // Fallback: share a link (this may show as a generic card on some apps).
+      const canShareFiles = typeof navigator.canShare === 'function';
+
+      if (canShareFiles) {
+        try {
+          const mediaRes = await fetch(`/api/posts/${post.id}/media`);
+          if (mediaRes.ok) {
+            const blob = await mediaRes.blob();
+            const blobType = blob.type || (isVideo(post.cloud_storage_path) ? 'video/mp4' : 'image/jpeg');
+            const ext = blobType.includes('video') ? 'mp4' : 'jpg';
+            const file = new File([blob], `jbsbarbershop-${post.id}.${ext}`, { type: blobType });
+
+            // Prefer sharing file + public link when the platform supports it.
+            const fileAndLinkData = { title, text, url: shareUrl, files: [file] } as any;
+            if (navigator.canShare(fileAndLinkData)) {
+              await navigator.share(fileAndLinkData);
+              return;
+            }
+
+            // Fallback: share file only.
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ title, text, files: [file] } as any);
+              return;
+            }
+          }
+        } catch {
+          // Ignore and fall back to link sharing.
+        }
+      }
+
+      await navigator.share({ title, text, url: shareUrl });
+    } catch {
+      // User cancelled share or platform failed.
+    }
+  }, [t]);
+
+  const sharePostLinkOnly = useCallback(async (post: Post) => {
+    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const barbershopName = "JB's Barbershop";
+    const title = barbershopName;
+    const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url: shareUrl });
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success(t('common.linkCopied'));
+      }
+    } catch {
+      // user cancelled
+    }
+  }, [t]);
   const bookingCtaRef = useRef<HTMLDivElement | null>(null);
   const [isBookingCtaInView, setIsBookingCtaInView] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState<{
@@ -134,10 +215,61 @@ export default function FeedPage() {
     authorName?: string;
     dateLabel?: string;
   } | null>(null);
+
+  const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
+  const [isZoomVideoPlaying, setIsZoomVideoPlaying] = useState(false);
+
+  const toggleVideoPlayback = useCallback((video: HTMLVideoElement) => {
+    if (video.paused) {
+      void video.play();
+    } else {
+      video.pause();
+    }
+  }, []);
+
+  const handleVideoTap = useCallback(
+    (video: HTMLVideoElement) => {
+      // Keep videos muted by default (autoplay policies), but allow sound on explicit user tap.
+      if (video.muted) {
+        video.muted = false;
+        video.volume = 1;
+        if (video.paused) {
+          void video.play();
+        }
+        return;
+      }
+
+      toggleVideoPlayback(video);
+    },
+    [toggleVideoPlayback]
+  );
   const [imageScale, setImageScale] = useState(1);
   const [viewedPosts, setViewedPosts] = useState<Set<string>>(new Set());
   const [heartBursts, setHeartBursts] = useState<Record<string, HeartParticle[]>>({});
   const heartBurstTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const fetchSharedPost = useCallback(async (postId: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/posts/${encodeURIComponent(postId)}?_ts=${Date.now()}`);
+      if (!res.ok) {
+        setPosts([]);
+        return;
+      }
+      const data = await res.json();
+      const post = data?.post as Post | undefined;
+      if (post) {
+        setPosts([post]);
+      } else {
+        setPosts([]);
+      }
+    } catch (error) {
+      console.error('Error fetching shared post:', error);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // Zoom/Pan state (modal)
   const imageX = useMotionValue(0);
@@ -257,6 +389,12 @@ export default function FeedPage() {
   };
 
   useEffect(() => {
+    // Shared post view should be accessible without login.
+    if (sharedPostId) {
+      fetchSharedPost(sharedPostId);
+      return;
+    }
+
     if (status === 'unauthenticated') {
       router.push('/auth');
       return;
@@ -265,7 +403,7 @@ export default function FeedPage() {
     if (status === 'authenticated') {
       fetchData();
     }
-  }, [status, router]);
+  }, [status, router, sharedPostId, fetchSharedPost]);
 
   // Show the persistent mobile BOOK button only after the main booking CTA card
   // (date card) has scrolled out of view.
@@ -326,6 +464,10 @@ export default function FeedPage() {
   };
 
   const handleLike = async (postId: string) => {
+    if (status !== 'authenticated') {
+      router.push('/auth');
+      return;
+    }
     try {
       // Optimistic update
       const wasLiked = likedPosts.has(postId);
@@ -386,12 +528,12 @@ export default function FeedPage() {
       
     } catch (error) {
       console.error('Error toggling like:', error);
-      toast.error('Error liking post');
+      toast.error(t('feed.errorLikingPost'));
     }
   };
 
   const handleDeletePost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    if (!confirm(t('feed.confirmDeletePost'))) return;
 
     try {
       const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
@@ -401,10 +543,10 @@ export default function FeedPage() {
       }
 
       setPosts(prev => prev.filter(p => p.id !== postId));
-      toast.success('Post deleted');
+      toast.success(t('feed.postDeleted'));
     } catch (error) {
       console.error('Error deleting post:', error);
-      toast.error(error instanceof Error ? error.message : 'Error deleting post');
+      toast.error(error instanceof Error ? error.message : t('feed.errorDeletingPost'));
     }
   };
 
@@ -423,7 +565,7 @@ export default function FeedPage() {
   const handleAddComment = async (postId: string) => {
     const content = commentText[postId]?.trim();
     if (!content) {
-      toast.error('Comment cannot be empty');
+      toast.error(t('feed.emptyComment'));
       return;
     }
 
@@ -450,32 +592,18 @@ export default function FeedPage() {
 
         // Clear comment text
         setCommentText(prev => ({ ...prev, [postId]: '' }));
-        toast.success('Comment added');
+        toast.success(t('feed.commentAdded'));
       } else {
-        toast.error('Error adding comment');
+        toast.error(t('feed.errorAddingComment'));
       }
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast.error('Error adding comment');
+      toast.error(t('feed.errorAddingComment'));
     }
   };
 
   const getMediaUrl = (cloud_storage_path: string) => {
-    // If it's already a full URL, return as-is
-    if (/^https?:\/\//i.test(cloud_storage_path)) {
-      return cloud_storage_path;
-    }
-
-    // Si la ruta empieza con /, es una ruta local (public folder)
-    if (cloud_storage_path.startsWith('/')) {
-      return cloud_storage_path;
-    }
-    
-    // Si no, es una ruta de S3
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-    if (!bucketName) return cloud_storage_path;
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+    return resolvePublicMediaUrl(cloud_storage_path);
   };
 
   const isVideo = (path: string): boolean => {
@@ -601,7 +729,7 @@ export default function FeedPage() {
               </Link>
             </div>
 
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scroll-px-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
               {barbers.map((pro) => {
                 const ringClass = 'border-[#00f0ff]/60';
                 const glowClass = 'shadow-[0_0_18px_rgba(0,240,255,0.25)]';
@@ -664,7 +792,7 @@ export default function FeedPage() {
               </Link>
             </div>
 
-            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory scroll-px-4">
+            <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide">
               {stylists.map((pro) => {
                 const ringClass = 'border-pink-400/60';
                 const glowClass = 'shadow-[0_0_18px_rgba(236,72,153,0.25)]';
@@ -784,7 +912,7 @@ export default function FeedPage() {
                           weekday: 'short', 
                           month: 'short', 
                           day: 'numeric' 
-                        })} at {nextAppointment.time}
+                        })} at {formatTime12h(nextAppointment.time)}
                       </p>
                     </div>
                   </div>
@@ -824,7 +952,13 @@ export default function FeedPage() {
                       {/* Author Header */}
                       <div className="flex items-center gap-3 p-4">
                         <motion.div 
-                          className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center overflow-hidden"
+                          className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${
+                            (post.authorType === 'BARBER' && post.barber?.profileImage) ||
+                            (post.authorType === 'BARBER' && post.barber?.user?.image) ||
+                            post.author?.image
+                              ? 'bg-transparent'
+                              : 'bg-gradient-to-br from-cyan-500 to-purple-500'
+                          }`}
                           whileHover={{ scale: 1.1, rotate: 180 }}
                           transition={{ duration: 0.3 }}
                         >
@@ -834,7 +968,7 @@ export default function FeedPage() {
                               alt={post.barber.user.name || 'Barber'}
                               width={40}
                               height={40}
-                              className="rounded-full object-cover"
+                              className="block rounded-full object-cover"
                               loading="lazy"
                             />
                           ) : (post.authorType === 'BARBER' && post.barber?.user?.image) ? (
@@ -843,7 +977,7 @@ export default function FeedPage() {
                               alt={post.barber.user.name || 'Barber'}
                               width={40}
                               height={40}
-                              className="rounded-full object-cover"
+                              className="block rounded-full object-cover"
                               loading="lazy"
                             />
                           ) : post.author?.image ? (
@@ -852,7 +986,7 @@ export default function FeedPage() {
                               alt={post.author.name || 'User'}
                               width={40}
                               height={40}
-                              className="rounded-full object-cover"
+                              className="block rounded-full object-cover"
                               loading="lazy"
                             />
                           ) : (
@@ -905,8 +1039,9 @@ export default function FeedPage() {
                             day: 'numeric',
                           });
 
+                          const mediaUrl = post.imageUrl || getMediaUrl(post.cloud_storage_path);
                           setZoomedMedia({
-                            url: getMediaUrl(post.cloud_storage_path),
+                            url: mediaUrl,
                             isVideo: isVideo(post.cloud_storage_path),
                             authorName,
                             dateLabel,
@@ -957,18 +1092,33 @@ export default function FeedPage() {
                         ) : null}
 
                         {isVideo(post.cloud_storage_path) ? (
-                          <video
-                            src={getMediaUrl(post.cloud_storage_path)}
-                            autoPlay
-                            muted
-                            playsInline
-                            preload="metadata"
-                            controls
-                            className="w-full h-full object-cover"
-                          />
+                          <div className="relative w-full h-full">
+                            <video
+                              src={post.imageUrl || getMediaUrl(post.cloud_storage_path)}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              className="w-full h-full object-cover"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleVideoTap(e.currentTarget);
+                              }}
+                              onPlay={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: true }))}
+                              onPause={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
+                              onEnded={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
+                            />
+
+                            {!playingByPostId[post.id] ? (
+                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                <div className="h-16 w-16 rounded-full border border-white/35 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                                  <Play className="h-8 w-8 text-white/90 drop-shadow translate-x-0.5" />
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
                         ) : (
                           <Image
-                            src={getMediaUrl(post.cloud_storage_path)}
+                            src={post.imageUrl || getMediaUrl(post.cloud_storage_path)}
                             alt={post.caption}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 600px"
@@ -1022,25 +1172,39 @@ export default function FeedPage() {
                           </motion.button>
 
                           {/* Share Button */}
-                          <motion.button
-                            onClick={() => {
-                              if (navigator.share) {
-                                navigator.share({
-                                  title: `Post by ${post.author?.name || 'JBookMe'}`,
-                                  text: post.caption || 'Check out this post!',
-                                  url: `${window.location.origin}/feed?post=${post.id}`
-                                }).catch(() => {});
-                              } else {
-                                navigator.clipboard.writeText(`${window.location.origin}/feed?post=${post.id}`);
-                                toast.success('Link copied to clipboard!');
-                              }
-                            }}
-                            className="flex items-center gap-2"
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <Share2 className="w-6 h-6 text-white hover:text-pink-400 smooth-transition" />
-                          </motion.button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <motion.button
+                                className="flex items-center gap-2"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.9 }}
+                                aria-label="Share"
+                                title="Share"
+                              >
+                                <Share2 className="w-6 h-6 text-white hover:text-pink-400 smooth-transition" />
+                              </motion.button>
+                            </DropdownMenuTrigger>
+
+                            <DropdownMenuContent
+                              align="end"
+                              className="border-white/10 bg-black/85 backdrop-blur-md text-white"
+                            >
+                              <DropdownMenuItem
+                                onClick={() => sharePost(post)}
+                                className="cursor-pointer gap-2 rounded-md px-3 py-2 text-sm text-white/90 focus:bg-white/10 focus:text-white"
+                              >
+                                <ImageIcon className="h-4 w-4 text-white/70" />
+                                Compartir foto/video
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => sharePostLinkOnly(post)}
+                                className="cursor-pointer gap-2 rounded-md px-3 py-2 text-sm text-white/90 focus:bg-white/10 focus:text-white"
+                              >
+                                <Link2 className="h-4 w-4 text-white/70" />
+                                Compartir link público
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
 
                           {(session?.user?.role === 'ADMIN' || post.author?.id === session?.user?.id) && (
                             <motion.button
@@ -1151,15 +1315,30 @@ export default function FeedPage() {
                   </div>
                 ) : null}
 
-                <video
-                  src={zoomedMedia.url}
-                  controls
-                  autoPlay
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                />
+                <div className="relative">
+                  <video
+                    src={zoomedMedia.url}
+                    muted
+                    playsInline
+                    preload="metadata"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleVideoTap(e.currentTarget);
+                    }}
+                    onPlay={() => setIsZoomVideoPlaying(true)}
+                    onPause={() => setIsZoomVideoPlaying(false)}
+                    onEnded={() => setIsZoomVideoPlaying(false)}
+                  />
+
+                  {!isZoomVideoPlaying ? (
+                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <div className="h-20 w-20 rounded-full border border-white/35 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+                        <Play className="h-10 w-10 text-white/90 drop-shadow translate-x-0.5" />
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <motion.div
@@ -1225,8 +1404,6 @@ export default function FeedPage() {
         onClose={() => setCommentsModalOpen(null)}
       />
 
-      {/* FAB Button - Single action: BOOK */}
-      <BookFAB />
     </div>
   );
 }

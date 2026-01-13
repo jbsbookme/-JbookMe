@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Scissors, Plus, Edit2, Trash2, Clock, DollarSign, Image as ImageIcon, Upload, X, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatPrice } from '@/lib/utils';
 
 interface Service {
   id: string;
@@ -465,8 +466,8 @@ export default function AdminServiciosHombresPage() {
                         <DollarSign className="w-4 h-4 mr-2" />
                         Price
                       </span>
-                      <span className="text-[#ffd700] font-semibold text-lg">
-                        ${service.price}
+                      <span className="text-[#ffd700] font-semibold text-lg shrink-0 whitespace-nowrap break-normal tabular-nums">
+                        {formatPrice(service.price)}
                       </span>
                     </div>
                     {service.barber?.user?.name && (

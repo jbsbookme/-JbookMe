@@ -1,35 +1,7 @@
-import { S3Client } from '@aws-sdk/client-s3';
-
-// Get bucket configuration from environment variables
-export function getBucketConfig() {
-  const bucketName =
-    process.env.AWS_BUCKET_NAME ||
-    process.env.NEXT_PUBLIC_AWS_BUCKET_NAME ||
-    process.env.S3_BUCKET_NAME ||
-    process.env.AWS_S3_BUCKET_NAME;
-  const folderPrefix = process.env.AWS_FOLDER_PREFIX || '';
-
-  if (!bucketName) {
-    throw new Error(
-      'AWS bucket is not configured (set AWS_BUCKET_NAME or NEXT_PUBLIC_AWS_BUCKET_NAME or S3_BUCKET_NAME)'
-    );
-  }
-
-  return {
-    bucketName,
-    folderPrefix,
-  };
+export function getBucketConfig(): never {
+  throw new Error('AWS S3 has been removed. This app uses Vercel Blob only.');
 }
 
-// Create and configure S3 client
-export function createS3Client(): S3Client {
-  const region =
-    process.env.AWS_REGION ||
-    process.env.AWS_DEFAULT_REGION ||
-    process.env.NEXT_PUBLIC_AWS_REGION;
-  if (!region) {
-    throw new Error('AWS region is not configured (set AWS_REGION)');
-  }
-
-  return new S3Client({ region });
+export function createS3Client(): never {
+  throw new Error('AWS S3 has been removed. This app uses Vercel Blob only.');
 }

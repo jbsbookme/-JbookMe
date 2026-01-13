@@ -8,8 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { X, Send, Trash2, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface Comment {
   id: string;
@@ -31,10 +32,14 @@ interface CommentsModalProps {
 
 export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
   const { data: session } = useSession();
+  const { t, language } = useI18n();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
+
+  const dateLocale = language === 'es' ? es : enUS;
+  const commentLabel = comments.length === 1 ? t('feed.commentSingular') : t('feed.commentPlural');
 
   useEffect(() => {
     if (isOpen) {
@@ -60,7 +65,7 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
 
   const handleAddComment = async () => {
     if (!session) {
-      toast.error('Debes iniciar sesión para comentar');
+      toast.error(t('feed.mustLoginToComment'));
       return;
     }
 
@@ -81,13 +86,13 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
       if (data.success) {
         setComments([data.data, ...comments]);
         setNewComment('');
-        toast.success('Comentario publicado');
+        toast.success(t('feed.commentPosted'));
       } else {
-        toast.error(data.error || 'Error al comentar');
+        toast.error(data.error || t('feed.commentError'));
       }
     } catch (error) {
       console.error('Error adding comment:', error);
-      toast.error('Error al publicar comentario');
+      toast.error(t('feed.commentPostError'));
     } finally {
       setLoading(false);
     }
@@ -103,13 +108,13 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
 
       if (data.success) {
         setComments(comments.filter((c) => c.id !== commentId));
-        toast.success('Comentario eliminado');
+        toast.success(t('feed.commentDeleted'));
       } else {
-        toast.error(data.error || 'Error al eliminar');
+        toast.error(data.error || t('feed.deleteError'));
       }
     } catch (error) {
       console.error('Error deleting comment:', error);
-      toast.error('Error al eliminar comentario');
+      toast.error(t('feed.deleteCommentError'));
     }
   };
 
@@ -121,7 +126,7 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center"
+        className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-end sm:items-center justify-center"
         onClick={onClose}
       >
         <motion.div
@@ -135,11 +140,12 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-zinc-800/50 backdrop-blur-xl">
             <div>
-              <h2 className="text-xl font-bold text-white">Comentarios</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">{comments.length} comentario{comments.length !== 1 ? 's' : ''}</p>
+              <h2 className="text-xl font-bold text-white">{t('feed.comments')}</h2>
+              <p className="text-xs text-zinc-400 mt-0.5">{comments.length} {commentLabel}</p>
             </div>
             <button
               onClick={onClose}
+              aria-label={t('common.close')}
               className="p-2.5 hover:bg-zinc-800/80 rounded-full transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <X className="w-5 h-5 text-zinc-400 hover:text-white transition-colors" />
@@ -151,15 +157,15 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
             {loadingComments ? (
               <div className="text-center text-zinc-400 py-12">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
-                <p className="mt-3 text-sm">Cargando comentarios...</p>
+                <p className="mt-3 text-sm">{t('feed.loadingComments')}</p>
               </div>
             ) : comments.length === 0 ? (
               <div className="text-center py-16">
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-800/50 flex items-center justify-center">
                   <Send className="w-8 h-8 text-zinc-600" />
                 </div>
-                <p className="text-zinc-400 text-sm">No hay comentarios aún</p>
-                <p className="text-zinc-600 text-xs mt-1">¡Sé el primero en comentar!</p>
+                <p className="text-zinc-400 text-sm">{t('feed.noCommentsYet')}</p>
+                <p className="text-zinc-600 text-xs mt-1">{t('feed.beFirstToComment')}</p>
               </div>
             ) : (
               comments.map((comment) => (
@@ -177,7 +183,7 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
                         alt={comment.author.name}
                         width={40}
                         height={40}
-                        className="rounded-full ring-2 ring-zinc-800"
+                        className="block rounded-full object-cover"
                       />
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center ring-2 ring-zinc-800">
@@ -194,18 +200,18 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
                       </span>
                       {comment.author.role === 'BARBER' && (
                         <span className="px-2.5 py-1 text-xs font-medium bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-400 rounded-full border border-cyan-500/30">
-                          Barbero
+                          {t('common.barber')}
                         </span>
                       )}
                       {comment.author.role === 'ADMIN' && (
                         <span className="px-2.5 py-1 text-xs font-medium bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 rounded-full border border-purple-500/30">
-                          Admin
+                          {t('common.admin')}
                         </span>
                       )}
                       <span className="text-xs text-zinc-500">
                         {formatDistanceToNow(new Date(comment.createdAt), {
                           addSuffix: true,
-                          locale: es,
+                          locale: dateLocale,
                         })}
                       </span>
                     </div>
@@ -218,7 +224,7 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
                         className="mt-2 text-xs text-red-400/80 hover:text-red-400 flex items-center gap-1.5 transition-colors hover:bg-red-500/10 px-2 py-1 rounded-lg"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
-                        Eliminar
+                        {t('common.delete')}
                       </button>
                     )}
                   </div>
@@ -228,17 +234,17 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
           </div>
 
           {/* Input Area */}
-          <div className="p-5 border-t border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl">
+          <div className="p-5 border-t border-zinc-800/50 bg-zinc-900/50 backdrop-blur-xl pb-safe">
             <div className="flex gap-3 items-end">
               {/* Avatar */}
               <div className="flex-shrink-0 mb-1">
                 {session?.user?.image ? (
                   <Image
                     src={session.user.image}
-                    alt={session.user.name || 'User'}
+                    alt={session.user.name || t('common.user')}
                     width={36}
                     height={36}
-                    className="rounded-full ring-2 ring-zinc-800"
+                    className="block rounded-full object-cover"
                   />
                 ) : (
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 via-blue-500 to-purple-600 flex items-center justify-center ring-2 ring-zinc-800">
@@ -257,7 +263,7 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
                     handleAddComment();
                   }
                 }}
-                placeholder={session ? "Escribe un comentario..." : "Inicia sesión para comentar"}
+                placeholder={session ? t('feed.writeComment') : t('feed.loginToComment')}
                 className="flex-1 min-h-[44px] max-h-[100px] bg-zinc-800/70 border-zinc-700/50 hover:border-cyan-500/30 focus:border-cyan-500/50 text-white placeholder:text-zinc-500 resize-none rounded-2xl px-4 py-3 transition-all duration-200"
                 disabled={!session}
               />

@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { uploadFile } from '@/lib/s3';
-import { HeadObjectCommand } from '@aws-sdk/client-s3';
-import { createS3Client, getBucketConfig } from '@/lib/aws-config';
+import { put } from '@vercel/blob';
 import { PostStatus, PostType, Role } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
+import { publishLinkToFacebookPage } from '@/lib/facebook';
 
 // GET - Fetch posts (all approved for public, or user's own posts)
 export async function GET(request: NextRequest) {
@@ -160,41 +159,18 @@ export async function POST(request: NextRequest) {
       }
     } else {
       const cloudPath = providedCloudPath.trim();
-      
-      // Check if it's a Vercel Blob URL (starts with https://...)
-      const isVercelBlobUrl = cloudPath.startsWith('https://') && 
-        (cloudPath.includes('.blob.vercel-storage.com') || cloudPath.includes('.public.blob.vercel-storage.com'));
-      
-      if (!isVercelBlobUrl && (cloudPath.startsWith('http') || cloudPath.startsWith('/'))) {
-        return NextResponse.json(
-          { error: 'Invalid cloud_storage_path', code: 'BAD_CLOUD_PATH' },
-          { status: 400 }
-        );
-      }
 
-      // Skip S3 verification for Vercel Blob URLs
-      if (!isVercelBlobUrl) {
-        // Verify the object exists in S3 (helps detect blocked browser PUTs / CORS issues).
-        try {
-          const { bucketName } = getBucketConfig();
-          const s3Client = createS3Client();
-          await s3Client.send(
-            new HeadObjectCommand({
-              Bucket: bucketName,
-              Key: cloudPath,
-            })
-          );
-        } catch (e) {
-          console.error('[POST /api/posts] Uploaded object not found/accessible:', e);
-          return NextResponse.json(
-            {
-              error:
-                'Upload not found in storage. The browser upload may have been blocked (commonly CORS).',
-              code: 'UPLOAD_NOT_FOUND',
-            },
-            { status: 400 }
-          );
-        }
+      const isHttpUrl = /^https?:\/\//i.test(cloudPath);
+      const isSameOriginPath = cloudPath.startsWith('/');
+
+      if (!isHttpUrl && !isSameOriginPath) {
+        return NextResponse.json(
+          {
+            error: 'Unsupported cloud_storage_path. Expected a Blob URL or a same-origin public path.',
+            code: 'UNSUPPORTED_CLOUD_PATH',
+          },
+          { status: 410 }
+        );
       }
     }
 
@@ -219,61 +195,23 @@ export async function POST(request: NextRequest) {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const typeFolder = postType.toLowerCase(); // barber_work or client_share
 
-    // If media is already uploaded (presigned flow), use providedCloudPath.
-    // Otherwise upload here (legacy flow).
+    // If media is already uploaded (Blob flow), use providedCloudPath.
+    // Otherwise upload here.
     let cloud_storage_path: string;
     if (hasProvidedCloudPath && !file) {
       cloud_storage_path = providedCloudPath.trim();
     } else {
-      // Save file to S3 (preferred). Local filesystem fallback is only supported outside serverless.
-      const uploadBuffer = Buffer.from(await file.arrayBuffer());
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const key = `posts/${year}/${month}/${typeFolder}/${Date.now()}-${sanitizedFileName}`;
+      console.log('[POST /api/posts] Uploading to Vercel Blob with key:', key);
 
-      try {
-        // Try to upload to S3 first with organized path
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const key = `posts/${year}/${month}/${typeFolder}/${Date.now()}-${sanitizedFileName}`;
-        console.log('[POST /api/posts] Attempting S3 upload with key:', key);
-        cloud_storage_path = await uploadFile(uploadBuffer, key, true, file.type || undefined);
-        console.log('[POST /api/posts] S3 upload successful, path:', cloud_storage_path);
-      } catch (s3Error) {
-        // If S3 fails, only allow local save in non-serverless environments (e.g. local dev).
-        const isServerless = process.env.VERCEL === '1' || process.env.AWS_LAMBDA_FUNCTION_NAME;
-        if (isServerless) {
-          console.error('[POST /api/posts] S3 upload failed in serverless environment:', s3Error);
-          return NextResponse.json(
-            { error: 'Error uploading media. Storage is not available right now.', code: 'S3_UPLOAD_FAILED' },
-            { status: 500 }
-          );
-        }
+      const blob = await put(key, file, {
+        access: 'public',
+        addRandomSuffix: false,
+      });
 
-        console.log('[POST /api/posts] S3 upload failed, saving locally (non-serverless):', s3Error);
-
-        const { writeFile, mkdir } = await import('fs/promises');
-        const path = await import('path');
-
-        // Create organized directory: public/uploads/posts/YYYY/MM/TYPE/
-        const uploadsDir = path.join(
-          process.cwd(),
-          'public',
-          'uploads',
-          'posts',
-          String(year),
-          month,
-          typeFolder
-        );
-        await mkdir(uploadsDir, { recursive: true });
-
-        // Generate unique filename
-        const timestamp = Date.now();
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const localFileName = `${timestamp}-${sanitizedFileName}`;
-        const filePath = path.join(uploadsDir, localFileName);
-
-        // Save file
-        await writeFile(filePath, uploadBuffer);
-        cloud_storage_path = `/uploads/posts/${year}/${month}/${typeFolder}/${localFileName}`;
-        console.log('[POST /api/posts] File saved locally:', cloud_storage_path);
-      }
+      cloud_storage_path = blob.url;
+      console.log('[POST /api/posts] Blob upload successful:', cloud_storage_path);
     }
 
     // Get barberId if user is a barber
@@ -330,6 +268,44 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('[POST /api/posts] Post created successfully:', post.id);
+
+    // Optional: auto-publish to the barber shop Facebook Page (best effort).
+    // This is controlled by env vars and will never block post creation.
+    try {
+      const origin = process.env.NEXT_PUBLIC_APP_URL || 'https://www.jbsbookme.com';
+      const publicLink = `${origin.replace(/\/$/, '')}/p/${post.id}`;
+      const messageParts = [post.caption || '', ...(post.hashtags || [])]
+        .map((s) => (typeof s === 'string' ? s.trim() : ''))
+        .filter(Boolean);
+      const message = messageParts.join('\n').slice(0, 1900);
+
+      console.log('[POST /api/posts] Facebook publish start:', {
+        postId: post.id,
+        publicLink,
+        messageLength: message.length,
+        hasOriginEnv: !!process.env.NEXT_PUBLIC_APP_URL,
+      });
+
+      const fbResult = await publishLinkToFacebookPage({
+        message: message || 'New post',
+        link: publicLink,
+      });
+
+      console.log('[POST /api/posts] Facebook publish finished:', {
+        postId: post.id,
+        ok: fbResult.ok,
+        id: fbResult.id,
+        error: fbResult.ok ? undefined : fbResult.error,
+      });
+
+      if (!fbResult.ok) {
+        console.log('[POST /api/posts] Facebook publish skipped/failed:', fbResult.error);
+      } else {
+        console.log('[POST /api/posts] Facebook publish ok:', fbResult.id);
+      }
+    } catch (error) {
+      console.log('[POST /api/posts] Facebook publish unexpected error:', error);
+    }
 
     return NextResponse.json({ post }, { status: 201 });
   } catch (error) {

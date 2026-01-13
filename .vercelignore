@@ -3,7 +3,10 @@
 .next/
 
 # Backups
-*.sql
+backup_jbookme_*.sql
+
+# Prisma migration backups (not needed for deploy)
+prisma/migrations_backup_*/
 
 # Node modules
 node_modules/

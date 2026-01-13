@@ -20,7 +20,9 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ShareFAB } from '@/components/share-fab';
+import PromotionsCarousel from '@/components/promotions-carousel';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { resolvePublicMediaUrl } from '@/lib/utils';
 import { useEffect, useState } from 'react';
 
 interface Post {
@@ -123,18 +125,7 @@ export default function InicioPage() {
   };
 
   const getMediaUrl = (cloud_storage_path: string) => {
-    if (/^https?:\/\//i.test(cloud_storage_path)) {
-      return cloud_storage_path;
-    }
-
-    if (cloud_storage_path.startsWith('/')) {
-      return cloud_storage_path;
-    }
-
-    const bucketName = process.env.NEXT_PUBLIC_AWS_BUCKET_NAME;
-    const region = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-    if (!bucketName) return cloud_storage_path;
-    return `https://${bucketName}.s3.${region}.amazonaws.com/${cloud_storage_path}`;
+    return resolvePublicMediaUrl(cloud_storage_path);
   };
 
   const fetchBarbers = async () => {
@@ -371,6 +362,8 @@ export default function InicioPage() {
               </Card>
             </motion.div>
           )}
+
+          <PromotionsCarousel />
 
           {/* Navigation Cards Section */}
           <motion.div

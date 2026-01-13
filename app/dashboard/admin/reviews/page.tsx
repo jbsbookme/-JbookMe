@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Star, Send, MessageSquare, User, ArrowLeft, Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { enUS } from 'date-fns/locale';
+import { enUS, es } from 'date-fns/locale';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
@@ -42,7 +42,8 @@ interface Review {
 export default function AdminReviewsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const dateLocale = language === 'es' ? es : enUS;
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [responseText, setResponseText] = useState<{ [key: string]: string }>({});
@@ -102,7 +103,7 @@ export default function AdminReviewsPage() {
     const response = responseText[reviewId]?.trim();
     
     if (!response) {
-      toast.error('Please write a response');
+      toast.error(t('admin.reviewsPage.writeResponse'));
       return;
     }
 
@@ -114,47 +115,47 @@ export default function AdminReviewsPage() {
       });
 
       if (res.ok) {
-        toast.success('✓ Response sent');
+        toast.success(t('admin.reviewsPage.responseSent'));
         setResponseText(prev => ({ ...prev, [reviewId]: '' }));
         setIsEditingResponse(prev => ({ ...prev, [reviewId]: false }));
         fetchReviews();
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Error sending response');
+        toast.error(data.error || t('admin.reviewsPage.responseSendError'));
       }
     } catch (error) {
       console.error('Error responding to review:', error);
-      toast.error('Error sending response');
+      toast.error(t('admin.reviewsPage.responseSendError'));
     }
   };
 
   const handleDeleteResponse = async (reviewId: string) => {
-    if (!window.confirm('Delete this response?')) return;
+    if (!window.confirm(t('admin.reviewsPage.confirmDeleteResponse'))) return;
 
     try {
       const res = await fetch(`/api/reviews/${reviewId}`, { method: 'DELETE' });
       if (res.ok) {
-        toast.success('✓ Response deleted');
+        toast.success(t('admin.reviewsPage.responseDeleted'));
         setResponseText(prev => ({ ...prev, [reviewId]: '' }));
         setIsEditingResponse(prev => ({ ...prev, [reviewId]: false }));
         fetchReviews();
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Error deleting response');
+        toast.error(data.error || t('admin.reviewsPage.responseDeleteError'));
       }
     } catch (error) {
       console.error('Error deleting response:', error);
-      toast.error('Error deleting response');
+      toast.error(t('admin.reviewsPage.responseDeleteError'));
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
     const confirmed = window.confirm(
-      'Permanently delete this review? This cannot be undone.'
+      t('admin.reviewsPage.confirmDeleteReview')
     );
     if (!confirmed) return;
 
-    const reason = window.prompt('Internal reason for deletion (only admins can see):') || '';
+    const reason = window.prompt(t('admin.reviewsPage.promptDeletionReason')) || '';
 
     try {
       const res = await fetch(`/api/reviews/${reviewId}/hard-delete`, {
@@ -164,15 +165,15 @@ export default function AdminReviewsPage() {
       });
 
       if (res.ok) {
-        toast.success('✓ Review deleted');
+        toast.success(t('admin.reviewsPage.reviewDeleted'));
         fetchReviews();
       } else {
         const data = await res.json();
-        toast.error(data.error || 'Error deleting review');
+        toast.error(data.error || t('admin.reviewsPage.reviewDeleteError'));
       }
     } catch (error) {
       console.error('Error deleting review:', error);
-      toast.error('Error deleting review');
+      toast.error(t('admin.reviewsPage.reviewDeleteError'));
     }
   };
 
@@ -196,7 +197,7 @@ export default function AdminReviewsPage() {
   if (loading || status === 'loading') {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-cyan-500">Loading reviews...</div>
+        <div className="text-cyan-500">{t('admin.reviewsPage.loadingReviews')}</div>
       </div>
     );
   }
@@ -212,7 +213,7 @@ export default function AdminReviewsPage() {
             variant="outline"
             size="icon"
             className="border-gray-700 text-gray-300 hover:bg-gray-800 active:bg-gray-800 active:text-gray-300"
-            aria-label="Back to Panel"
+            aria-label={t('admin.reviewsPage.backToPanelAria')}
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
@@ -221,10 +222,11 @@ export default function AdminReviewsPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
-            Reviews <span className="text-[#ffd700]">Management</span>
+            {t('admin.reviewsPage.titleReviews')}{' '}
+            <span className="text-[#ffd700]">{t('admin.reviewsPage.titleManagement')}</span>
           </h1>
           <p className="text-gray-400">
-            Review and respond to customer reviews
+            {t('admin.reviewsPage.subtitle')}
           </p>
 
           <div className="mt-4">
@@ -233,7 +235,7 @@ export default function AdminReviewsPage() {
               variant="outline"
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
-              View deletion history
+              {t('admin.reviewsPage.viewDeletionHistory')}
             </Button>
           </div>
         </div>
@@ -304,7 +306,11 @@ export default function AdminReviewsPage() {
                   {/* Header */}
                   <div className="flex items-start gap-3 mb-3">
                     {/* Client Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 ${
+                        review.client.image ? 'bg-transparent' : 'bg-gradient-to-br from-cyan-500 to-purple-500'
+                      }`}
+                    >
                       {review.client.image ? (
                         <Image
                           src={review.client.image}
@@ -330,7 +336,7 @@ export default function AdminReviewsPage() {
                         <div className="flex items-center gap-2">
                           {renderStars(review.rating)}
                           <span className="text-xs text-gray-500 ml-1">
-                            {format(new Date(review.createdAt), 'MMM d, yyyy', { locale: enUS })}
+                            {format(new Date(review.createdAt), 'MMM d, yyyy', { locale: dateLocale })}
                           </span>
                           <Button
                             variant="outline"
@@ -364,8 +370,8 @@ export default function AdminReviewsPage() {
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500">
                             {review.adminRespondedAt
-                              ? format(new Date(review.adminRespondedAt), 'MMM d, yyyy', { locale: enUS })
-                              : format(new Date(review.createdAt), 'MMM d, yyyy', { locale: enUS })}
+                              ? format(new Date(review.adminRespondedAt), 'MMM d, yyyy', { locale: dateLocale })
+                              : format(new Date(review.createdAt), 'MMM d, yyyy', { locale: dateLocale })}
                           </span>
                           {!isEditingResponse[review.id] && (
                             <div className="flex items-center gap-2">

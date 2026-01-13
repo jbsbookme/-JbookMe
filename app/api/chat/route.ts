@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { formatTime12h } from '@/lib/time'
 
 type ChatMessage = {
   role?: string
@@ -68,9 +69,9 @@ function extractAppointmentInfo(messages: ChatMessage[]) {
   // Extract time
   let time = null
   const timePatterns = [
-    /\b(\d{1,2})\s*(?::|\.)\s*(\d{2})\s*(am|pm|a\.?m\.?|p\.?m\.?)?\b/i,
-    /\b(\d{1,2})\s*(am|pm|a\.?m\.?|p\.?m\.?)\b/i,
-    /\b(morning|afternoon|evening)\s+(early|mid|late)\b/i
+      /\b(\d{1,2})\s*(?::|\.)\s*(\d{2})\s*(am|pm|a\.?m\.?|p\.?m\.?)?\b/i,
+      /\b(\d{1,2})\s*(am|pm|a\.?m\.?|p\.?m\.?)\b/i,
+      /\b(morning|afternoon|evening)\s+(early|mid|late)\b/i
   ]
   for (const pattern of timePatterns) {
     const match = conversationText.match(pattern)
@@ -194,11 +195,12 @@ export async function POST(request: NextRequest) {
       
       // All info collected - confirm
       if (info.service && info.date && info.time) {
+        const timeDisplay = formatTime12h(info.time)
         const message = `Awesome! Let me confirm your appointment:
 
       📅 Service: ${info.service}
       ${info.barber ? `👨‍🦲 With: ${info.barber}\n` : ''}📆 Date: ${info.date}
-      🕒 Time: ${info.time}
+        🕒 Time: ${timeDisplay}
 
       To confirm this appointment, go to the main menu and tap "Book Now" where you can select these details and receive your confirmation. Would you like help with anything else?`
         if (!wantsStream(request)) {

@@ -39,6 +39,7 @@ export async function GET() {
             specialties: true,
             bio: true,
             profileImage: true,
+            isActive: true,
           },
         },
         _count: {

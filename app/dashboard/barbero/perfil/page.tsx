@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   User,
+  Camera,
   Instagram,
   Facebook,
   Twitter,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import Image from 'next/image';
 
 interface BarberProfile {
   bio?: string;
@@ -36,13 +38,15 @@ interface BarberProfile {
 }
 
 export default function BarberProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profile, setProfile] = useState<BarberProfile>({});
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -67,6 +71,7 @@ export default function BarberProfilePage() {
       const data = await res.json();
       
       if (res.ok) {
+        setProfilePhotoUrl(data.profileImage || data.user?.image || null);
         setProfile({
           bio: data.bio || '',
           specialties: data.specialties || '',
@@ -88,6 +93,58 @@ export default function BarberProfilePage() {
       toast.error('Error loading profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const withCacheBuster = (url: string) => {
+    try {
+      const u = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+      u.searchParams.set('t', String(Date.now()));
+      return u.toString();
+    } catch {
+      const sep = url.includes('?') ? '&' : '?';
+      return `${url}${sep}t=${Date.now()}`;
+    }
+  };
+
+  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Allow selecting the same file again.
+    e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const res = await fetch('/api/barber/profile/image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to upload image');
+      }
+
+      if (data?.imageUrl) {
+        setProfilePhotoUrl(withCacheBuster(data.imageUrl));
+        // Keep session-based avatars in sync across the app.
+        await updateSession({ image: data.imageUrl } as Record<string, unknown>);
+      }
+
+      toast.success('Profile photo updated');
+    } catch (error) {
+      console.error('Error uploading profile photo:', error);
+      toast.error(error instanceof Error ? error.message : 'Error uploading profile photo');
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -166,6 +223,72 @@ export default function BarberProfilePage() {
         </motion.div>
 
         <div className="space-y-6">
+          {/* Profile Photo */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <Card className="bg-gray-900/50 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-white flex flex-wrap items-center gap-2 min-w-0">
+                  <Camera className="w-5 h-5 text-[#00f0ff]" />
+                  Profile Photo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="relative h-24 w-24 rounded-full overflow-hidden border border-gray-700 bg-transparent flex-shrink-0">
+                  {profilePhotoUrl ? (
+                    <Image
+                      src={profilePhotoUrl}
+                      alt="Profile photo"
+                      fill
+                      sizes="96px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-gray-400">
+                      <User className="w-10 h-10" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="w-full">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="barber-profile-photo"
+                    className="hidden"
+                    onChange={handleProfilePhotoUpload}
+                    disabled={uploadingPhoto}
+                  />
+                  <label htmlFor="barber-profile-photo" className="w-full sm:w-auto inline-block">
+                    <Button
+                      type="button"
+                      className="w-full sm:w-auto bg-cyan-500 hover:bg-cyan-400 text-black"
+                      disabled={uploadingPhoto}
+                    >
+                      {uploadingPhoto ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-4 h-4 mr-2" />
+                          Change Photo
+                        </>
+                      )}
+                    </Button>
+                  </label>
+                  <p className="mt-2 text-xs text-gray-500">
+                    JPG/PNG up to 10MB
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* Basic Information */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}

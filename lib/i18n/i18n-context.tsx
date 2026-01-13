@@ -11,31 +11,54 @@ type I18nContextType = {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
-// Get initial language from localStorage or default to English
-function getInitialLanguage(): Language {
-  // User requested English-only UI
-  return 'en';
+const LANGUAGE_STORAGE_KEY = 'bookme-language';
+
+function readSavedLanguage(): Language | null {
+  if (typeof window === 'undefined') return null;
+  const raw = (localStorage.getItem(LANGUAGE_STORAGE_KEY) || '').trim();
+  return raw === 'es' || raw === 'en' ? raw : null;
+}
+
+function persistLanguage(lang: Language) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+  } catch {
+    // ignore
+  }
+
+  // Optional: cookie for simple persistence across tabs.
+  // Not used server-side in this app, but harmless and sometimes handy.
+  try {
+    const maxAgeSeconds = 60 * 60 * 24 * 365;
+    document.cookie = `${LANGUAGE_STORAGE_KEY}=${encodeURIComponent(lang)}; path=/; max-age=${maxAgeSeconds}`;
+  } catch {
+    // ignore
+  }
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Default to English - will be updated in useEffect if saved preference exists
+  // Default to English; we only switch if the user explicitly chose Spanish before.
   const [language, setLanguageState] = useState<Language>('en');
   const [mounted, setMounted] = useState(false);
 
   // Load saved language from localStorage on mount
   useEffect(() => {
-    const saved = getInitialLanguage();
-    setLanguageState(saved);
+    const saved = readSavedLanguage();
+    if (saved) setLanguageState(saved);
     setMounted(true);
   }, []);
 
-  // Save language to localStorage when it changes
-  const setLanguage = (_lang: Language) => {
-    // User requested English-only UI
-    setLanguageState('en');
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('bookme-language', 'en');
+  // Keep <html lang="..."> in sync for accessibility.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
     }
+  }, [language]);
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    persistLanguage(lang);
   };
 
   // Translation function with fallback support
@@ -74,7 +97,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   if (!mounted) {
     return (
       <I18nContext.Provider value={{ language: 'en', setLanguage, t }}>
-        {children}
+        <div style={{ visibility: 'hidden' }}>{children}</div>
       </I18nContext.Provider>
     );
   }
