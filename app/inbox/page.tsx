@@ -939,60 +939,33 @@ export default function InboxPage() {
                 </div>
 
                 <div className="border-t border-zinc-800 p-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+
                   <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                      <Textarea
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={handleDraftKeyDown}
-                        placeholder="Type a message…"
-                        rows={1}
-                        className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 caret-white min-h-[44px]"
-                      />
-                      <div className="mt-2">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*,video/*"
-                          onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-                          className="hidden"
-                        />
+                    <Textarea
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={handleDraftKeyDown}
+                      placeholder="Type a message…"
+                      rows={1}
+                      className="flex-1 bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 caret-white min-h-[44px]"
+                    />
 
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800"
-                            aria-label="Adjuntar archivo / Attach file"
-                          >
-                            <Paperclip className="h-4 w-4" />
-                          </Button>
-
-                          {attachment ? (
-                            <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-xs text-zinc-300 truncate">
-                                {attachment.name}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => setAttachment(null)}
-                                className="text-zinc-400 hover:text-zinc-200"
-                                aria-label="Quitar archivo / Remove file"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-zinc-500">
-                              Adjuntar foto o video
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <p className="mt-2 text-xs text-zinc-500">Enter to send • Shift+Enter for new line</p>
-                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 h-11 px-3"
+                      aria-label="Adjuntar archivo / Attach file"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                    </Button>
 
                     <Button
                       onClick={() => handleSendTo(activeThreadUserId)}
@@ -1003,6 +976,28 @@ export default function InboxPage() {
                       <Send className="h-4 w-4" />
                     </Button>
                   </div>
+
+                  <div className="mt-2">
+                    {attachment ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-xs text-zinc-300 truncate">
+                          {attachment.name}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setAttachment(null)}
+                          className="text-zinc-400 hover:text-zinc-200"
+                          aria-label="Quitar archivo / Remove file"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-zinc-500">Adjuntar foto o video</span>
+                    )}
+                  </div>
+
+                  <p className="mt-2 text-xs text-zinc-500">Enter to send • Shift+Enter for new line</p>
                 </div>
               </>
             )}
