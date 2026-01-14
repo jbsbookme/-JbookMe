@@ -1139,7 +1139,7 @@ export default function FeedPage() {
                       <Calendar className="w-5 h-5 text-[#00f0ff]" />
                     </div>
                     <p className="text-white font-extrabold text-xl tracking-wide">
-                      {language === 'es' ? 'RESERVAR' : 'BOOK'}
+                      {t('nav.book').toUpperCase()}
                     </p>
                   </div>
                 </CardContent>

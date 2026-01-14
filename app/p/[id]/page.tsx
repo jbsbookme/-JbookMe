@@ -38,27 +38,26 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     return {
       metadataBase: base,
       title: "JB's Barbershop",
-      description: 'Descubre trabajos y estilos en JBookMe.',
+      description: 'Discover styles and work on JBookMe.',
       openGraph: {
         type: 'website',
         title: "JB's Barbershop",
-        description: 'Descubre trabajos y estilos en JBookMe.',
+        description: 'Discover styles and work on JBookMe.',
         url: new URL('/p/' + id, base).toString(),
         images: ['/og-image.png'],
       },
       twitter: {
         card: 'summary_large_image',
         title: "JB's Barbershop",
-        description: 'Descubre trabajos y estilos en JBookMe.',
+        description: 'Discover styles and work on JBookMe.',
         images: ['/og-image.png'],
       },
     };
   }
 
   const authorName = post.barber?.user?.name || post.author?.name || "JB's Barbershop";
-  const title = `Trabajo de ${authorName}`;
-  const description = post.caption?.trim() ? post.caption.slice(0, 160) : 'Mira este trabajo en JBookMe.';
-
+  const title = `Post by ${authorName}`;
+  const description = post.caption?.trim() ? post.caption.slice(0, 160) : 'See this post on JBookMe.';
   const isVideo = isVideoPath(post.cloud_storage_path);
   const mediaPath = `/api/posts/${post.id}/media`;
 
@@ -114,10 +113,10 @@ export default async function PublicPostPage({ params }: Params) {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-6">
           <Link href="/" className="text-sm text-gray-300 hover:text-white">
-            ← Volver
+             Back
           </Link>
           <Link href="/feed" className="text-sm text-cyan-300 hover:text-cyan-200">
-            Abrir JBookMe
+            Open JBookMe
           </Link>
         </div>
 
@@ -135,7 +134,7 @@ export default async function PublicPostPage({ params }: Params) {
                 // Use plain img to avoid remote image config issues.
                 <img
                   src={mediaUrl}
-                  alt={post.caption || `Trabajo de ${authorName}`}
+                  alt={post.caption || `Post by ${authorName}`}
                   className="w-full max-h-[70vh] object-contain"
                 />
               )}
@@ -151,15 +150,15 @@ export default async function PublicPostPage({ params }: Params) {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button asChild className="w-full sm:w-auto">
-                  <Link href={`/reservar`}>Reservar cita</Link>
+                  <Link href={`/reservar`}>Book appointment</Link>
                 </Button>
                 <Button asChild variant="secondary" className="w-full sm:w-auto">
-                  <Link href={`/feed?post=${post.id}`}>Ver en el feed</Link>
+                  <Link href={`/feed?post=${post.id}`}>View in feed</Link>
                 </Button>
               </div>
 
               <div className="text-xs text-gray-500">
-                Comparte este link para mostrar el trabajo sin login.
+                Share this link to view without logging in.
               </div>
             </div>
           </CardContent>
