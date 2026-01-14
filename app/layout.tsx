@@ -11,6 +11,7 @@ import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { GlobalHeader } from '@/components/layout/global-header';
 import { PauseVideosOnHide } from '@/components/pause-videos-on-hide';
+import { RegisterServiceWorker } from '@/components/register-service-worker';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -99,6 +100,7 @@ export default function RootLayout({
               <UserProvider>
                 <I18nProvider>
                   <GlobalHeader />
+                  <RegisterServiceWorker />
                   <PauseVideosOnHide />
                   {children}
                   <Footer />
