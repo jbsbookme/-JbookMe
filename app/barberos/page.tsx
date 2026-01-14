@@ -228,7 +228,7 @@ export default function BarberosPage() {
               <h1 className="text-5xl md:text-7xl font-bold mb-4 sm:mb-6 text-white">{t('barbers.ourTeam')}</h1>
               
               <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                Meet our barbers and stylists. Premium quality, experience, and great service.
+                {t('barbers.ourTeamSubtitle')}
               </p>
             </motion.div>
           </div>

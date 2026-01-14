@@ -327,7 +327,7 @@ export const translations = {
     barbers: {
       title: 'Nuestro Equipo',
       ourTeam: 'Equipo',
-      ourTeamSubtitle: 'Conoce a nuestros profesionales',
+      ourTeamSubtitle: 'Barberos y estilistas',
       allBarbers: 'Todos los Barberos',
       rating: 'Calificación',
       reviews: 'Reseñas',
@@ -2145,7 +2145,7 @@ export const translations = {
     barbers: {
       title: 'Meet Our Team',
       ourTeam: 'Team',
-      ourTeamSubtitle: 'Meet our professionals',
+      ourTeamSubtitle: 'Barbers & stylists',
       subtitle: 'Expert barbers and stylists',
       bookWith: 'Book with',
       viewProfile: 'View Profile',
