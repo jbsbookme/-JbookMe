@@ -294,6 +294,49 @@ export default function FeedPage() {
       intersectionObserver.observe(el);
     };
 
+    const ensureSrc = (video: HTMLVideoElement) => {
+      try {
+        const hasSrc = !!video.getAttribute('src');
+        const dataSrc = (video as any).dataset?.src as string | undefined;
+        if (!hasSrc && dataSrc) {
+          video.setAttribute('src', dataSrc);
+          try {
+            video.preload = 'metadata';
+          } catch {
+            // ignore
+          }
+          try {
+            video.load();
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const unloadSrc = (video: HTMLVideoElement) => {
+      try {
+        if (video.getAttribute('src')) {
+          try {
+            if (!video.paused) video.pause();
+          } catch {
+            // ignore
+          }
+          video.removeAttribute('src');
+          try {
+            // Hint browser to release resource.
+            video.load();
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore
+      }
+    };
+
     const intersectionObserver = new IntersectionObserver(
       (entries) => {
         // While zoom modal is open, never auto-start background videos.
@@ -325,6 +368,19 @@ export default function FeedPage() {
           }
         }
 
+        // Load/unload sources to avoid many videos buffering/decoding at once (prevents freezes).
+        for (const v of videos) {
+          const ratio = ratios.get(v) ?? 0;
+          const shouldLoadNow = v === bestVideo || ratio >= 0.2;
+          const shouldUnloadNow = ratio <= 0.01;
+
+          if (shouldLoadNow) {
+            ensureSrc(v);
+          } else if (shouldUnloadNow) {
+            unloadSrc(v);
+          }
+        }
+
         // Pause everything that isn't the primary visible video.
         for (const v of videos) {
           const ratio = ratios.get(v) ?? 0;
@@ -340,31 +396,33 @@ export default function FeedPage() {
 
         if (!bestVideo) return;
 
+        const primaryVideo = bestVideo;
         const wantAudio = feedAudioEnabledRef.current;
 
         // Start playback muted first (max compatibility), then unmute if user enabled audio.
-        const ensurePlaying = async () => {
-          if (bestVideo && bestVideo.paused) {
+        const ensurePlaying = async (video: HTMLVideoElement) => {
+          ensureSrc(video);
+          if (video.paused) {
             try {
-              bestVideo.muted = true;
-              bestVideo.loop = true;
-              await bestVideo.play();
+              video.muted = true;
+              video.loop = true;
+              await video.play();
             } catch {
               // ignore
             }
           }
 
-          if (bestVideo && wantAudio) {
+          if (wantAudio) {
             try {
-              bestVideo.muted = false;
-              bestVideo.volume = 1;
+              video.muted = false;
+              video.volume = 1;
             } catch {
               // ignore
             }
           }
         };
 
-        void ensurePlaying();
+        void ensurePlaying(primaryVideo);
       },
       {
         threshold: [0, 0.1, 0.25, 0.5, 0.75, 1],
@@ -1294,9 +1352,9 @@ export default function FeedPage() {
                         {isVideo(post.cloud_storage_path) ? (
                           <div className="relative w-full h-full">
                             <video
-                              src={`/api/posts/${post.id}/media`}
+                              data-src={`/api/posts/${post.id}/media`}
                               data-feed-video="true"
-                              autoPlay
+                              autoPlay={false}
                               loop
                               muted
                               playsInline
