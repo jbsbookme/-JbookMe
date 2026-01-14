@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
-  title: 'Barbería en Lynn MA | JBS Barbershop',
+  title: 'Barbershop in Lynn, MA | JBS Barbershop',
   description:
-    '¿Buscas barbería en Lynn, MA? En JBS Barbershop hacemos cortes modernos, fades limpios y beard trims con atención profesional. Reserva tu cita en minutos.',
+    'Looking for a barbershop in Lynn, MA? At JBS Barbershop we do modern haircuts, clean fades, and sharp beard trims with professional service. Book your appointment in minutes.',
 };
 
 export default function BarberiaLynnMaPage() {
@@ -14,37 +14,35 @@ export default function BarberiaLynnMaPage() {
       <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:py-14">
         <header className="space-y-4">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Barbería en Lynn MA – JBS Barbershop
+            Barbershop in Lynn, MA – JBS Barbershop
           </h1>
           <p className="text-gray-300">
-            En Lynn, MA, la gente viene a JBS Barbershop por algo simple: resultados
-            consistentes y un servicio profesional. Si quieres un corte bien hecho,
-            un fade limpio o un beard trim que realmente marque la línea, aquí lo
-            hacemos con detalle y sin apuros.
+            In Lynn, MA, people come to JBS Barbershop for something simple: consistent
+            results and professional service. If you want a clean haircut, a sharp fade,
+            or a beard trim with a crisp lineup, we do it with detail and without rushing.
           </p>
         </header>
 
         <section className="mt-8 space-y-4">
-          <h2 className="text-xl font-semibold">Cortes, fades y beard trims</h2>
+          <h2 className="text-xl font-semibold">Haircuts, fades & beard trims</h2>
           <p className="text-gray-300">
-            Trabajamos cortes clásicos y modernos, taper fades, skin fades y blends
-            definidos para que el resultado se vea bien desde todos los ángulos.
-            También hacemos beard trims con forma, limpieza de contorno y acabado
-            prolijo para que tu barba se vea cuidada sin perder tu estilo.
+            We do classic and modern cuts, taper fades, skin fades, and clean blends so
+            the finish looks great from every angle. We also shape beard trims, clean up
+            the outline, and refine the finish so your beard looks sharp without losing
+            your style.
           </p>
           <p className="text-gray-300">
-            Si vienes por primera vez, te ayudamos a escoger el estilo según tu
-            tipo de cabello, la forma de tu cara y lo que usas en tu día a día.
-            Si ya eres cliente, mantenemos la consistencia: mismo look, mismo
-            nivel de detalle.
+            If it's your first visit, we help you choose a style based on your hair type,
+            face shape, and day-to-day routine. If you're already a client, we keep it
+            consistent: same look, same level of detail.
           </p>
         </section>
 
         <section className="mt-8 space-y-4">
-          <h2 className="text-xl font-semibold">Reserva tu cita en Lynn, MA</h2>
+          <h2 className="text-xl font-semibold">Book your appointment in Lynn, MA</h2>
           <p className="text-gray-300">
-            Puedes reservar tu cita desde el teléfono en pocos pasos. Elige el
-            servicio, el profesional y el horario que te convenga.
+            You can book from your phone in just a few steps. Choose the service,
+            the professional, and the time that works best for you.
           </p>
 
           <Button asChild size="lg" className="w-full sm:w-auto">
@@ -53,12 +51,12 @@ export default function BarberiaLynnMaPage() {
         </section>
 
         <section className="mt-10 border-t border-gray-800 pt-8 space-y-3">
-          <h2 className="text-xl font-semibold">¿Por qué JBS Barbershop?</h2>
+          <h2 className="text-xl font-semibold">Why JBS Barbershop?</h2>
           <ul className="list-disc pl-5 text-gray-300 space-y-2">
-            <li>Fades con transiciones limpias y simétricas.</li>
-            <li>Beard trims con contorno definido y acabado profesional.</li>
-            <li>Atención seria: escuchamos lo que quieres y lo ejecutamos.</li>
-            <li>Reserva rápida y cómoda desde la app.</li>
+            <li>Clean, symmetrical fades with smooth transitions.</li>
+            <li>Beard trims with crisp outline and professional finish.</li>
+            <li>We listen to what you want and execute it.</li>
+            <li>Fast, convenient booking from the app.</li>
           </ul>
         </section>
       </div>
