@@ -11,6 +11,7 @@ import {
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { useI18n } from '@/lib/i18n/i18n-context';
 
 interface Notification {
   id: string;
@@ -25,6 +26,7 @@ interface Notification {
 
 export function NotificationsBell() {
   const { data: session } = useSession() || {};
+  const { t } = useI18n();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -134,8 +136,8 @@ export function NotificationsBell() {
         Notification.permission === 'granted' &&
         document.visibilityState !== 'visible'
       ) {
-        new Notification('Nuevo mensaje', {
-          body: 'Tienes un mensaje nuevo',
+        new Notification(t('inbox.systemNotificationTitle'), {
+          body: t('inbox.systemNotificationBodySingle'),
           icon: '/icon-192.png',
         });
       }
@@ -152,8 +154,8 @@ export function NotificationsBell() {
         Notification.permission === 'granted' &&
         document.visibilityState !== 'visible'
       ) {
-        new Notification('Listo para compartir', {
-          body: 'Hay un post nuevo listo para compartir.',
+        new Notification(t('notifications.systemPostReadyTitle'), {
+          body: t('notifications.systemPostReadyBody'),
           icon: '/icon-192.png',
         });
       }
@@ -233,7 +235,7 @@ export function NotificationsBell() {
   const shareNotificationToWhatsApp = (notification: Notification) => {
     const postUrl = getPublicPostUrlFromNotification(notification);
     if (!postUrl) return;
-    const text = `Mira este post / Check this post: ${postUrl}`;
+    const text = t('notifications.sharePostText', { url: postUrl });
     const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
