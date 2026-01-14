@@ -40,7 +40,7 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
-      {/* Video de fondo */}
+      {/* Background video */}
       <div className="absolute inset-0 w-full h-full">
         <video
           autoPlay
@@ -54,11 +54,11 @@ export default function HomePage() {
           <source src="/intro-video.mp4" type="video/mp4" />
         </video>
         
-        {/* Overlay oscuro para mejor legibilidad */}
+        {/* Dark overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80"></div>
       </div>
 
-      {/* Contenido sobre el video */}
+      {/* Content over video */}
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -66,7 +66,7 @@ export default function HomePage() {
           transition={{ duration: 1, delay: 0.5 }}
           className="max-w-4xl mx-auto"
         >
-          {/* Título principal */}
+          {/* Main title */}
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -78,7 +78,7 @@ export default function HomePage() {
             </span>
           </motion.h1>
 
-          {/* Botones de acción */}
+          {/* Call-to-action buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

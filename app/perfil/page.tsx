@@ -293,13 +293,13 @@ export default function PerfilPage() {
       size: file.size
     });
 
-    // Validar tipo de archivo
+    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast.error(t('messages.error.selectImage'));
       return;
     }
 
-    // Validar tamaño (5MB)
+    // Validate size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error(t('messages.error.imageSize5MB'));
       return;
@@ -308,7 +308,7 @@ export default function PerfilPage() {
     setUploading(true);
 
     try {
-      // Subir imagen
+      // Upload image
       const formData = new FormData();
       formData.append('image', file);
 

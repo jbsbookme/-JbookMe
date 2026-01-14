@@ -47,7 +47,7 @@ export default function GaleriaPage() {
   const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
 
   useEffect(() => {
-    // Proteger la ruta - requiere autenticación
+    // Protect this route - requires authentication
     if (status === 'unauthenticated') {
       router.push('/auth');
       return;
@@ -89,7 +89,7 @@ export default function GaleriaPage() {
         const data = await response.json();
         setImages(data);
         
-        // Extraer todos los tags únicos
+        // Extract all unique tags
         const tags = new Set<string>();
         data.forEach((img: GalleryImage) => {
           img.tags?.forEach(tag => tags.add(tag));
@@ -109,7 +109,7 @@ export default function GaleriaPage() {
   const fetchLikedImages = useCallback(async (galleryImages: GalleryImage[]) => {
     try {
       const liked = new Set<string>();
-      // Verificar likes para cada imagen
+      // Check likes for each image
       for (const img of galleryImages) {
         const response = await fetch(`/api/gallery/${img.id}/like`);
         if (response.ok) {
@@ -128,14 +128,14 @@ export default function GaleriaPage() {
   const filterImages = useCallback(() => {
     let filtered = [...images];
 
-    // Filtrar por género
+    // Filter by gender
     if (selectedGender !== 'ALL') {
       filtered = filtered.filter(img => 
         img.gender === selectedGender || img.gender === 'UNISEX'
       );
     }
 
-    // Filtrar por tag
+    // Filter by tag
     if (selectedTag) {
       filtered = filtered.filter(img => 
         img.tags?.includes(selectedTag)
@@ -199,8 +199,8 @@ export default function GaleriaPage() {
     }
   };
 
-  // Mostrar pantalla de carga mientras verifica autenticación o carga imágenes
-  // Nota: la pantalla "Get Inspired" (selección) no requiere cargar imágenes.
+  // Show loading screen while checking authentication or loading images
+  // Note: the "Get Inspired" selection screen doesn't require loading images.
   if (status === 'loading' || (loading && !showGenderSelection)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-black">
@@ -209,7 +209,7 @@ export default function GaleriaPage() {
     );
   }
 
-  // Si no está autenticado, no renderizar nada (ya redirige en useEffect)
+  // If unauthenticated, render nothing (useEffect already redirects)
   if (status === 'unauthenticated') {
     return null;
   }
@@ -317,8 +317,8 @@ export default function GaleriaPage() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      {/* Navbar con logo JBookMe */}
-      {/* Título y Filtros */}
+      {/* Navbar with JBookMe logo */}
+      {/* Title and filters */}
       <div className="bg-black/95 backdrop-blur-sm border-b border-gray-800">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between mb-4">
@@ -338,7 +338,7 @@ export default function GaleriaPage() {
             <div className="w-10" />
           </div>
 
-          {/* Filtros de género */}
+          {/* Gender filters */}
           <div className="flex gap-2 mb-3">
             <Button
               onClick={() => {
@@ -485,7 +485,7 @@ export default function GaleriaPage() {
                   </div>
                 </div>
 
-                {/* Like button sempre visível em mobile */}
+                {/* Like button always visible on mobile */}
                 <div className="absolute bottom-2 right-2 md:hidden">
                   <button
                     onClick={(e) => {
@@ -508,7 +508,7 @@ export default function GaleriaPage() {
           </div>
         )}
 
-        {/* Contador */}
+        {/* Counter */}
         <div className="text-center mt-6 text-gray-500 text-sm">
           {t('gallery.showing')} {filteredImages.length} {t('gallery.of')} {images.length} {t('gallery.photos')}
         </div>
