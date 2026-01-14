@@ -327,7 +327,9 @@ export const translations = {
     barbers: {
       title: 'Nuestro Equipo',
       ourTeam: 'Equipo',
-      ourTeamSubtitle: 'Barberos y estilistas',
+      heroPill: 'Nuestros Profesionales',
+      theTeam: 'El Equipo',
+      ourTeamSubtitle: 'Barberos y estilistas expertos, de confianza',
       allBarbers: 'Todos los Barberos',
       rating: 'Calificación',
       reviews: 'Reseñas',
@@ -2145,7 +2147,9 @@ export const translations = {
     barbers: {
       title: 'Meet Our Team',
       ourTeam: 'Team',
-      ourTeamSubtitle: 'Barbers & stylists',
+      heroPill: 'Our Professionals',
+      theTeam: 'The Team',
+      ourTeamSubtitle: 'Expert barbers & stylists you can trust',
       subtitle: 'Expert barbers and stylists',
       bookWith: 'Book with',
       viewProfile: 'View Profile',

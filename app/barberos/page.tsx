@@ -195,10 +195,10 @@ export default function BarberosPage() {
         <motion.section 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative pt-6 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
+          className="relative pt-4 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
         >
           <div className="max-w-7xl mx-auto">
-            <div className="mb-3 sm:mb-6 flex justify-start">
+            <div className="mb-2 sm:mb-6 flex justify-start">
               <HistoryBackButton
                 fallbackHref="/menu"
                 variant="ghost"
@@ -222,10 +222,10 @@ export default function BarberosPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/30 border border-gray-800 mb-6"
               >
                 <Sparkles className="w-4 h-4 text-[#00f0ff]" />
-                <span className="text-sm font-semibold text-[#00f0ff]">Professional Team</span>
+                <span className="text-sm font-semibold text-[#00f0ff]">{t('barbers.heroPill')}</span>
               </motion.div>
               
-              <h1 className="text-5xl md:text-7xl font-bold mb-4 sm:mb-6 text-white">{t('barbers.ourTeam')}</h1>
+              <h1 className="text-5xl md:text-7xl font-bold mb-4 sm:mb-6 text-white">{t('barbers.theTeam')}</h1>
               
               <p className="text-xl text-gray-400 max-w-2xl mx-auto">
                 {t('barbers.ourTeamSubtitle')}
