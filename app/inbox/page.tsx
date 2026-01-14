@@ -8,11 +8,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
-import { MessageSquare, Send, Trash2, ArrowLeft, ListChecks } from 'lucide-react';
+import { MessageSquare, Send, Trash2, ArrowLeft, ListChecks, Paperclip } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -76,6 +75,7 @@ export default function InboxPage() {
   const [activeThreadUserId, setActiveThreadUserId] = useState<string>('');
   const [draft, setDraft] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedMessageId, setSelectedMessageId] = useState<string>('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
@@ -950,11 +950,46 @@ export default function InboxPage() {
                         className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-500 caret-white min-h-[44px]"
                       />
                       <div className="mt-2">
-                        <Input
+                        <input
+                          ref={fileInputRef}
                           type="file"
+                          accept="image/*,video/*"
                           onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-                          className="bg-zinc-900 border-zinc-800 text-white file:text-zinc-200 file:bg-white/10 file:border-0"
+                          className="hidden"
                         />
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800"
+                            aria-label="Adjuntar archivo / Attach file"
+                          >
+                            <Paperclip className="h-4 w-4" />
+                          </Button>
+
+                          {attachment ? (
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs text-zinc-300 truncate">
+                                {attachment.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setAttachment(null)}
+                                className="text-zinc-400 hover:text-zinc-200"
+                                aria-label="Quitar archivo / Remove file"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-zinc-500">
+                              Adjuntar foto o video
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <p className="mt-2 text-xs text-zinc-500">Enter to send • Shift+Enter for new line</p>
                     </div>
