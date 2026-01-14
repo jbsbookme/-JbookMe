@@ -786,9 +786,9 @@ export default function ReservarPage() {
         <p className="text-gray-400 text-base sm:text-lg">{t('booking.selectToSeeServices')}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-4 sm:gap-6 max-w-xl mx-auto">
         <motion.div
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             setSelectedGender('MALE');
@@ -797,7 +797,7 @@ export default function ReservarPage() {
           className="cursor-pointer"
         >
           <Card className="relative bg-[#0a0a0a] border-2 border-[#00f0ff]/25 hover:border-[#00f0ff] transition-all duration-300 overflow-hidden group">
-            <div className="relative h-44 sm:h-56 md:h-64">
+            <div className="relative h-32 sm:h-56 md:h-64">
               <div className="absolute inset-0 bg-gradient-to-br from-[#00f0ff]/14 via-black/40 to-black/80" />
               {maleGenderImage ? (
                 <div className="absolute inset-0">
@@ -807,20 +807,20 @@ export default function ReservarPage() {
               ) : null}
             </div>
 
-            <CardContent className="p-5 sm:p-8 text-center">
+            <CardContent className="p-4 sm:p-8 text-center">
               {!maleGenderImage ? (
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full bg-black/30 flex items-center justify-center border border-white/10 group-hover:bg-black/40 transition-colors overflow-hidden">
-                  <User className="w-10 h-10 sm:w-12 sm:h-12 text-[#00f0ff] drop-shadow" />
+                <div className="relative w-14 h-14 sm:w-24 sm:h-24 mx-auto mb-3 sm:mb-6 rounded-full bg-black/30 flex items-center justify-center border border-white/10 group-hover:bg-black/40 transition-colors overflow-hidden">
+                  <User className="w-8 h-8 sm:w-12 sm:h-12 text-[#00f0ff] drop-shadow" />
                 </div>
               ) : null}
-              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2 drop-shadow">{t('booking.male')}</h3>
-              <p className="text-sm sm:text-base text-white/80 drop-shadow">{t('booking.servicesForMale')}</p>
+              <h3 className="text-xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2 drop-shadow">{t('booking.male')}</h3>
+              <p className="text-xs sm:text-base text-white/80 drop-shadow">{t('booking.servicesForMale')}</p>
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div
-          whileHover={{ scale: 1.05 }}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             setSelectedGender('FEMALE');
@@ -829,7 +829,7 @@ export default function ReservarPage() {
           className="cursor-pointer"
         >
           <Card className="relative bg-[#0a0a0a] border-2 border-[#ffd700]/25 hover:border-[#ffd700] transition-all duration-300 overflow-hidden group">
-            <div className="relative h-44 sm:h-56 md:h-64">
+            <div className="relative h-32 sm:h-56 md:h-64">
               <div className="absolute inset-0 bg-gradient-to-br from-[#ffd700]/14 via-black/40 to-black/80" />
               {femaleGenderImage ? (
                 <div className="absolute inset-0">
@@ -839,14 +839,14 @@ export default function ReservarPage() {
               ) : null}
             </div>
 
-            <CardContent className="p-5 sm:p-8 text-center">
+            <CardContent className="p-4 sm:p-8 text-center">
               {!femaleGenderImage ? (
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full bg-black/30 flex items-center justify-center border border-white/10 group-hover:bg-black/40 transition-colors overflow-hidden">
-                  <User className="w-10 h-10 sm:w-12 sm:h-12 text-[#ffd700] drop-shadow" />
+                <div className="relative w-14 h-14 sm:w-24 sm:h-24 mx-auto mb-3 sm:mb-6 rounded-full bg-black/30 flex items-center justify-center border border-white/10 group-hover:bg-black/40 transition-colors overflow-hidden">
+                  <User className="w-8 h-8 sm:w-12 sm:h-12 text-[#ffd700] drop-shadow" />
                 </div>
               ) : null}
-              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2 drop-shadow">{t('booking.female')}</h3>
-              <p className="text-sm sm:text-base text-white/80 drop-shadow">{t('booking.servicesForFemale')}</p>
+              <h3 className="text-xl sm:text-3xl font-bold text-white mb-1.5 sm:mb-2 drop-shadow">{t('booking.female')}</h3>
+              <p className="text-xs sm:text-base text-white/80 drop-shadow">{t('booking.servicesForFemale')}</p>
             </CardContent>
           </Card>
         </motion.div>
