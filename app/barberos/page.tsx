@@ -195,10 +195,10 @@ export default function BarberosPage() {
         <motion.section 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative pt-10 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
+          className="relative pt-6 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
         >
           <div className="max-w-7xl mx-auto">
-            <div className="mb-6 flex justify-start">
+            <div className="mb-3 sm:mb-6 flex justify-start">
               <HistoryBackButton
                 fallbackHref="/menu"
                 variant="ghost"
@@ -213,7 +213,7 @@ export default function BarberosPage() {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6 }}
-              className="text-center mb-8 sm:mb-12"
+              className="text-center mb-6 sm:mb-12"
             >
               <motion.div
                 initial={{ scale: 0 }}
@@ -225,7 +225,7 @@ export default function BarberosPage() {
                 <span className="text-sm font-semibold text-[#00f0ff]">Professional Team</span>
               </motion.div>
               
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 text-white">Our Team</h1>
+              <h1 className="text-5xl md:text-7xl font-bold mb-4 sm:mb-6 text-white">{t('barbers.ourTeam')}</h1>
               
               <p className="text-xl text-gray-400 max-w-2xl mx-auto">
                 Meet our barbers and stylists. Premium quality, experience, and great service.
