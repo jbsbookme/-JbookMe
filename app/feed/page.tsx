@@ -436,12 +436,26 @@ export default function FeedPage() {
 
     observeAll();
 
-    const mutationObserver = new MutationObserver(() => observeAll());
+    // Debounce DOM scans (route transitions can cause many mutations and freeze mobile UI).
+    let rafId: number | null = null;
+    const scheduleObserveAll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        observeAll();
+      });
+    };
+
+    const mutationObserver = new MutationObserver(() => scheduleObserveAll());
     mutationObserver.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       mutationObserver.disconnect();
       intersectionObserver.disconnect();
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+        rafId = null;
+      }
     };
   }, []);
 
