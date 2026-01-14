@@ -30,6 +30,8 @@ export function NotificationsBell() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+  const storageKey = session?.user?.id ? `jbm:lastNotifAt:${session.user.id}` : null;
+
   // Baseline is initialized from the server's timestamps on the first poll.
   // This avoids client/server clock skew causing us to miss "new" notifications.
   const lastNotifAtRef = useRef<number>(0);
@@ -51,16 +53,14 @@ export function NotificationsBell() {
         await ctx.resume();
       }
 
-      // Tiny silent-ish tick to satisfy stricter autoplay policies on some mobile browsers.
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.type = 'sine';
-      oscillator.frequency.value = 1;
-      gain.gain.value = 0.0001;
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start();
-      oscillator.stop(ctx.currentTime + 0.02);
+      // Silent buffer to satisfy autoplay policies without making an audible beep.
+      // (Some devices can still make a faint sound with oscillators.)
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start();
+      source.stop(ctx.currentTime + 0.01);
 
       if (ctx.state === 'running') {
         audioUnlockedRef.current = true;
@@ -184,6 +184,24 @@ export function NotificationsBell() {
     };
   }, []);
 
+  // Load a persisted baseline so we can beep for notifications that arrived while the app was closed.
+  useEffect(() => {
+    if (!session) return;
+    if (typeof window === 'undefined') return;
+    if (!storageKey) return;
+
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      const parsed = raw ? Number(raw) : NaN;
+      if (Number.isFinite(parsed) && parsed > 0) {
+        hasBaselineRef.current = true;
+        lastNotifAtRef.current = parsed;
+      }
+    } catch {
+      // ignore
+    }
+  }, [session, storageKey]);
+
   const getPublicPostUrlFromNotification = (notification: Notification) => {
     if (typeof window === 'undefined') return null;
     const origin = window.location.origin.replace(/\/$/, '');
@@ -266,6 +284,13 @@ export function NotificationsBell() {
           if (!hasBaselineRef.current) {
             hasBaselineRef.current = true;
             lastNotifAtRef.current = maxAt;
+            if (storageKey && typeof window !== 'undefined') {
+              try {
+                window.localStorage.setItem(storageKey, String(maxAt));
+              } catch {
+                // ignore
+              }
+            }
             setNotifications(list);
             return;
           }
@@ -273,6 +298,14 @@ export function NotificationsBell() {
           const since = lastNotifAtRef.current;
           const newOnes = list.filter((n) => new Date(n.createdAt).getTime() > since);
           lastNotifAtRef.current = Math.max(since, maxAt);
+
+          if (storageKey && typeof window !== 'undefined') {
+            try {
+              window.localStorage.setItem(storageKey, String(lastNotifAtRef.current));
+            } catch {
+              // ignore
+            }
+          }
 
           const newMessages = newOnes.filter((n) => n.type === 'NEW_MESSAGE');
           const newPostApproved = newOnes.filter((n) => n.type === 'POST_APPROVED');
