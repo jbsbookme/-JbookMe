@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, Facebook, Instagram, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import {
   Popover,
@@ -19,6 +19,7 @@ interface Notification {
   message: string;
   link?: string;
   isRead: boolean;
+  postId?: string | null;
   createdAt: string;
 }
 
@@ -76,6 +77,12 @@ export function NotificationsBell() {
 
   const playBeep = async () => {
     try {
+      if (!audioUnlockedRef.current) {
+        // Best-effort: try to unlock right now. Some browsers will allow if there
+        // was a user gesture earlier (even if our listener wasn't attached yet).
+        await unlockAudio();
+      }
+
       if (!audioUnlockedRef.current) {
         pendingBeepRef.current = true;
         return;
@@ -163,7 +170,6 @@ export function NotificationsBell() {
 
   // Unlock audio on first user gesture (required by browsers for sound).
   useEffect(() => {
-    if (!session) return;
     if (typeof window === 'undefined') return;
     const handler = () => void unlockAudio();
     window.addEventListener('pointerdown', handler, { passive: true });
@@ -176,7 +182,63 @@ export function NotificationsBell() {
       window.removeEventListener('mousedown', handler);
       window.removeEventListener('keydown', handler);
     };
-  }, [session]);
+  }, []);
+
+  const getPublicPostUrlFromNotification = (notification: Notification) => {
+    if (typeof window === 'undefined') return null;
+    const origin = window.location.origin.replace(/\/$/, '');
+
+    const postId = typeof notification.postId === 'string' ? notification.postId : null;
+    if (postId) return `${origin}/p/${postId}`;
+
+    // Fallback: parse /feed?post=... from the link.
+    if (typeof notification.link === 'string' && notification.link.includes('post=')) {
+      try {
+        const url = new URL(notification.link, origin);
+        const q = url.searchParams.get('post');
+        if (q) return `${origin}/p/${q}`;
+      } catch {
+        // ignore
+      }
+    }
+
+    return null;
+  };
+
+  const shareNotificationToFacebook = (notification: Notification) => {
+    const postUrl = getPublicPostUrlFromNotification(notification);
+    if (!postUrl) return;
+    const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const shareNotificationToWhatsApp = (notification: Notification) => {
+    const postUrl = getPublicPostUrlFromNotification(notification);
+    if (!postUrl) return;
+    const text = `Mira este post / Check this post: ${postUrl}`;
+    const shareUrl = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(shareUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const shareNotificationToInstagram = async (notification: Notification) => {
+    const postUrl = getPublicPostUrlFromNotification(notification);
+    if (!postUrl) return;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ url: postUrl });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      await navigator.clipboard.writeText(postUrl);
+    } catch {
+      // ignore
+    }
+  };
 
   // Poll for new notifications every 30 seconds
   useEffect(() => {
@@ -352,6 +414,49 @@ export function NotificationsBell() {
                         <p className="text-gray-400 text-xs mt-1 line-clamp-2">
                           {notification.message}
                         </p>
+                        {notification.type === 'POST_APPROVED' && (
+                          <div className="flex items-center gap-3 mt-2">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                shareNotificationToFacebook(notification);
+                              }}
+                              aria-label="Share to Facebook"
+                              title="Share to Facebook"
+                              className="p-1 rounded hover:bg-gray-800/60 text-[#00f0ff]"
+                            >
+                              <Facebook className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void shareNotificationToInstagram(notification);
+                              }}
+                              aria-label="Share to Instagram"
+                              title="Share to Instagram"
+                              className="p-1 rounded hover:bg-gray-800/60 text-[#00f0ff]"
+                            >
+                              <Instagram className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                shareNotificationToWhatsApp(notification);
+                              }}
+                              aria-label="Share to WhatsApp"
+                              title="Share to WhatsApp"
+                              className="p-1 rounded hover:bg-gray-800/60 text-[#00f0ff]"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
                         <p className="text-gray-500 text-xs mt-1">
                           {formatDistanceToNow(new Date(notification.createdAt), {
                             addSuffix: true
