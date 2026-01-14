@@ -195,7 +195,7 @@ export default function BarberosPage() {
         <motion.section 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative pt-16 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
+          className="relative pt-10 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
         >
           <div className="max-w-7xl mx-auto">
             <div className="mb-6 flex justify-start">
@@ -213,7 +213,7 @@ export default function BarberosPage() {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6 }}
-              className="text-center mb-12"
+              className="text-center mb-8 sm:mb-12"
             >
               <motion.div
                 initial={{ scale: 0 }}
