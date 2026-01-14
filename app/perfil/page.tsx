@@ -506,23 +506,6 @@ export default function PerfilPage() {
                   <p className="text-xs text-gray-500 mt-1">{t('profile.emailCannotModify')}</p>
                 </div>
 
-                <div>
-                  <Label htmlFor="gender" className="text-gray-300 text-sm font-semibold mb-2 block">
-                    Gender
-                  </Label>
-                  <Select value={gender || ''} onValueChange={(value) => setGender(value)}>
-                    <SelectTrigger className="bg-black/30 border-gray-700 text-white h-11">
-                      <SelectValue placeholder="Select your gender" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#0a0a0a] border-gray-700">
-                      <SelectItem value="MALE" className="text-white hover:bg-gray-800">Male</SelectItem>
-                      <SelectItem value="FEMALE" className="text-white hover:bg-gray-800">Female</SelectItem>
-                      <SelectItem value="OTHER" className="text-white hover:bg-gray-800">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">Helps personalize your experience</p>
-                </div>
-
                 <Button
                   onClick={handleSaveProfile}
                   disabled={saving || !name.trim()}
