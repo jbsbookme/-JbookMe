@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/lib/i18n/i18n-context';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,6 +65,7 @@ function getInitials(name: string) {
 export default function InboxPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { t } = useI18n();
   const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -171,14 +173,14 @@ export default function InboxPage() {
 
   const notifyIncomingMessage = (count: number, latest: Message | null) => {
     const senderName =
-      (latest?.sender?.name && String(latest.sender.name).trim()) || 'Someone';
+      (latest?.sender?.name && String(latest.sender.name).trim()) || t('inbox.someone');
 
     toast({
-      title: count > 1 ? 'New messages' : 'New message',
+      title: count > 1 ? t('inbox.toastNewMessagesTitle') : t('inbox.toastNewMessageTitle'),
       description:
         count > 1
-          ? `You received ${count} new messages.`
-          : `You received a new message from ${senderName}.`,
+          ? t('inbox.toastNewMessagesBody', { count })
+          : t('inbox.toastNewMessageBody', { name: senderName }),
     });
 
     // System notification (native browser Notification API) - only if already granted.
@@ -190,11 +192,11 @@ export default function InboxPage() {
         Notification.permission === 'granted' &&
         document.visibilityState !== 'visible'
       ) {
-        new Notification('Nuevo mensaje', {
+        new Notification(t('inbox.systemNotificationTitle'), {
           body:
             count > 1
-              ? `Tienes ${count} mensajes nuevos`
-              : 'Tienes un mensaje nuevo',
+              ? t('inbox.systemNotificationBodyPlural', { count })
+              : t('inbox.systemNotificationBodySingle'),
           icon: '/icon-192.png',
         });
       }

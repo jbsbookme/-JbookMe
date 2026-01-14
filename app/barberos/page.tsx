@@ -51,12 +51,13 @@ export default function BarberosPage() {
       const origin = window.location.origin;
       const url = `${origin}/barberos/${barber.id}`;
       const title = barber.name ? `${barber.name} | JB Barbershop` : 'JB Barbershop';
+      const shareName = (barber.name || '').trim() || t('barbers.barber');
 
       if (typeof navigator !== 'undefined' && 'share' in navigator) {
         try {
           await (navigator as any).share({
             title,
-            text: `Check out ${barber.name}'s profile`,
+            text: t('barbers.shareProfileText', { name: shareName }),
             url,
           });
           return;
@@ -68,13 +69,13 @@ export default function BarberosPage() {
 
       if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(url);
-        toast.success('Link copied');
+        toast.success(t('common.linkCopied'));
         return;
       }
 
-      window.prompt('Copy this link:', url);
+      window.prompt(t('common.copyThisLinkPrompt'), url);
     } catch {
-      toast.error('Could not share this profile');
+      toast.error(t('common.shareError'));
     }
   };
 
@@ -99,7 +100,7 @@ export default function BarberosPage() {
         const mapped: Barber[] = apiBarbers.map((b) => {
           const gender = String(b.gender || '').toUpperCase();
           const isStylist = gender === 'FEMALE';
-          const roleLabel = isStylist ? 'Stylist' : 'Barber';
+          const roleLabel = isStylist ? t('barbers.stylist') : t('barbers.barber');
 
           const rawSpecialty = (b.specialties || '').trim();
           const looksLikeGenericBarber = /^(barber|barbero)$/i.test(rawSpecialty);
@@ -107,11 +108,11 @@ export default function BarberosPage() {
 
           const specialty = rawSpecialty
             ? (isStylist && looksLikeGenericBarber
-                ? 'Stylist'
+                ? t('barbers.stylist')
                 : (!isStylist && looksLikeGenericBarber)
-                  ? 'Barber'
+                  ? t('barbers.barber')
                   : looksLikeGenericStylist
-                    ? 'Stylist'
+                    ? t('barbers.stylist')
                     : rawSpecialty)
             : roleLabel;
 
@@ -145,7 +146,7 @@ export default function BarberosPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const sortedBarbers = [...barbers].sort((a, b) => {
     const aIsStylist = !!a.isStylist;

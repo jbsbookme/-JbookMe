@@ -6,7 +6,7 @@ import { translations, Language } from './translations';
 type I18nContextType = {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
 };
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -61,8 +61,16 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     persistLanguage(lang);
   };
 
+  const interpolate = (value: string, params?: Record<string, string | number>) => {
+    if (!params) return value;
+    return Object.entries(params).reduce((acc, [paramKey, rawValue]) => {
+      const safeValue = String(rawValue);
+      return acc.split(`{${paramKey}}`).join(safeValue);
+    }, value);
+  };
+
   // Translation function with fallback support
-  const t = (key: string): string => {
+  const t = (key: string, params?: Record<string, string | number>): string => {
     try {
       const keys = key.split('.');
       let value: unknown = translations[language];
@@ -82,11 +90,11 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
               return key; // Return key itself if not found
             }
           }
-          return typeof value === 'string' ? value : key;
+          return typeof value === 'string' ? interpolate(value, params) : key;
         }
       }
 
-      return typeof value === 'string' ? value : key;
+      return typeof value === 'string' ? interpolate(value, params) : key;
     } catch (error) {
       console.error(`Translation error for key: ${key}`, error);
       return key;
