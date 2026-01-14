@@ -1370,7 +1370,7 @@ export default function FeedPage() {
                               data-feed-video="true"
                               autoPlay={false}
                               loop
-                              muted
+                              muted={!feedAudioEnabled}
                               playsInline
                               preload="metadata"
                               className="w-full h-full object-cover"
