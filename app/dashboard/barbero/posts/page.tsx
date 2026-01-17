@@ -2,12 +2,15 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Camera,
+  Images,
+  RefreshCcw,
+  Video,
   X,
   Upload,
   Heart,
@@ -33,6 +36,19 @@ interface Post {
 export default function BarberPostsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+
+  const applyCaptureFacing = (
+    input: HTMLInputElement | null,
+    facing: 'environment' | 'user'
+  ) => {
+    if (!input) return;
+    input.setAttribute('capture', facing);
+  };
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -143,6 +159,9 @@ export default function BarberPostsPage() {
     setUploadFile(file);
     setUploadFileType(isVideoFile ? 'video' : 'image');
     setUploadPreview(URL.createObjectURL(file));
+
+    // Allow selecting the same file again.
+    e.target.value = '';
   };
 
   const handleCreatePost = async () => {
@@ -403,22 +422,116 @@ export default function BarberPostsPage() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="border-2 border-dashed border-gray-700 rounded-lg p-8 text-center hover:border-[#00f0ff] transition-colors">
+                    <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 ring-1 ring-inset ring-white/5 hover:ring-[#00f0ff]/20 transition">
+                      <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 shrink-0 rounded-xl bg-[#00f0ff]/10 text-[#00f0ff] ring-1 ring-inset ring-[#00f0ff]/20 flex items-center justify-center">
+                          <Upload className="h-6 w-6" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-base font-semibold text-white">Upload your post</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                Photo (max 15MB) • Video (max 60MB / 60s)
+                              </p>
+                            </div>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3 border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                              onClick={() =>
+                                setCameraFacing((prev) =>
+                                  prev === 'environment' ? 'user' : 'environment'
+                                )
+                              }
+                              disabled={uploading}
+                            >
+                              <RefreshCcw className="mr-2 h-4 w-4" />
+                              {cameraFacing === 'environment' ? 'Rear' : 'Front'}
+                            </Button>
+                          </div>
+
+                          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <Button
+                              type="button"
+                              className="h-auto w-full py-4 bg-gradient-to-r from-[#00f0ff] to-[#00c2ff] hover:from-[#00d6e6] hover:to-[#00a8ff] text-black font-semibold"
+                              onClick={() => {
+                                applyCaptureFacing(cameraInputRef.current, cameraFacing);
+                                cameraInputRef.current?.click();
+                              }}
+                              disabled={uploading}
+                            >
+                              <span className="flex w-full flex-col items-center gap-1">
+                                <Camera className="h-5 w-5" />
+                                <span className="text-sm font-semibold">Photo</span>
+                                <span className="text-[11px] opacity-80">Camera</span>
+                              </span>
+                            </Button>
+
+                            <Button
+                              type="button"
+                              className="h-auto w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                              onClick={() => {
+                                applyCaptureFacing(videoInputRef.current, cameraFacing);
+                                videoInputRef.current?.click();
+                              }}
+                              disabled={uploading}
+                            >
+                              <span className="flex w-full flex-col items-center gap-1">
+                                <Video className="h-5 w-5" />
+                                <span className="text-sm font-semibold">Video</span>
+                                <span className="text-[11px] text-white/80">Record</span>
+                              </span>
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto w-full py-4 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              onClick={() => galleryInputRef.current?.click()}
+                              disabled={uploading}
+                            >
+                              <span className="flex w-full flex-col items-center gap-1">
+                                <Images className="h-5 w-5" />
+                                <span className="text-sm font-semibold">Gallery</span>
+                                <span className="text-[11px] text-white/70">Select</span>
+                              </span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
                       <input
+                        ref={cameraInputRef}
                         type="file"
-                        id="file-upload"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+
+                      <input
+                        ref={galleryInputRef}
+                        type="file"
                         accept="image/*,video/*"
                         onChange={handleFileSelect}
                         className="hidden"
+                        disabled={uploading}
                       />
-                      <label
-                        htmlFor="file-upload"
-                        className="cursor-pointer"
-                      >
-                        <Upload className="w-12 h-12 text-gray-500 mx-auto mb-3" />
-                        <p className="text-white mb-1">Click to upload</p>
-                        <p className="text-gray-400 text-sm">Image or video (max 50MB)</p>
-                      </label>
                     </div>
                   )}
                 </div>
