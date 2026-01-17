@@ -57,7 +57,7 @@ export default async function BarberPaymentPage({ params }: Params) {
 
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Pay {barber.user?.name || 'your barber'}</h1>
-          <p className="text-sm text-gray-400 mt-1">Use one of the methods below. Always confirm the name before sending money.</p>
+          <p className="text-sm text-gray-400 mt-1">Scan the QR → this page opens → tap Copy and pay in your app.</p>
         </div>
 
         {!hasPayments ? (
@@ -78,6 +78,10 @@ export default async function BarberPaymentPage({ params }: Params) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <div className="text-xs text-gray-500">
+                    Open your bank’s Zelle, then paste the email or phone.
+                  </div>
+
                   {zelleEmail ? (
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div className="text-sm text-gray-200 flex items-center gap-2">
@@ -86,9 +90,6 @@ export default async function BarberPaymentPage({ params }: Params) {
                       </div>
                       <div className="flex gap-2">
                         <CopyToClipboardButton text={zelleEmail} label="Copy" className="border-white/15 text-gray-200 hover:bg-white/10" />
-                        <Button asChild size="sm" className="bg-purple-500/90 hover:bg-purple-500 text-white">
-                          <a href={`mailto:${zelleEmail}`}>Email</a>
-                        </Button>
                       </div>
                     </div>
                   ) : null}
@@ -101,16 +102,11 @@ export default async function BarberPaymentPage({ params }: Params) {
                       </div>
                       <div className="flex gap-2">
                         <CopyToClipboardButton text={zellePhoneTel || zellePhoneRaw} label="Copy" className="border-white/15 text-gray-200 hover:bg-white/10" />
-                        {zellePhoneTel ? (
-                          <Button asChild size="sm" className="bg-purple-500/90 hover:bg-purple-500 text-white">
-                            <a href={`tel:${zellePhoneTel}`}>Call</a>
-                          </Button>
-                        ) : null}
                       </div>
                     </div>
                   ) : null}
 
-                  <div className="text-xs text-gray-500">Zelle QR codes usually can’t open the Zelle app directly; this page is the reliable way to share payment info.</div>
+                  <div className="text-xs text-gray-500">This avoids opening Gmail/Outlook when scanning a QR.</div>
                 </CardContent>
               </Card>
             ) : null}
@@ -124,6 +120,7 @@ export default async function BarberPaymentPage({ params }: Params) {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  <div className="text-xs text-gray-500">Tap Open to go directly to CashApp, or Copy the tag.</div>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div className="text-sm text-gray-200">
                       <span className="font-mono break-all">${cashTag.replace(/^\$/g, '')}</span>
@@ -137,7 +134,7 @@ export default async function BarberPaymentPage({ params }: Params) {
                       ) : null}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500">If the link doesn’t open, search the tag in CashApp.</div>
+                  <div className="text-xs text-gray-500">If the link doesn’t open, search the tag inside CashApp.</div>
                 </CardContent>
               </Card>
             ) : null}
