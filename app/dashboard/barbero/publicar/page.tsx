@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Camera, Video, RefreshCcw, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
+import { Camera, Images, Video, RefreshCcw, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { upload } from '@vercel/blob/client';
@@ -355,69 +355,94 @@ export default function BarberUploadPage() {
                 {selectedFiles.length === 0 ? (
                   <div
                     onClick={() => galleryInputRef.current?.click()}
-                    className="mt-2 border-2 border-dashed border-zinc-700 rounded-lg p-12 text-center cursor-pointer hover:border-cyan-500 transition-colors"
+                    className="mt-2 cursor-pointer"
                   >
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="flex gap-4">
-                        <Camera className="w-10 h-10 text-zinc-500" />
-                        <Video className="w-10 h-10 text-zinc-500" />
-                      </div>
-                      <p className="text-zinc-400">Click to upload photo or video</p>
-                      <p className="text-xs text-zinc-600">Photos (max 15MB) • Videos (max 60MB / 60s) • Up to {MAX_FILES} files</p>
+                    <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 ring-1 ring-inset ring-white/5 hover:ring-cyan-500/20 transition">
+                      <div className="flex items-start gap-4">
+                        <div className="h-12 w-12 shrink-0 rounded-xl bg-cyan-500/10 text-cyan-300 ring-1 ring-inset ring-cyan-500/20 flex items-center justify-center">
+                          <Upload className="h-6 w-6" />
+                        </div>
 
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 text-zinc-300 hover:text-white hover:bg-white/5"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'));
-                        }}
-                        disabled={isUploading}
-                      >
-                        <RefreshCcw className="mr-2 h-4 w-4" />
-                        Camera: {cameraFacing === 'environment' ? 'Rear' : 'Front'}
-                      </Button>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-base font-semibold text-white">Upload your post</p>
+                              <p className="mt-1 text-xs text-zinc-400">
+                                Photos (max 15MB) • Videos (max 60MB / 60s) • Up to {MAX_FILES} files
+                              </p>
+                            </div>
 
-                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm">
-                        <Button
-                          type="button"
-                          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            applyCaptureFacing(cameraInputRef.current, cameraFacing);
-                            cameraInputRef.current?.click();
-                          }}
-                          disabled={isUploading}
-                        >
-                          Take photo
-                        </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3 border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                setCameraFacing((prev) =>
+                                  prev === 'environment' ? 'user' : 'environment'
+                                );
+                              }}
+                              disabled={isUploading}
+                            >
+                              <RefreshCcw className="mr-2 h-4 w-4" />
+                              {cameraFacing === 'environment' ? 'Rear' : 'Front'}
+                            </Button>
+                          </div>
 
-                        <Button
-                          type="button"
-                          className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            applyCaptureFacing(videoInputRef.current, cameraFacing);
-                            videoInputRef.current?.click();
-                          }}
-                          disabled={isUploading}
-                        >
-                          Record video
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
-                          onClick={(ev) => {
-                            ev.stopPropagation();
-                            galleryInputRef.current?.click();
-                          }}
-                          disabled={isUploading}
-                        >
-                          Gallery
-                        </Button>
+                          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <Button
+                              type="button"
+                              className="h-auto w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                applyCaptureFacing(cameraInputRef.current, cameraFacing);
+                                cameraInputRef.current?.click();
+                              }}
+                              disabled={isUploading}
+                            >
+                              <span className="flex w-full flex-col items-center gap-1">
+                                <Camera className="h-5 w-5" />
+                                <span className="text-sm font-semibold">Photo</span>
+                                <span className="text-[11px] text-white/80">Camera</span>
+                              </span>
+                            </Button>
+
+                            <Button
+                              type="button"
+                              className="h-auto w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                applyCaptureFacing(videoInputRef.current, cameraFacing);
+                                videoInputRef.current?.click();
+                              }}
+                              disabled={isUploading}
+                            >
+                              <span className="flex w-full flex-col items-center gap-1">
+                                <Video className="h-5 w-5" />
+                                <span className="text-sm font-semibold">Video</span>
+                                <span className="text-[11px] text-white/80">Record</span>
+                              </span>
+                            </Button>
+
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="h-auto w-full py-4 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                galleryInputRef.current?.click();
+                              }}
+                              disabled={isUploading}
+                            >
+                              <span className="flex w-full flex-col items-center gap-1">
+                                <Images className="h-5 w-5" />
+                                <span className="text-sm font-semibold">Gallery</span>
+                                <span className="text-[11px] text-white/70">Select</span>
+                              </span>
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
