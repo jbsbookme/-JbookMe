@@ -7,6 +7,12 @@ import type { Prisma, Role } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
+const DEFAULT_OWNER_EMAIL = 'jbsbookme@gmail.com';
+
+function getOwnerEmail(): string {
+  return process.env.OWNER_EMAIL || process.env.NEXT_PUBLIC_OWNER_EMAIL || DEFAULT_OWNER_EMAIL;
+}
+
 function normalizePhone(input: string): string {
   return input.replace(/[\s\-()]/g, '');
 }
@@ -141,7 +147,7 @@ export async function PUT(
     }
 
     // Define the owner/super admin email (configurable)
-    const OWNER_EMAIL = process.env.OWNER_EMAIL || 'admin@barberia.com';
+    const OWNER_EMAIL = getOwnerEmail();
     const isOwner = session.user.email === OWNER_EMAIL;
 
     // Prevent promoting users to ADMIN unless you are the owner.
@@ -274,7 +280,7 @@ export async function DELETE(
     }
 
     // Define the owner/super admin email (configurable)
-    const OWNER_EMAIL = process.env.OWNER_EMAIL || 'admin@barberia.com';
+    const OWNER_EMAIL = getOwnerEmail();
     const isOwner = session.user.email === OWNER_EMAIL;
 
     // Prevent deleting ADMIN users unless:

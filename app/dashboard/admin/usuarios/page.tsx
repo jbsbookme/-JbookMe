@@ -112,7 +112,7 @@ export default function AdminUsuariosPage() {
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const searchParams = useSearchParams();
-  const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'admin@barberia.com';
+  const OWNER_EMAIL = process.env.NEXT_PUBLIC_OWNER_EMAIL || 'jbsbookme@gmail.com';
   const [users, setUsers] = useState<UserData[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);

@@ -3,9 +3,12 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+const adminEmail = process.env.ADMIN_EMAIL || process.env.OWNER_EMAIL || 'admin@barberia.com';
+const adminPassword = process.env.ADMIN_PASSWORD || 'Admin2024!';
+
 (async () => {
   const cases = [
-    ['admin@barberia.com', 'Admin2024!'],
+    [adminEmail, adminPassword],
     ['maria.garcia@example.com', 'client123'],
     ['miguel.santos@barberia.com', 'barber123'],
   ];

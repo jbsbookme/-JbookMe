@@ -2,9 +2,11 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+const adminEmail = process.env.ADMIN_EMAIL || process.env.OWNER_EMAIL || 'admin@barberia.com';
+
 (async () => {
   const emails = [
-    'admin@barberia.com',
+    adminEmail,
     'maria.garcia@example.com',
     'miguel.santos@barberia.com',
   ];

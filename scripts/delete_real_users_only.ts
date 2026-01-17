@@ -2,9 +2,12 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const OWNER_EMAIL = process.env.OWNER_EMAIL || 'jbsbookme@gmail.com';
+
 // Lista de usuarios de prueba que NO se deben eliminar
 const TEST_USERS = [
   // Admins de prueba
+  OWNER_EMAIL,
   'admin@barberia.com',
   'john@doe.com',
   

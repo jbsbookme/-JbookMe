@@ -10,12 +10,17 @@ type TestUserSpec = {
   name: string;
 };
 
+const ADMIN_EMAIL =
+  process.env.TEST_ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'admin@barberia.com';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD || 'Admin2024!';
+const ADMIN_NAME = process.env.TEST_ADMIN_NAME || 'Administrador Principal';
+
 const TEST_USERS: TestUserSpec[] = [
   {
-    email: 'admin@barberia.com',
-    password: 'Admin2024!',
+    email: ADMIN_EMAIL,
+    password: ADMIN_PASSWORD,
     role: Role.ADMIN,
-    name: 'Administrador Principal',
+    name: ADMIN_NAME,
   },
   {
     email: 'maria.garcia@example.com',
@@ -119,7 +124,7 @@ async function main() {
   }
 
   console.log('✅ Done. You can now login with:');
-  console.log('- admin@barberia.com / Admin2024!');
+  console.log(`- ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
   console.log('- maria.garcia@example.com / client123');
   console.log('- miguel.santos@barberia.com / barber123');
 }

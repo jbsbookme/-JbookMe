@@ -3,6 +3,8 @@ import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+const OWNER_EMAIL = process.env.OWNER_EMAIL || 'jbsbookme@gmail.com';
+
 async function main() {
   console.log('🌱 Starting seed...');
 
@@ -41,7 +43,7 @@ async function main() {
 
   const admin2 = await prisma.user.create({
     data: {
-      email: 'admin@barberia.com',
+      email: OWNER_EMAIL,
       password: hashedNewAdminPassword,
       name: 'Administrador Principal',
       role: Role.ADMIN,
@@ -671,7 +673,7 @@ async function main() {
   console.log('🎉 Seed completed successfully!');
   console.log('\n📋 Test Accounts:');
   console.log('   Admin 1: john@doe.com / johndoe123');
-  console.log('   Admin 2: admin@barberia.com / Admin2024!');
+  console.log(`   Admin 2: ${OWNER_EMAIL} / Admin2024!`);
   console.log('   Barber: miguel.santos@barberia.com / barber123');
   console.log('   Client: maria.garcia@example.com / client123');
 }
