@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Camera, Video, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
+import { Camera, Video, RefreshCcw, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,6 +17,16 @@ export default function SimpleUploadPage() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
+
+  const applyCaptureFacing = (
+    input: HTMLInputElement | null,
+    facing: 'environment' | 'user'
+  ) => {
+    if (!input) return;
+    input.setAttribute('capture', facing);
+  };
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -277,11 +287,28 @@ export default function SimpleUploadPage() {
                       <p className="mb-2 text-sm text-gray-300 font-semibold">Upload your post</p>
                       <p className="text-xs text-gray-500">Image or Video (MAX 200MB) • Up to {MAX_FILES} files</p>
 
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-3 h-8 px-2 text-zinc-300 hover:text-white hover:bg-white/5"
+                        onClick={() =>
+                          setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))
+                        }
+                        disabled={isUploading}
+                      >
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Camera: {cameraFacing === 'environment' ? 'Rear' : 'Front'}
+                      </Button>
+
                       <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-sm">
                         <Button
                           type="button"
                           className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
-                          onClick={() => cameraInputRef.current?.click()}
+                          onClick={() => {
+                            applyCaptureFacing(cameraInputRef.current, cameraFacing);
+                            cameraInputRef.current?.click();
+                          }}
                           disabled={isUploading}
                         >
                           Take photo
@@ -290,7 +317,10 @@ export default function SimpleUploadPage() {
                         <Button
                           type="button"
                           className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold"
-                          onClick={() => videoInputRef.current?.click()}
+                          onClick={() => {
+                            applyCaptureFacing(videoInputRef.current, cameraFacing);
+                            videoInputRef.current?.click();
+                          }}
                           disabled={isUploading}
                         >
                           Record video
