@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
+import type { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,7 @@ export async function PUT(req: NextRequest) {
       zelleEmail,
       zellePhone,
       cashappTag,
+      contactEmail,
     } = body;
 
     const normalizeEmail = (value: unknown) => {
@@ -111,6 +113,7 @@ export async function PUT(req: NextRequest) {
     const normalizedZelleEmail = normalizeEmail(zelleEmail);
     const normalizedZellePhone = normalizePhone(zellePhone);
     const normalizedCashappTag = normalizeCashAppTag(cashappTag);
+    const normalizedContactEmail = normalizeEmail(contactEmail);
 
     if (typeof normalizedZelleEmail === 'string') {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -127,36 +130,52 @@ export async function PUT(req: NextRequest) {
       }
     }
 
-    // Find the barber record
-    const barber = await prisma.barber.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!barber) {
-      return NextResponse.json(
-        { error: 'Barber profile not found.' },
-        { status: 404 }
-      );
+    if (typeof normalizedContactEmail === 'string') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedContactEmail)) {
+        return NextResponse.json({ error: 'Invalid contact email format.' }, { status: 400 });
+      }
     }
 
-    // Update barber profile
-    const updatedBarber = await prisma.barber.update({
-      where: { id: barber.id },
-      data: {
-        bio: bio !== undefined ? bio : barber.bio,
-        specialties: specialties !== undefined ? specialties : barber.specialties,
-        hourlyRate: hourlyRate !== undefined ? hourlyRate : barber.hourlyRate,
-        phone: phone !== undefined ? phone : barber.phone,
-        facebookUrl: facebookUrl !== undefined ? facebookUrl : barber.facebookUrl,
-        instagramUrl: instagramUrl !== undefined ? instagramUrl : barber.instagramUrl,
-        twitterUrl: twitterUrl !== undefined ? twitterUrl : barber.twitterUrl,
-        tiktokUrl: tiktokUrl !== undefined ? tiktokUrl : barber.tiktokUrl,
-        youtubeUrl: youtubeUrl !== undefined ? youtubeUrl : barber.youtubeUrl,
-        whatsappUrl: whatsappUrl !== undefined ? whatsappUrl : barber.whatsappUrl,
-        zelleEmail: normalizedZelleEmail !== undefined ? normalizedZelleEmail : barber.zelleEmail,
-        zellePhone: normalizedZellePhone !== undefined ? normalizedZellePhone : barber.zellePhone,
-        cashappTag: normalizedCashappTag !== undefined ? normalizedCashappTag : barber.cashappTag,
-      },
+    const updateData: Prisma.BarberUpdateInput = {};
+    if (bio !== undefined) updateData.bio = bio;
+    if (specialties !== undefined) updateData.specialties = specialties;
+    if (hourlyRate !== undefined) updateData.hourlyRate = hourlyRate;
+    if (phone !== undefined) updateData.phone = phone;
+    if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl;
+    if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl;
+    if (twitterUrl !== undefined) updateData.twitterUrl = twitterUrl;
+    if (tiktokUrl !== undefined) updateData.tiktokUrl = tiktokUrl;
+    if (youtubeUrl !== undefined) updateData.youtubeUrl = youtubeUrl;
+    if (whatsappUrl !== undefined) updateData.whatsappUrl = whatsappUrl;
+    if (normalizedZelleEmail !== undefined) updateData.zelleEmail = normalizedZelleEmail;
+    if (normalizedZellePhone !== undefined) updateData.zellePhone = normalizedZellePhone;
+    if (normalizedCashappTag !== undefined) updateData.cashappTag = normalizedCashappTag;
+    if (normalizedContactEmail !== undefined) updateData.contactEmail = normalizedContactEmail;
+
+    const createData: Prisma.BarberUncheckedCreateInput = {
+      userId: session.user.id,
+      ...(bio !== undefined ? { bio } : {}),
+      ...(specialties !== undefined ? { specialties } : {}),
+      ...(hourlyRate !== undefined ? { hourlyRate } : {}),
+      ...(phone !== undefined ? { phone } : {}),
+      ...(facebookUrl !== undefined ? { facebookUrl } : {}),
+      ...(instagramUrl !== undefined ? { instagramUrl } : {}),
+      ...(twitterUrl !== undefined ? { twitterUrl } : {}),
+      ...(tiktokUrl !== undefined ? { tiktokUrl } : {}),
+      ...(youtubeUrl !== undefined ? { youtubeUrl } : {}),
+      ...(whatsappUrl !== undefined ? { whatsappUrl } : {}),
+      ...(normalizedZelleEmail !== undefined ? { zelleEmail: normalizedZelleEmail } : {}),
+      ...(normalizedZellePhone !== undefined ? { zellePhone: normalizedZellePhone } : {}),
+      ...(normalizedCashappTag !== undefined ? { cashappTag: normalizedCashappTag } : {}),
+      ...(normalizedContactEmail !== undefined ? { contactEmail: normalizedContactEmail } : {}),
+    };
+
+    // Ensure there's a Barber row for this user. Some environments/users may be missing it.
+    const updatedBarber = await prisma.barber.upsert({
+      where: { userId: session.user.id },
+      create: createData,
+      update: updateData,
       include: {
         user: {
           select: {

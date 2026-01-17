@@ -162,7 +162,8 @@ export default function BarberProfilePage() {
       });
 
       if (!barberRes.ok) {
-        throw new Error('Failed to update barber profile');
+        const data = await barberRes.json().catch(() => ({} as any));
+        throw new Error(data?.error || data?.message || 'Failed to update barber profile');
       }
 
       // Update user name if changed
@@ -176,14 +177,15 @@ export default function BarberProfilePage() {
         });
 
         if (!userRes.ok) {
-          throw new Error('Failed to update user name');
+          const data = await userRes.json().catch(() => ({} as any));
+          throw new Error(data?.error || data?.message || 'Failed to update user name');
         }
       }
 
       toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast.error('Error saving profile');
+      toast.error(error instanceof Error ? error.message : 'Error saving profile');
     } finally {
       setSaving(false);
     }
