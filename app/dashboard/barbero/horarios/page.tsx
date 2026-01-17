@@ -72,6 +72,24 @@ export default function HorariosPage() {
 
   const daysOrder = useMemo(() => DAYS_OF_WEEK.map((d) => d.value), [DAYS_OF_WEEK]);
 
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  const splitTime = (hhmm: string) => {
+    const [hRaw, mRaw] = hhmm.split(':');
+    const hour = Number(hRaw);
+    const minute = Number(mRaw);
+    return {
+      hour: Number.isFinite(hour) ? hour : 0,
+      minute: Number.isFinite(minute) ? minute : 0,
+    };
+  };
+
+  const setTimeParts = (value: string, nextHour: number, nextMinute: number) => {
+    const hour = Math.max(0, Math.min(23, Math.floor(nextHour)));
+    const minute = Math.max(0, Math.min(59, Math.floor(nextMinute)));
+    return `${pad2(hour)}:${pad2(minute)}`;
+  };
+
   const toMinutes = (hhmm: string) => {
     const [h, m] = hhmm.split(':').map((v) => Number(v));
     if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN;
@@ -352,23 +370,77 @@ export default function HorariosPage() {
                         <div className="grid grid-cols-2 gap-3 w-full sm:max-w-md">
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
-                            <Input
-                              type="time"
-                              step={900}
-                              value={bulkStartTime}
-                              onChange={(e) => setBulkStartTime(e.target.value)}
-                              className="bg-gray-800 border-gray-700 text-white"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={23}
+                                value={splitTime(bulkStartTime).hour}
+                                onChange={(e) => {
+                                  const h = Number(e.target.value);
+                                  const { minute } = splitTime(bulkStartTime);
+                                  if (!Number.isFinite(h)) return;
+                                  setBulkStartTime(setTimeParts(bulkStartTime, h, minute));
+                                }}
+                                className="bg-gray-800 border-gray-700 text-white w-20"
+                                aria-label={`${t('barber.startTime')} hour`}
+                              />
+                              <span className="text-gray-500">:</span>
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={59}
+                                step={15}
+                                value={splitTime(bulkStartTime).minute}
+                                onChange={(e) => {
+                                  const m = Number(e.target.value);
+                                  const { hour } = splitTime(bulkStartTime);
+                                  if (!Number.isFinite(m)) return;
+                                  setBulkStartTime(setTimeParts(bulkStartTime, hour, m));
+                                }}
+                                className="bg-gray-800 border-gray-700 text-white w-24"
+                                aria-label={`${t('barber.startTime')} minutes`}
+                              />
+                            </div>
                           </div>
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
-                            <Input
-                              type="time"
-                              step={900}
-                              value={bulkEndTime}
-                              onChange={(e) => setBulkEndTime(e.target.value)}
-                              className="bg-gray-800 border-gray-700 text-white"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={23}
+                                value={splitTime(bulkEndTime).hour}
+                                onChange={(e) => {
+                                  const h = Number(e.target.value);
+                                  const { minute } = splitTime(bulkEndTime);
+                                  if (!Number.isFinite(h)) return;
+                                  setBulkEndTime(setTimeParts(bulkEndTime, h, minute));
+                                }}
+                                className="bg-gray-800 border-gray-700 text-white w-20"
+                                aria-label={`${t('barber.endTime')} hour`}
+                              />
+                              <span className="text-gray-500">:</span>
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={59}
+                                step={15}
+                                value={splitTime(bulkEndTime).minute}
+                                onChange={(e) => {
+                                  const m = Number(e.target.value);
+                                  const { hour } = splitTime(bulkEndTime);
+                                  if (!Number.isFinite(m)) return;
+                                  setBulkEndTime(setTimeParts(bulkEndTime, hour, m));
+                                }}
+                                className="bg-gray-800 border-gray-700 text-white w-24"
+                                aria-label={`${t('barber.endTime')} minutes`}
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -423,25 +495,77 @@ export default function HorariosPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
-                            <Input
-                              type="time"
-                              step={900}
-                              value={dayAvailability.startTime}
-                              disabled={!isAvailable}
-                              onChange={(e) => handleTimeChange(day.value, 'startTime', e.target.value)}
-                              className="bg-gray-700 border-gray-600 text-white disabled:opacity-50"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={23}
+                                value={splitTime(dayAvailability.startTime).hour}
+                                disabled={!isAvailable}
+                                onChange={(e) => {
+                                  const h = Number(e.target.value);
+                                  if (!Number.isFinite(h)) return;
+                                  const { minute } = splitTime(dayAvailability.startTime);
+                                  handleTimeChange(day.value, 'startTime', setTimeParts(dayAvailability.startTime, h, minute));
+                                }}
+                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-20"
+                              />
+                              <span className="text-gray-500">:</span>
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={59}
+                                step={15}
+                                value={splitTime(dayAvailability.startTime).minute}
+                                disabled={!isAvailable}
+                                onChange={(e) => {
+                                  const m = Number(e.target.value);
+                                  if (!Number.isFinite(m)) return;
+                                  const { hour } = splitTime(dayAvailability.startTime);
+                                  handleTimeChange(day.value, 'startTime', setTimeParts(dayAvailability.startTime, hour, m));
+                                }}
+                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24"
+                              />
+                            </div>
                           </div>
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
-                            <Input
-                              type="time"
-                              step={900}
-                              value={dayAvailability.endTime}
-                              disabled={!isAvailable}
-                              onChange={(e) => handleTimeChange(day.value, 'endTime', e.target.value)}
-                              className="bg-gray-700 border-gray-600 text-white disabled:opacity-50"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={23}
+                                value={splitTime(dayAvailability.endTime).hour}
+                                disabled={!isAvailable}
+                                onChange={(e) => {
+                                  const h = Number(e.target.value);
+                                  if (!Number.isFinite(h)) return;
+                                  const { minute } = splitTime(dayAvailability.endTime);
+                                  handleTimeChange(day.value, 'endTime', setTimeParts(dayAvailability.endTime, h, minute));
+                                }}
+                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-20"
+                              />
+                              <span className="text-gray-500">:</span>
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min={0}
+                                max={59}
+                                step={15}
+                                value={splitTime(dayAvailability.endTime).minute}
+                                disabled={!isAvailable}
+                                onChange={(e) => {
+                                  const m = Number(e.target.value);
+                                  if (!Number.isFinite(m)) return;
+                                  const { hour } = splitTime(dayAvailability.endTime);
+                                  handleTimeChange(day.value, 'endTime', setTimeParts(dayAvailability.endTime, hour, m));
+                                }}
+                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24"
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
