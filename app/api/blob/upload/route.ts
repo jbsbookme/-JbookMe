@@ -15,6 +15,25 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
 
+  const pathname = typeof body?.pathname === 'string' ? body.pathname : '';
+  if (!pathname) {
+    return NextResponse.json({ error: 'Missing pathname' }, { status: 400 });
+  }
+
+  // Security: only allow uploads to known post folders.
+  if (!pathname.startsWith('posts/')) {
+    return NextResponse.json({ error: 'Invalid upload path' }, { status: 400 });
+  }
+
+  // Prevent path traversal or odd path formats.
+  if (pathname.includes('..') || pathname.includes('\\')) {
+    return NextResponse.json({ error: 'Invalid upload path' }, { status: 400 });
+  }
+
+  if (!/^posts\/(client_share|barber_work)\//.test(pathname)) {
+    return NextResponse.json({ error: 'Invalid upload folder' }, { status: 400 });
+  }
+
   const result = await handleUpload({
     body,
     request,
@@ -23,8 +42,8 @@ export async function POST(request: NextRequest) {
         // Some mobile browsers provide an empty/unknown MIME type for videos.
         // Allow octet-stream so uploads don't fail purely due to missing content-type.
         allowedContentTypes: ['image/*', 'video/*', 'application/octet-stream'],
-        // Allow larger videos from mobile devices.
-        maximumSizeInBytes: 200 * 1024 * 1024,
+        // Keep uploads lightweight (prevents huge videos).
+        maximumSizeInBytes: 60 * 1024 * 1024,
         tokenPayload: JSON.stringify({
           userId: session.user.id,
           role: session.user.role,

@@ -36,12 +36,38 @@ export default function PublicarPage() {
 
   const MAX_FILES = 10;
 
+  // Keep uploads light and fast (also enforced server-side by /api/blob/upload)
+  const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15MB
+  const MAX_VIDEO_BYTES = 60 * 1024 * 1024; // 60MB
+  const MAX_VIDEO_SECONDS = 60; // 1 minute
+
+  const getVideoDurationSeconds = (file: File): Promise<number | null> =>
+    new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          const d = Number.isFinite(video.duration) ? video.duration : NaN;
+          URL.revokeObjectURL(url);
+          resolve(Number.isFinite(d) ? d : null);
+        };
+        video.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        };
+        video.src = url;
+      } catch {
+        resolve(null);
+      }
+    });
+
   const isFirstPreviewVideo =
     !!selectedFiles[0] &&
     (selectedFiles[0].type.startsWith('video/') ||
       /\.(mp4|mov|m4v|webm|ogg)$/i.test(selectedFiles[0].name));
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
@@ -69,10 +95,27 @@ export default function PublicarPage() {
         continue;
       }
 
-      // Keep parity with /api/blob/upload (200MB max)
-      if (file.size > 200 * 1024 * 1024) {
-        toast.error(`El archivo no debe superar los 200MB: ${file.name}`);
-        continue;
+      // Keep uploads light (also enforced by /api/blob/upload)
+      if (isVideoFile) {
+        if (file.size > MAX_VIDEO_BYTES) {
+          toast.error(
+            `El video no debe superar ${(MAX_VIDEO_BYTES / (1024 * 1024)).toFixed(0)}MB: ${file.name}`
+          );
+          continue;
+        }
+
+        const durationSeconds = await getVideoDurationSeconds(file);
+        if (typeof durationSeconds === 'number' && durationSeconds > MAX_VIDEO_SECONDS) {
+          toast.error(`El video no debe durar más de ${MAX_VIDEO_SECONDS}s: ${file.name}`);
+          continue;
+        }
+      } else {
+        if (file.size > MAX_IMAGE_BYTES) {
+          toast.error(
+            `La foto no debe superar ${(MAX_IMAGE_BYTES / (1024 * 1024)).toFixed(0)}MB: ${file.name}`
+          );
+          continue;
+        }
       }
 
       validFiles.push(file);
@@ -232,7 +275,7 @@ export default function PublicarPage() {
                 <div className="flex flex-col items-center text-center">
                   <Upload className="w-12 h-12 mb-4 text-cyan-400" />
                   <p className="text-sm text-zinc-300 font-semibold">Sube tu post</p>
-                  <p className="mt-1 text-xs text-zinc-500">Fotos o videos (máx 200MB). Puedes seleccionar hasta {MAX_FILES}.</p>
+                  <p className="mt-1 text-xs text-zinc-500">Fotos (máx 15MB) o videos (máx 60MB / 60s). Puedes seleccionar hasta {MAX_FILES}.</p>
 
                   <div className="mt-4">
                     <Button

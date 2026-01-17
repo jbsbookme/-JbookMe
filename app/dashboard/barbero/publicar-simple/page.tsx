@@ -40,7 +40,33 @@ export default function SimpleUploadPage() {
 
   const MAX_FILES = 10;
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Keep uploads light and fast (also enforced server-side by /api/blob/upload)
+  const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15MB
+  const MAX_VIDEO_BYTES = 60 * 1024 * 1024; // 60MB
+  const MAX_VIDEO_SECONDS = 60; // 1 minute
+
+  const getVideoDurationSeconds = (file: File): Promise<number | null> =>
+    new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          const d = Number.isFinite(video.duration) ? video.duration : NaN;
+          URL.revokeObjectURL(url);
+          resolve(Number.isFinite(d) ? d : null);
+        };
+        video.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve(null);
+        };
+        video.src = url;
+      } catch {
+        resolve(null);
+      }
+    });
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -69,10 +95,27 @@ export default function SimpleUploadPage() {
         continue;
       }
 
-      // Validate file size (200MB max)
-      if (file.size > 200 * 1024 * 1024) {
-        toast.error(`File size must be less than 200MB: ${file.name}`);
-        continue;
+      // Validate size + duration (keeps uploads lightweight)
+      if (isVideoFile) {
+        if (file.size > MAX_VIDEO_BYTES) {
+          toast.error(
+            `Video too large (max ${(MAX_VIDEO_BYTES / (1024 * 1024)).toFixed(0)}MB): ${file.name}`
+          );
+          continue;
+        }
+
+        const durationSeconds = await getVideoDurationSeconds(file);
+        if (typeof durationSeconds === 'number' && durationSeconds > MAX_VIDEO_SECONDS) {
+          toast.error(`Video too long (max ${MAX_VIDEO_SECONDS}s): ${file.name}`);
+          continue;
+        }
+      } else {
+        if (file.size > MAX_IMAGE_BYTES) {
+          toast.error(
+            `Photo too large (max ${(MAX_IMAGE_BYTES / (1024 * 1024)).toFixed(0)}MB): ${file.name}`
+          );
+          continue;
+        }
       }
 
       validFiles.push(file);
@@ -285,7 +328,7 @@ export default function SimpleUploadPage() {
                         <Upload className="w-12 h-12 text-gray-400 mb-3" />
                       )}
                       <p className="mb-2 text-sm text-gray-300 font-semibold">Upload your post</p>
-                      <p className="text-xs text-gray-500">Image or Video (MAX 200MB) • Up to {MAX_FILES} files</p>
+                      <p className="text-xs text-gray-500">Photo (max 15MB) • Video (max 60MB / 60s) • Up to {MAX_FILES} files</p>
 
                       <Button
                         type="button"
