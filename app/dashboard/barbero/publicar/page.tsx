@@ -365,7 +365,7 @@ export default function BarberUploadPage() {
                           <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <Button
                               type="button"
-                              className="h-auto w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
+                              className="h-auto w-full py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white"
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 cameraInputRef.current?.click();
@@ -374,14 +374,14 @@ export default function BarberUploadPage() {
                             >
                               <span className="flex w-full flex-col items-center gap-0.5">
                                 <Camera className="h-4 w-4" />
-                                <span className="text-[13px] font-semibold">Photo</span>
-                                <span className="text-[10px] text-white/80">Camera</span>
+                                <span className="text-xs font-semibold">Photo</span>
+                                <span className="text-[9px] text-white/80">Camera</span>
                               </span>
                             </Button>
 
                             <Button
                               type="button"
-                              className="h-auto w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                              className="h-auto w-full py-2.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 videoInputRef.current?.click();
@@ -390,15 +390,15 @@ export default function BarberUploadPage() {
                             >
                               <span className="flex w-full flex-col items-center gap-0.5">
                                 <Video className="h-4 w-4" />
-                                <span className="text-[13px] font-semibold">Video</span>
-                                <span className="text-[10px] text-white/80">Record</span>
+                                <span className="text-xs font-semibold">Video</span>
+                                <span className="text-[9px] text-white/80">Record</span>
                               </span>
                             </Button>
 
                             <Button
                               type="button"
                               variant="outline"
-                              className="h-auto w-full py-3 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                              className="h-auto w-full py-2.5 border-white/10 bg-white/5 text-white hover:bg-white/10"
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 galleryInputRef.current?.click();
@@ -407,8 +407,8 @@ export default function BarberUploadPage() {
                             >
                               <span className="flex w-full flex-col items-center gap-0.5">
                                 <Images className="h-4 w-4" />
-                                <span className="text-[13px] font-semibold">Gallery</span>
-                                <span className="text-[10px] text-white/70">Select</span>
+                                <span className="text-xs font-semibold">Gallery</span>
+                                <span className="text-[9px] text-white/70">Select</span>
                               </span>
                             </Button>
                           </div>
