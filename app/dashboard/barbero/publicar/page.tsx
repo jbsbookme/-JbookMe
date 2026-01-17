@@ -380,9 +380,8 @@ export default function BarberUploadPage() {
                 <input
                   ref={cameraInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*"
                   capture="environment"
-                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                 />

@@ -252,9 +252,8 @@ export default function PublicarPage() {
                   ref={cameraInputRef}
                   type="file"
                   className="hidden"
-                  accept="image/*,video/*"
+                  accept="image/*"
                   capture="environment"
-                  multiple
                   onChange={handleFileSelect}
                   disabled={isUploading}
                 />

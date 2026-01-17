@@ -245,9 +245,8 @@ export default function SimpleUploadPage() {
                 <input
                   ref={cameraInputRef}
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*"
                   capture="environment"
-                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                   id="file-input-camera"
