@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -27,6 +28,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { formatTime12h } from '@/lib/time';
 
 interface Availability {
   id: string;
@@ -74,21 +76,27 @@ export default function HorariosPage() {
 
   const pad2 = (n: number) => String(n).padStart(2, '0');
 
-  const splitTime = (hhmm: string) => {
+  const to12hParts = (hhmm: string) => {
     const [hRaw, mRaw] = hhmm.split(':');
-    const hour = Number(hRaw);
+    const hour24 = Number(hRaw);
     const minute = Number(mRaw);
-    return {
-      hour: Number.isFinite(hour) ? hour : 0,
-      minute: Number.isFinite(minute) ? minute : 0,
-    };
+    const safeHour24 = Number.isFinite(hour24) ? Math.max(0, Math.min(23, Math.floor(hour24))) : 0;
+    const safeMinute = Number.isFinite(minute) ? Math.max(0, Math.min(59, Math.floor(minute))) : 0;
+    const ampm: 'AM' | 'PM' = safeHour24 >= 12 ? 'PM' : 'AM';
+    const hour12 = ((safeHour24 + 11) % 12) + 1;
+    return { hour12, minute: safeMinute, ampm };
   };
 
-  const setTimeParts = (value: string, nextHour: number, nextMinute: number) => {
-    const hour = Math.max(0, Math.min(23, Math.floor(nextHour)));
-    const minute = Math.max(0, Math.min(59, Math.floor(nextMinute)));
-    return `${pad2(hour)}:${pad2(minute)}`;
+  const from12hParts = (hour12: number, minute: number, ampm: 'AM' | 'PM') => {
+    const safeHour12 = Math.max(1, Math.min(12, Math.floor(hour12)));
+    const safeMinute = Math.max(0, Math.min(59, Math.floor(minute)));
+    const base = safeHour12 % 12;
+    const hour24 = ampm === 'PM' ? base + 12 : base;
+    return `${pad2(hour24)}:${pad2(safeMinute)}`;
   };
+
+  const minuteOptions = useMemo(() => ['00', '15', '30', '45'], []);
+  const hourOptions = useMemo(() => Array.from({ length: 12 }, (_, i) => String(i + 1)), []);
 
   const toMinutes = (hhmm: string) => {
     const [h, m] = hhmm.split(':').map((v) => Number(v));
@@ -371,76 +379,124 @@ export default function HorariosPage() {
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
                             <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={23}
-                                value={splitTime(bulkStartTime).hour}
-                                onChange={(e) => {
-                                  const h = Number(e.target.value);
-                                  const { minute } = splitTime(bulkStartTime);
-                                  if (!Number.isFinite(h)) return;
-                                  setBulkStartTime(setTimeParts(bulkStartTime, h, minute));
+                              <Select
+                                value={String(to12hParts(bulkStartTime).hour12)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkStartTime);
+                                  setBulkStartTime(from12hParts(Number(v), parts.minute, parts.ampm));
                                 }}
-                                className="bg-gray-800 border-gray-700 text-white w-20"
-                                aria-label={`${t('barber.startTime')} hour`}
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="9" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {hourOptions.map((h) => (
+                                    <SelectItem key={h} value={h}>
+                                      {h}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
                               <span className="text-gray-500">:</span>
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={59}
-                                step={15}
-                                value={splitTime(bulkStartTime).minute}
-                                onChange={(e) => {
-                                  const m = Number(e.target.value);
-                                  const { hour } = splitTime(bulkStartTime);
-                                  if (!Number.isFinite(m)) return;
-                                  setBulkStartTime(setTimeParts(bulkStartTime, hour, m));
+
+                              <Select
+                                value={pad2(to12hParts(bulkStartTime).minute)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkStartTime);
+                                  setBulkStartTime(from12hParts(parts.hour12, Number(v), parts.ampm));
                                 }}
-                                className="bg-gray-800 border-gray-700 text-white w-24"
-                                aria-label={`${t('barber.startTime')} minutes`}
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {minuteOptions.map((m) => (
+                                    <SelectItem key={m} value={m}>
+                                      {m}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <Select
+                                value={to12hParts(bulkStartTime).ampm}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkStartTime);
+                                  setBulkStartTime(from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="AM" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(bulkStartTime)}</p>
                           </div>
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
                             <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={23}
-                                value={splitTime(bulkEndTime).hour}
-                                onChange={(e) => {
-                                  const h = Number(e.target.value);
-                                  const { minute } = splitTime(bulkEndTime);
-                                  if (!Number.isFinite(h)) return;
-                                  setBulkEndTime(setTimeParts(bulkEndTime, h, minute));
+                              <Select
+                                value={String(to12hParts(bulkEndTime).hour12)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkEndTime);
+                                  setBulkEndTime(from12hParts(Number(v), parts.minute, parts.ampm));
                                 }}
-                                className="bg-gray-800 border-gray-700 text-white w-20"
-                                aria-label={`${t('barber.endTime')} hour`}
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="6" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {hourOptions.map((h) => (
+                                    <SelectItem key={h} value={h}>
+                                      {h}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
                               <span className="text-gray-500">:</span>
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={59}
-                                step={15}
-                                value={splitTime(bulkEndTime).minute}
-                                onChange={(e) => {
-                                  const m = Number(e.target.value);
-                                  const { hour } = splitTime(bulkEndTime);
-                                  if (!Number.isFinite(m)) return;
-                                  setBulkEndTime(setTimeParts(bulkEndTime, hour, m));
+
+                              <Select
+                                value={pad2(to12hParts(bulkEndTime).minute)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkEndTime);
+                                  setBulkEndTime(from12hParts(parts.hour12, Number(v), parts.ampm));
                                 }}
-                                className="bg-gray-800 border-gray-700 text-white w-24"
-                                aria-label={`${t('barber.endTime')} minutes`}
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {minuteOptions.map((m) => (
+                                    <SelectItem key={m} value={m}>
+                                      {m}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <Select
+                                value={to12hParts(bulkEndTime).ampm}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkEndTime);
+                                  setBulkEndTime(from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="PM" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(bulkEndTime)}</p>
                           </div>
                         </div>
 
@@ -496,76 +552,130 @@ export default function HorariosPage() {
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
                             <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={23}
-                                value={splitTime(dayAvailability.startTime).hour}
+                              <Select
+                                value={String(to12hParts(dayAvailability.startTime).hour12)}
                                 disabled={!isAvailable}
-                                onChange={(e) => {
-                                  const h = Number(e.target.value);
-                                  if (!Number.isFinite(h)) return;
-                                  const { minute } = splitTime(dayAvailability.startTime);
-                                  handleTimeChange(day.value, 'startTime', setTimeParts(dayAvailability.startTime, h, minute));
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(dayAvailability.startTime);
+                                  handleTimeChange(day.value, 'startTime', from12hParts(Number(v), parts.minute, parts.ampm));
                                 }}
-                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-20"
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
+                                  <SelectValue placeholder="9" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {hourOptions.map((h) => (
+                                    <SelectItem key={h} value={h}>
+                                      {h}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
                               <span className="text-gray-500">:</span>
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={59}
-                                step={15}
-                                value={splitTime(dayAvailability.startTime).minute}
+
+                              <Select
+                                value={pad2(to12hParts(dayAvailability.startTime).minute)}
                                 disabled={!isAvailable}
-                                onChange={(e) => {
-                                  const m = Number(e.target.value);
-                                  if (!Number.isFinite(m)) return;
-                                  const { hour } = splitTime(dayAvailability.startTime);
-                                  handleTimeChange(day.value, 'startTime', setTimeParts(dayAvailability.startTime, hour, m));
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(dayAvailability.startTime);
+                                  handleTimeChange(day.value, 'startTime', from12hParts(parts.hour12, Number(v), parts.ampm));
                                 }}
-                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24"
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {minuteOptions.map((m) => (
+                                    <SelectItem key={m} value={m}>
+                                      {m}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <Select
+                                value={to12hParts(dayAvailability.startTime).ampm}
+                                disabled={!isAvailable}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(dayAvailability.startTime);
+                                  handleTimeChange(day.value, 'startTime', from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
+                                  <SelectValue placeholder="AM" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(dayAvailability.startTime)}</p>
                           </div>
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
                             <div className="flex items-center gap-2">
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={23}
-                                value={splitTime(dayAvailability.endTime).hour}
+                              <Select
+                                value={String(to12hParts(dayAvailability.endTime).hour12)}
                                 disabled={!isAvailable}
-                                onChange={(e) => {
-                                  const h = Number(e.target.value);
-                                  if (!Number.isFinite(h)) return;
-                                  const { minute } = splitTime(dayAvailability.endTime);
-                                  handleTimeChange(day.value, 'endTime', setTimeParts(dayAvailability.endTime, h, minute));
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(dayAvailability.endTime);
+                                  handleTimeChange(day.value, 'endTime', from12hParts(Number(v), parts.minute, parts.ampm));
                                 }}
-                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-20"
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
+                                  <SelectValue placeholder="6" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {hourOptions.map((h) => (
+                                    <SelectItem key={h} value={h}>
+                                      {h}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
                               <span className="text-gray-500">:</span>
-                              <Input
-                                type="number"
-                                inputMode="numeric"
-                                min={0}
-                                max={59}
-                                step={15}
-                                value={splitTime(dayAvailability.endTime).minute}
+
+                              <Select
+                                value={pad2(to12hParts(dayAvailability.endTime).minute)}
                                 disabled={!isAvailable}
-                                onChange={(e) => {
-                                  const m = Number(e.target.value);
-                                  if (!Number.isFinite(m)) return;
-                                  const { hour } = splitTime(dayAvailability.endTime);
-                                  handleTimeChange(day.value, 'endTime', setTimeParts(dayAvailability.endTime, hour, m));
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(dayAvailability.endTime);
+                                  handleTimeChange(day.value, 'endTime', from12hParts(parts.hour12, Number(v), parts.ampm));
                                 }}
-                                className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24"
-                              />
+                              >
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {minuteOptions.map((m) => (
+                                    <SelectItem key={m} value={m}>
+                                      {m}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+
+                              <Select
+                                value={to12hParts(dayAvailability.endTime).ampm}
+                                disabled={!isAvailable}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(dayAvailability.endTime);
+                                  handleTimeChange(day.value, 'endTime', from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
+                                  <SelectValue placeholder="PM" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
+                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(dayAvailability.endTime)}</p>
                           </div>
                         </div>
                       )}
