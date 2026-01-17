@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { Camera, Images, Upload, Image as ImageIcon, RefreshCcw, Video, X } from "lucide-react";
+import { Camera, Images, Upload, Image as ImageIcon, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,16 +14,6 @@ export default function PublicarPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
-
-  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
-
-  const applyCaptureFacing = (
-    input: HTMLInputElement | null,
-    facing: 'environment' | 'user'
-  ) => {
-    if (!input) return;
-    input.setAttribute('capture', facing);
-  };
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -285,20 +275,6 @@ export default function PublicarPage() {
                           Fotos (máx 15MB) o videos (máx 60MB / 60s). Puedes seleccionar hasta {MAX_FILES}.
                         </p>
                       </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-3 border-white/10 bg-white/5 text-zinc-200 hover:bg-white/10"
-                        onClick={() =>
-                          setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'))
-                        }
-                        disabled={isUploading}
-                      >
-                        <RefreshCcw className="mr-2 h-4 w-4" />
-                        {cameraFacing === 'environment' ? 'Trasera' : 'Frontal'}
-                      </Button>
                     </div>
 
                     <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -306,7 +282,6 @@ export default function PublicarPage() {
                         type="button"
                         className="h-auto w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
                         onClick={() => {
-                          applyCaptureFacing(cameraInputRef.current, cameraFacing);
                           cameraInputRef.current?.click();
                         }}
                         disabled={isUploading}
@@ -322,7 +297,6 @@ export default function PublicarPage() {
                         type="button"
                         className="h-auto w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                         onClick={() => {
-                          applyCaptureFacing(videoInputRef.current, cameraFacing);
                           videoInputRef.current?.click();
                         }}
                         disabled={isUploading}

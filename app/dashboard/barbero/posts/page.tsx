@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Camera,
   Images,
-  RefreshCcw,
   Video,
   X,
   Upload,
@@ -39,15 +38,6 @@ export default function BarberPostsPage() {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
-
-  const applyCaptureFacing = (
-    input: HTMLInputElement | null,
-    facing: 'environment' | 'user'
-  ) => {
-    if (!input) return;
-    input.setAttribute('capture', facing);
-  };
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -436,22 +426,6 @@ export default function BarberPostsPage() {
                                 Photo (max 15MB) • Video (max 60MB / 60s)
                               </p>
                             </div>
-
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-8 px-3 border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                              onClick={() =>
-                                setCameraFacing((prev) =>
-                                  prev === 'environment' ? 'user' : 'environment'
-                                )
-                              }
-                              disabled={uploading}
-                            >
-                              <RefreshCcw className="mr-2 h-4 w-4" />
-                              {cameraFacing === 'environment' ? 'Rear' : 'Front'}
-                            </Button>
                           </div>
 
                           <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -459,7 +433,6 @@ export default function BarberPostsPage() {
                               type="button"
                               className="h-auto w-full py-4 bg-gradient-to-r from-[#00f0ff] to-[#00c2ff] hover:from-[#00d6e6] hover:to-[#00a8ff] text-black font-semibold"
                               onClick={() => {
-                                applyCaptureFacing(cameraInputRef.current, cameraFacing);
                                 cameraInputRef.current?.click();
                               }}
                               disabled={uploading}
@@ -475,7 +448,6 @@ export default function BarberPostsPage() {
                               type="button"
                               className="h-auto w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                               onClick={() => {
-                                applyCaptureFacing(videoInputRef.current, cameraFacing);
                                 videoInputRef.current?.click();
                               }}
                               disabled={uploading}
