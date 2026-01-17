@@ -28,6 +28,9 @@ export async function GET(_req: NextRequest) {
           select: {
             id: true,
             profileImage: true,
+            zelleEmail: true,
+            zellePhone: true,
+            cashappTag: true,
           },
         },
       },

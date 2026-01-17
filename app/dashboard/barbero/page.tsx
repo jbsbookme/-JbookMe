@@ -76,12 +76,18 @@ export default function BarberoDashboard() {
   const [newPaymentMethod, setNewPaymentMethod] = useState<string>('');
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [paymentPageQR, setPaymentPageQR] = useState<string | null>(null);
+  const [paymentPageUrl, setPaymentPageUrl] = useState<string | null>(null);
   const [zelleQR, setZelleQR] = useState<string | null>(null);
   const [cashappQR, setCashappQR] = useState<string | null>(null);
+  const [zellePayload, setZellePayload] = useState<string | null>(null);
+  const [cashappPayload, setCashappPayload] = useState<string | null>(null);
   type QRLoadState = 'idle' | 'loading' | 'error';
+  const [paymentPageQRState, setPaymentPageQRState] = useState<QRLoadState>('idle');
   const [zelleQRState, setZelleQRState] = useState<QRLoadState>('idle');
   const [cashappQRState, setCashappQRState] = useState<QRLoadState>('idle');
   type BarberData = {
+    id?: string | null;
     zelleEmail?: string | null;
     zellePhone?: string | null;
     cashappTag?: string | null;
@@ -99,6 +105,79 @@ export default function BarberoDashboard() {
   const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
+  const copyToClipboard = useCallback(async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage);
+    } catch {
+      toast.error('Could not copy');
+    }
+  }, []);
+
+  const downloadDataUrl = useCallback((dataUrl: string, filename: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch {
+      toast.error('Could not download');
+    }
+  }, []);
+
+  // Keep a recommended, always-scannable QR visible without opening the modal.
+  useEffect(() => {
+    const hasPayments = Boolean(barberData?.zelleEmail || barberData?.zellePhone || barberData?.cashappTag);
+    const barberId = barberData?.id ? String(barberData.id) : '';
+
+    if (!hasPayments || !barberId) {
+      setPaymentPageUrl(null);
+      setPaymentPageQR(null);
+      setPaymentPageQRState('idle');
+      return;
+    }
+
+    const url = new URL(`/barberos/${barberId}/pago`, window.location.origin).toString();
+    setPaymentPageUrl(url);
+
+    // Avoid refetching if we already have a QR for this URL.
+    if (paymentPageQR && paymentPageUrl === url) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setPaymentPageQRState('loading');
+        const res = await fetch('/api/qr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: url }),
+        });
+
+        if (cancelled) return;
+
+        if (res.ok) {
+          const { qr } = await res.json();
+          setPaymentPageQR(qr);
+          setPaymentPageQRState('idle');
+        } else {
+          setPaymentPageQR(null);
+          setPaymentPageQRState('error');
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Error generating Payment Page QR:', error);
+        setPaymentPageQR(null);
+        setPaymentPageQRState('error');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [barberData?.id, barberData?.zelleEmail, barberData?.zellePhone, barberData?.cashappTag, paymentPageQR, paymentPageUrl]);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -498,6 +577,18 @@ export default function BarberoDashboard() {
     }
 
     const normalizePhone = (phone: string) => phone.replace(/[^0-9+]/g, '');
+    const normalizeCashAppTag = (value: string) => {
+      const raw = String(value).trim().replace(/\s+/g, '');
+      const fromUrl = raw.replace(/^https?:\/\/(www\.)?cash\.app\//i, '');
+      const tag = fromUrl.replace(/^\$/g, '').replace(/^@/g, '');
+      return tag.replace(/[^a-zA-Z0-9_]/g, '');
+    };
+
+    const barberId = barberData?.id ? String(barberData.id) : '';
+    const nextPaymentPageUrl = barberId
+      ? new URL(`/barberos/${barberId}/pago`, window.location.origin).toString()
+      : null;
+
     const buildZellePayload = () => {
       if (barberData.zelleEmail) return `mailto:${String(barberData.zelleEmail).trim()}`;
       if (barberData.zellePhone) return `tel:${normalizePhone(String(barberData.zellePhone))}`;
@@ -507,21 +598,57 @@ export default function BarberoDashboard() {
       if (!barberData.cashappTag) return null;
       const raw = String(barberData.cashappTag).trim();
       if (/^https?:\/\//i.test(raw)) return raw;
-      const tag = raw.startsWith('$') ? raw : `$${raw}`;
+      const cleaned = normalizeCashAppTag(raw);
+      if (!cleaned) return null;
+      const tag = `$${cleaned}`;
       return `https://cash.app/${tag}`;
     };
 
+    setPaymentPageQR(null);
+    setPaymentPageUrl(nextPaymentPageUrl);
     setZelleQR(null);
     setCashappQR(null);
+    setZellePayload(null);
+    setCashappPayload(null);
+    setPaymentPageQRState('idle');
     setZelleQRState('idle');
     setCashappQRState('idle');
     setShowQRModal(true);
+
+    // Precompute payloads for copy actions
+    const zelleDataForCopy = buildZellePayload();
+    const cashappDataForCopy = buildCashAppPayload();
+    setZellePayload(zelleDataForCopy);
+    setCashappPayload(cashappDataForCopy);
+
+    // Generate a single, reliable payment page QR (recommended)
+    if ((barberData.zelleEmail || barberData.zellePhone || barberData.cashappTag) && nextPaymentPageUrl) {
+      try {
+        setPaymentPageQRState('loading');
+        const res = await fetch('/api/qr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: nextPaymentPageUrl }),
+        });
+
+        if (res.ok) {
+          const { qr } = await res.json();
+          setPaymentPageQR(qr);
+          setPaymentPageQRState('idle');
+        } else {
+          setPaymentPageQRState('error');
+        }
+      } catch (error) {
+        console.error('Error generating Payment Page QR:', error);
+        setPaymentPageQRState('error');
+      }
+    }
 
     // Generate QR for Zelle if available
     if (barberData.zelleEmail || barberData.zellePhone) {
       try {
         setZelleQRState('loading');
-        const zelleData = buildZellePayload();
+        const zelleData = zelleDataForCopy;
         if (!zelleData) {
           setZelleQRState('error');
         } else {
@@ -550,7 +677,7 @@ export default function BarberoDashboard() {
     if (barberData.cashappTag) {
       try {
         setCashappQRState('loading');
-        const cashappData = buildCashAppPayload();
+        const cashappData = cashappDataForCopy;
         if (!cashappData) {
           setCashappQRState('error');
         } else {
@@ -584,18 +711,36 @@ export default function BarberoDashboard() {
 
     setIsLoading(true);
     try {
+      const normalizeCashAppForSave = (value: string) => {
+        const raw = value.trim();
+        if (!raw) return '';
+        const withoutSpaces = raw.replace(/\s+/g, '');
+        const fromUrl = withoutSpaces.replace(/^https?:\/\/(www\.)?cash\.app\//i, '');
+        const tag = fromUrl.replace(/^\$/g, '').replace(/^@/g, '');
+        const cleaned = tag.replace(/[^a-zA-Z0-9_]/g, '');
+        return cleaned ? `$${cleaned}` : '';
+      };
+
+      const payload = {
+        zelleEmail: paymentMethods.zelleEmail.trim() || null,
+        zellePhone: paymentMethods.zellePhone.trim() || null,
+        cashappTag: normalizeCashAppForSave(paymentMethods.cashappTag) || null,
+      };
+
       const res = await fetch('/api/barber/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          zelleEmail: paymentMethods.zelleEmail || null,
-          zellePhone: paymentMethods.zellePhone || null,
-          cashappTag: paymentMethods.cashappTag || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
         toast.success('Payment methods updated!');
+        setPaymentMethods((prev) => ({
+          ...prev,
+          cashappTag: payload.cashappTag ? String(payload.cashappTag) : '',
+          zelleEmail: payload.zelleEmail ? String(payload.zelleEmail) : '',
+          zellePhone: payload.zellePhone ? String(payload.zellePhone) : '',
+        }));
         await fetchProfile(); // Refresh data
       } else {
         const data = await res.json();
@@ -838,6 +983,84 @@ export default function BarberoDashboard() {
               >
                 {isLoading ? t('common.updating') : 'Update Payment Methods'}
               </Button>
+
+              {(barberData?.zelleEmail || barberData?.zellePhone || barberData?.cashappTag) && barberData?.id ? (
+                <div className="pt-4 border-t border-gray-800 space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-cyan-200 flex items-center gap-2">
+                        <QrCode className="h-4 w-4" />
+                        Payment QR (recommended)
+                      </div>
+                      <div className="text-xs text-gray-500 break-all">/barberos/{String(barberData.id)}/pago</div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!paymentPageUrl}
+                        onClick={() => {
+                          if (!paymentPageUrl) return;
+                          void copyToClipboard(paymentPageUrl, 'Link copied');
+                        }}
+                        className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                      >
+                        Copy link
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={!paymentPageQR}
+                        onClick={() => {
+                          if (!paymentPageQR) return;
+                          downloadDataUrl(paymentPageQR, 'payment-page-qr.png');
+                        }}
+                        className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                      >
+                        Download PNG
+                      </Button>
+                    </div>
+                  </div>
+
+                  {paymentPageQR ? (
+                    <div className="bg-white p-3 rounded-xl shadow-lg max-w-sm mx-auto">
+                      <Image
+                        src={paymentPageQR}
+                        alt="Payment Page QR Code"
+                        width={900}
+                        height={900}
+                        className="w-full h-auto"
+                        unoptimized
+                      />
+                    </div>
+                  ) : paymentPageQRState === 'error' ? (
+                    <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                      <p className="text-sm text-gray-300">Could not generate the Payment QR.</p>
+                      <p className="text-xs text-gray-500 mt-1">Try again in a moment or re-check your payment info.</p>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-800 p-8 rounded-lg flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">This QR opens a clean payment page (most reliable).</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={handleShowQRCodes}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      More QRs
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -1400,7 +1623,7 @@ export default function BarberoDashboard() {
       
       {/* Payment QR Modal */}
       <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
-        <DialogContent className="bg-gray-900 border-gray-700 max-w-md">
+        <DialogContent className="bg-gray-900 border-gray-700 max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-white text-2xl flex items-center gap-2">
               <QrCode className="w-6 h-6 text-green-500" />
@@ -1412,17 +1635,110 @@ export default function BarberoDashboard() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
+            {/* Payment Page QR (Recommended) */}
+            {(barberData?.zelleEmail || barberData?.zellePhone || barberData?.cashappTag) && barberData?.id ? (
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-cyan-300">Payment Page (Recommended)</h3>
+                    <p className="text-xs text-gray-400 break-all">/barberos/{String(barberData.id)}/pago</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!paymentPageUrl}
+                      onClick={() => {
+                        if (!paymentPageUrl) return;
+                        void copyToClipboard(paymentPageUrl, 'Link copied');
+                      }}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      Copy link
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!paymentPageQR}
+                      onClick={() => {
+                        if (!paymentPageQR) return;
+                        downloadDataUrl(paymentPageQR, 'payment-page-qr.png');
+                      }}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      Download PNG
+                    </Button>
+                  </div>
+                </div>
+
+                {paymentPageQR ? (
+                  <div className="bg-white p-3 rounded-xl shadow-lg">
+                    <Image
+                      src={paymentPageQR}
+                      alt="Payment Page QR Code"
+                      width={900}
+                      height={900}
+                      className="w-full h-auto"
+                      unoptimized
+                    />
+                  </div>
+                ) : paymentPageQRState === 'error' ? (
+                  <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                    <p className="text-sm text-gray-300">Could not generate the Payment Page QR.</p>
+                  </div>
+                ) : (
+                  <div className="bg-gray-800 p-8 rounded-lg flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
             {/* Zelle QR */}
             {(barberData?.zelleEmail || barberData?.zellePhone) && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-purple-400">Zelle</h3>
-                  <span className="text-xs text-gray-400">
-                    {barberData?.zelleEmail || barberData?.zellePhone}
-                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-purple-400">Zelle</h3>
+                    <span className="text-xs text-gray-400 break-all">
+                      {barberData?.zelleEmail || barberData?.zellePhone}
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!zellePayload}
+                      onClick={() => {
+                        if (!zellePayload) return;
+                        void copyToClipboard(zellePayload, 'Link copied');
+                      }}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      Copy link
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!zelleQR}
+                      onClick={() => {
+                        if (!zelleQR) return;
+                        downloadDataUrl(zelleQR, 'zelle-qr.png');
+                      }}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      Download PNG
+                    </Button>
+                  </div>
                 </div>
                 {zelleQR ? (
-                  <div className="bg-white p-4 rounded-lg">
+                  <div className="bg-white p-3 rounded-xl shadow-lg">
                     <Image src={zelleQR} alt="Zelle QR Code" width={600} height={600} className="w-full h-auto" unoptimized />
                   </div>
                 ) : zelleQRState === 'error' ? (
@@ -1442,11 +1758,42 @@ export default function BarberoDashboard() {
             {barberData?.cashappTag && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-green-400">CashApp</h3>
-                  <span className="text-xs text-gray-400">{barberData?.cashappTag}</span>
+                  <div className="min-w-0">
+                    <h3 className="text-lg font-semibold text-green-400">CashApp</h3>
+                    <span className="text-xs text-gray-400 break-all">{barberData?.cashappTag}</span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!cashappPayload}
+                      onClick={() => {
+                        if (!cashappPayload) return;
+                        void copyToClipboard(cashappPayload, 'Link copied');
+                      }}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      Copy link
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={!cashappQR}
+                      onClick={() => {
+                        if (!cashappQR) return;
+                        downloadDataUrl(cashappQR, 'cashapp-qr.png');
+                      }}
+                      className="border-gray-600 text-gray-200 hover:bg-gray-800"
+                    >
+                      Download PNG
+                    </Button>
+                  </div>
                 </div>
                 {cashappQR ? (
-                  <div className="bg-white p-4 rounded-lg">
+                  <div className="bg-white p-3 rounded-xl shadow-lg">
                     <Image src={cashappQR} alt="CashApp QR Code" width={600} height={600} className="w-full h-auto" unoptimized />
                   </div>
                 ) : cashappQRState === 'error' ? (

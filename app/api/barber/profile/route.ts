@@ -78,6 +78,55 @@ export async function PUT(req: NextRequest) {
       cashappTag,
     } = body;
 
+    const normalizeEmail = (value: unknown) => {
+      if (value === null) return null;
+      if (value === undefined) return undefined;
+      const trimmed = String(value).trim();
+      return trimmed.length ? trimmed : null;
+    };
+
+    const normalizePhone = (value: unknown) => {
+      if (value === null) return null;
+      if (value === undefined) return undefined;
+      const trimmed = String(value).trim();
+      if (!trimmed) return null;
+      const normalized = trimmed.replace(/[^0-9+]/g, '');
+      return normalized.length ? normalized : null;
+    };
+
+    const normalizeCashAppTag = (value: unknown) => {
+      if (value === null) return null;
+      if (value === undefined) return undefined;
+      const raw = String(value).trim();
+      if (!raw) return null;
+
+      // Accept inputs like "$tag", "tag", or full URLs like "https://cash.app/$tag".
+      const withoutSpaces = raw.replace(/\s+/g, '');
+      const fromUrl = withoutSpaces.replace(/^https?:\/\/(www\.)?cash\.app\//i, '');
+      const tag = fromUrl.replace(/^\$/g, '').replace(/^@/g, '');
+      const cleaned = tag.replace(/[^a-zA-Z0-9_]/g, '');
+      return cleaned.length ? `$${cleaned}` : null;
+    };
+
+    const normalizedZelleEmail = normalizeEmail(zelleEmail);
+    const normalizedZellePhone = normalizePhone(zellePhone);
+    const normalizedCashappTag = normalizeCashAppTag(cashappTag);
+
+    if (typeof normalizedZelleEmail === 'string') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(normalizedZelleEmail)) {
+        return NextResponse.json({ error: 'Invalid Zelle email format.' }, { status: 400 });
+      }
+    }
+
+    if (typeof normalizedZellePhone === 'string') {
+      // Keep this lenient: accept + and digits; basic length sanity check.
+      const digitsOnly = normalizedZellePhone.replace(/\D/g, '');
+      if (digitsOnly.length < 10) {
+        return NextResponse.json({ error: 'Invalid Zelle phone number.' }, { status: 400 });
+      }
+    }
+
     // Find the barber record
     const barber = await prisma.barber.findUnique({
       where: { userId: session.user.id },
@@ -104,9 +153,9 @@ export async function PUT(req: NextRequest) {
         tiktokUrl: tiktokUrl !== undefined ? tiktokUrl : barber.tiktokUrl,
         youtubeUrl: youtubeUrl !== undefined ? youtubeUrl : barber.youtubeUrl,
         whatsappUrl: whatsappUrl !== undefined ? whatsappUrl : barber.whatsappUrl,
-        zelleEmail: zelleEmail !== undefined ? zelleEmail : barber.zelleEmail,
-        zellePhone: zellePhone !== undefined ? zellePhone : barber.zellePhone,
-        cashappTag: cashappTag !== undefined ? cashappTag : barber.cashappTag,
+        zelleEmail: normalizedZelleEmail !== undefined ? normalizedZelleEmail : barber.zelleEmail,
+        zellePhone: normalizedZellePhone !== undefined ? normalizedZellePhone : barber.zellePhone,
+        cashappTag: normalizedCashappTag !== undefined ? normalizedCashappTag : barber.cashappTag,
       },
       include: {
         user: {
