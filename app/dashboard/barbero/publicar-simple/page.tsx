@@ -327,45 +327,45 @@ export default function SimpleUploadPage() {
                         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
                           <Button
                             type="button"
-                            className="h-auto w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
+                            className="h-auto w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white"
                             onClick={() => {
                               cameraInputRef.current?.click();
                             }}
                             disabled={isUploading}
                           >
-                            <span className="flex w-full flex-col items-center gap-1">
-                              <Camera className="h-5 w-5" />
-                              <span className="text-sm font-semibold">Photo</span>
-                              <span className="text-[11px] text-white/80">Camera</span>
+                            <span className="flex w-full flex-col items-center gap-0.5">
+                              <Camera className="h-4 w-4" />
+                              <span className="text-[13px] font-semibold">Photo</span>
+                              <span className="text-[10px] text-white/80">Camera</span>
                             </span>
                           </Button>
 
                           <Button
                             type="button"
-                            className="h-auto w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                            className="h-auto w-full py-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                             onClick={() => {
                               videoInputRef.current?.click();
                             }}
                             disabled={isUploading}
                           >
-                            <span className="flex w-full flex-col items-center gap-1">
-                              <Video className="h-5 w-5" />
-                              <span className="text-sm font-semibold">Video</span>
-                              <span className="text-[11px] text-white/80">Record</span>
+                            <span className="flex w-full flex-col items-center gap-0.5">
+                              <Video className="h-4 w-4" />
+                              <span className="text-[13px] font-semibold">Video</span>
+                              <span className="text-[10px] text-white/80">Record</span>
                             </span>
                           </Button>
 
                           <Button
                             type="button"
                             variant="outline"
-                            className="h-auto w-full py-4 border-white/10 bg-white/5 text-white hover:bg-white/10"
+                            className="h-auto w-full py-3 border-white/10 bg-white/5 text-white hover:bg-white/10"
                             onClick={() => galleryInputRef.current?.click()}
                             disabled={isUploading}
                           >
-                            <span className="flex w-full flex-col items-center gap-1">
-                              <Images className="h-5 w-5" />
-                              <span className="text-sm font-semibold">Gallery</span>
-                              <span className="text-[11px] text-white/70">Select</span>
+                            <span className="flex w-full flex-col items-center gap-0.5">
+                              <Images className="h-4 w-4" />
+                              <span className="text-[13px] font-semibold">Gallery</span>
+                              <span className="text-[10px] text-white/70">Select</span>
                             </span>
                           </Button>
                         </div>
