@@ -1,149 +1,244 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Camera, Video, X, Upload, Loader2, ArrowLeft, Heart } from 'lucide-react';
+import { Camera, Video, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { upload } from '@vercel/blob/client';
 
 export default function BarberUploadPage() {
-  const { data: session } = useSession();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
   const [uploadProgressPct, setUploadProgressPct] = useState(0);
+  const [uploadingFileLabel, setUploadingFileLabel] = useState('');
+  const [uploadingFileIndex, setUploadingFileIndex] = useState(0);
+  const [uploadTotalFiles, setUploadTotalFiles] = useState(0);
+
+  const MAX_FILES = 10;
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    // Validate file type
-    const isImageFile =
-      file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
-    const isVideoFile =
-      file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
-
-    if (!isImageFile && !isVideoFile) {
-      toast.error('Please select an image or video file');
+    if (files.length > MAX_FILES) {
+      toast.error(`Please select up to ${MAX_FILES} files at a time`);
       return;
     }
 
-    // Validate file size (200MB max)
-    if (file.size > 200 * 1024 * 1024) {
-      toast.error('File size must be less than 200MB');
-      return;
+    const validFiles: File[] = [];
+    for (const file of files) {
+      // Validate file type
+      const isImageFile =
+        file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+      const isVideoFile =
+        file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
+
+      if (!isImageFile && !isVideoFile) {
+        toast.error(`Unsupported file: ${file.name}`);
+        continue;
+      }
+
+      // Validate file size (200MB max)
+      if (file.size > 200 * 1024 * 1024) {
+        toast.error(`File too large (max 200MB): ${file.name}`);
+        continue;
+      }
+
+      validFiles.push(file);
     }
 
-    setSelectedFile(file);
-    setFileType(isVideoFile ? 'video' : 'image');
+    if (validFiles.length === 0) return;
+
+    setSelectedFiles(validFiles);
+
+    if (validFiles.length === 1) {
+      const only = validFiles[0];
+      const isVideoFile =
+        only.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(only.name);
+      setFileType(isVideoFile ? 'video' : 'image');
+    } else {
+      setFileType(null);
+    }
+
+    // Allow selecting the same file again.
+    e.target.value = '';
   };
 
   const handleRemoveFile = () => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setFileType(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       toast.error('Please select a file to upload');
       return;
     }
 
     setIsUploading(true);
     setUploadProgressPct(0);
+    setUploadingFileIndex(0);
+    setUploadTotalFiles(selectedFiles.length);
+    setUploadingFileLabel('');
 
     try {
-      // Upload directly to Vercel Blob (avoids serverless upload hangs)
-      const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const pathname = `posts/barber_work/${Date.now()}-${sanitizedFileName}`;
+      const isBatch = selectedFiles.length > 1;
+      let lastFileUrl: string | null = null;
+      let lastFile: File | null = null;
+      let successCount = 0;
+      let failedCount = 0;
 
-      const blob = await upload(pathname, selectedFile, {
-        access: 'public',
-        handleUploadUrl: '/api/blob/upload',
-        onUploadProgress: (progressEvent: any) => {
-          const pct =
-            typeof progressEvent === 'number'
-              ? progressEvent
-              : (progressEvent?.percentage ?? progressEvent?.progress ?? progressEvent?.percent ?? 0);
-          const normalized = Math.max(0, Math.min(100, Number(pct) || 0));
-          setUploadProgressPct(normalized);
-        },
-      });
+      for (let idx = 0; idx < selectedFiles.length; idx++) {
+        const file = selectedFiles[idx];
+        setUploadingFileIndex(idx + 1);
+        setUploadingFileLabel(file.name);
+        setUploadProgressPct(0);
 
-      const cloud_storage_path = blob.url;
-      const fileUrl = blob.url;
-      
-      toast.success('File uploaded! Creating post...');
+        // Upload directly to Vercel Blob (avoids serverless upload hangs)
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const pathname = `posts/barber_work/${Date.now()}-${idx}-${sanitizedFileName}`;
 
-      // Create post record
-      const formData = new FormData();
-      formData.append('caption', caption.trim());
-      formData.append('cloud_storage_path', cloud_storage_path);
+        const blob = await upload(pathname, file, {
+          access: 'public',
+          handleUploadUrl: '/api/blob/upload',
+          onUploadProgress: (progressEvent: unknown) => {
+            if (typeof progressEvent === 'number') {
+              setUploadProgressPct(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
+              return;
+            }
 
-      const res = await fetch('/api/posts', {
-        method: 'POST',
-        body: formData,
-      });
+            if (typeof progressEvent === 'object' && progressEvent !== null) {
+              const maybe = progressEvent as {
+                percentage?: unknown;
+                progress?: unknown;
+                percent?: unknown;
+              };
+              const pct = Number(maybe.percentage ?? maybe.progress ?? maybe.percent ?? 0) || 0;
+              setUploadProgressPct(Math.max(0, Math.min(100, pct)));
+              return;
+            }
 
-      if (!res.ok) {
-        let payload: any = null;
-        try {
-          payload = await res.json();
-        } catch {
-          payload = { error: await res.text() };
+            setUploadProgressPct(0);
+          },
+        });
+
+        const cloud_storage_path = blob.url;
+
+        // Create post record
+        const formData = new FormData();
+        if (caption.trim()) {
+          formData.append('caption', caption.trim());
         }
-        throw new Error(payload?.code ? `${payload.error} (${payload.code})` : (payload?.error || 'Failed to upload post'));
+        formData.append('cloud_storage_path', cloud_storage_path);
+
+        const res = await fetch('/api/posts', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!res.ok) {
+          let payload: unknown = null;
+          try {
+            payload = await res.json();
+          } catch {
+            payload = { error: await res.text() };
+          }
+          failedCount += 1;
+
+          const payloadObj =
+            payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+          const payloadCode = payloadObj && typeof payloadObj.code === 'string' ? payloadObj.code : null;
+          const payloadError =
+            payloadObj && typeof payloadObj.error === 'string' ? payloadObj.error : null;
+          const payloadMessage =
+            payloadObj && typeof payloadObj.message === 'string' ? payloadObj.message : null;
+          const baseMessage = payloadMessage ?? payloadError;
+
+          toast.error(
+            baseMessage
+              ? payloadCode
+                ? `${baseMessage} (${payloadCode})`
+                : baseMessage
+              : `Failed to upload post: ${file.name}`
+          );
+          continue;
+        }
+
+        successCount += 1;
+        lastFileUrl = blob.url;
+        lastFile = file;
       }
 
-      toast.success('✅ Published successfully. Preparing to share...');
-      
-      // Auto-share after successful upload
-      const text = `${caption.trim()}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
-      const isVideoUpload =
-        selectedFile.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(selectedFile.name);
-      
-      // Try Web Share API first (works on mobile with image)
-      if (navigator.share && navigator.canShare) {
-        try {
-          // For videos, avoid re-downloading the entire file just to attach it.
-          // Share text + link instead.
-          if (isVideoUpload) {
-            await navigator.share({ text, url: fileUrl });
-          } else {
-            const response = await fetch(fileUrl);
-            const blob = await response.blob();
-            const file = new File([blob], 'jbookme-work.jpg', { type: blob.type });
+      if (successCount === 0) {
+        toast.error('Failed to upload posts');
+        return;
+      }
 
-            const shareData = {
-              text: text,
-              files: [file],
-            };
+      if (isBatch) {
+        toast.success(`✅ Published ${successCount} post(s).${failedCount ? ` Failed: ${failedCount}.` : ''}`);
+      } else {
+        toast.success('✅ Published successfully. Preparing to share...');
 
-            if (navigator.canShare(shareData)) {
-              await navigator.share(shareData);
-            } else {
+        const fileUrl = lastFileUrl as string;
+        const uploadedFile = lastFile as File;
+
+        // Auto-share after successful upload (single file only)
+        const text = `${caption.trim()}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
+        const isVideoUpload =
+          uploadedFile.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(uploadedFile.name);
+
+        // Try Web Share API first (works on mobile with image)
+        if (navigator.share && navigator.canShare) {
+          try {
+            // For videos, avoid re-downloading the entire file just to attach it.
+            // Share text + link instead.
+            if (isVideoUpload) {
               await navigator.share({ text, url: fileUrl });
+            } else {
+              const response = await fetch(fileUrl);
+              const blob = await response.blob();
+              const file = new File([blob], 'jbookme-work.jpg', { type: blob.type });
+
+              const shareData = {
+                text: text,
+                files: [file],
+              };
+
+              if (navigator.canShare(shareData)) {
+                await navigator.share(shareData);
+              } else {
+                await navigator.share({ text, url: fileUrl });
+              }
             }
+          } catch (error) {
+            console.log('Web Share failed, using fallback');
+            // Fallback: copy text and download image
+            await navigator.clipboard.writeText(text);
+            const a = document.createElement('a');
+            a.href = fileUrl;
+            a.download = 'jbookme-work.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            toast.info('📋 Texto copiado e imagen descargada');
           }
-        } catch (error) {
-          console.log('Web Share failed, using fallback');
-          // Fallback: copy text and download image
+        } else {
+          // Desktop fallback
           await navigator.clipboard.writeText(text);
           const a = document.createElement('a');
           a.href = fileUrl;
@@ -151,25 +246,15 @@ export default function BarberUploadPage() {
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
-          toast.info('📋 Texto copiado e imagen descargada');
+          toast.info('📋 Text copied and image downloaded');
         }
-      } else {
-        // Desktop fallback
-        await navigator.clipboard.writeText(text);
-        const a = document.createElement('a');
-        a.href = fileUrl;
-        a.download = 'jbookme-work.jpg';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        toast.info('📋 Text copied and image downloaded');
       }
       
       // Reset form
       handleRemoveFile();
       setCaption('');
       
-      // Redirect to dashboard after sharing
+      // Redirect to dashboard after sharing / batch upload
       setTimeout(() => {
         router.push('/dashboard/barbero');
       }, 1500);
@@ -209,9 +294,9 @@ export default function BarberUploadPage() {
               {/* File Upload Area */}
               <div>
                 <Label>Media</Label>
-                {!selectedFile ? (
+                {selectedFiles.length === 0 ? (
                   <div
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => galleryInputRef.current?.click()}
                     className="mt-2 border-2 border-dashed border-zinc-700 rounded-lg p-12 text-center cursor-pointer hover:border-cyan-500 transition-colors"
                   >
                     <div className="flex flex-col items-center gap-3">
@@ -220,7 +305,33 @@ export default function BarberUploadPage() {
                         <Video className="w-10 h-10 text-zinc-500" />
                       </div>
                       <p className="text-zinc-400">Click to upload photo or video</p>
-                      <p className="text-xs text-zinc-600">Max size: 200MB</p>
+                      <p className="text-xs text-zinc-600">Max size: 200MB • Up to {MAX_FILES} files</p>
+
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm">
+                        <Button
+                          type="button"
+                          className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            cameraInputRef.current?.click();
+                          }}
+                          disabled={isUploading}
+                        >
+                          Take photo
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            galleryInputRef.current?.click();
+                          }}
+                          disabled={isUploading}
+                        >
+                          Gallery
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -235,9 +346,13 @@ export default function BarberUploadPage() {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm text-white font-semibold truncate">{selectedFile?.name}</p>
+                          <p className="text-sm text-white font-semibold truncate">
+                            {selectedFiles.length > 1 ? `${selectedFiles.length} files selected` : selectedFiles[0]?.name}
+                          </p>
                           <p className="text-xs text-zinc-400">
-                            {selectedFile ? `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB` : ''}
+                            {selectedFiles.length === 1 && selectedFiles[0]
+                              ? `${(selectedFiles[0].size / (1024 * 1024)).toFixed(2)} MB`
+                              : ''}
                           </p>
                         </div>
                       </div>
@@ -254,9 +369,20 @@ export default function BarberUploadPage() {
                   </div>
                 )}
                 <input
-                  ref={fileInputRef}
+                  ref={galleryInputRef}
                   type="file"
                   accept="image/*,video/*"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  capture="environment"
+                  multiple
                   onChange={handleFileSelect}
                   className="hidden"
                 />
@@ -281,7 +407,11 @@ export default function BarberUploadPage() {
               {isUploading ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs text-zinc-400">
-                    <span>Uploading media...</span>
+                    <span>
+                      {uploadTotalFiles > 1
+                        ? `Uploading ${uploadingFileIndex}/${uploadTotalFiles}: ${uploadingFileLabel}`
+                        : 'Uploading media...'}
+                    </span>
                     <span>{Math.round(uploadProgressPct)}%</span>
                   </div>
                   <div className="h-2 w-full rounded bg-zinc-800 overflow-hidden">
@@ -306,7 +436,7 @@ export default function BarberUploadPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isUploading || !selectedFile}
+                  disabled={isUploading || selectedFiles.length === 0}
                   className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700"
                 >
                   {isUploading ? (

@@ -103,10 +103,9 @@ export default function MenuPage() {
   };
 
   const handleShare = async () => {
+    const url = window.location.origin;
     const shareData = {
-      title: 'Jb Barbershop • BookMe',
-      text: t('common.shareText'),
-      url: window.location.origin,
+      url,
     };
 
     try {
@@ -114,7 +113,7 @@ export default function MenuPage() {
         await navigator.share(shareData);
         toast.success(t('common.shareSuccess'));
       } else {
-        await navigator.clipboard.writeText(window.location.origin);
+        await navigator.clipboard.writeText(url);
         toast.success(t('common.linkCopied'));
       }
     } catch (error: unknown) {
@@ -126,7 +125,7 @@ export default function MenuPage() {
       if (errorName !== 'AbortError') {
         console.error('Error sharing:', error);
         try {
-          await navigator.clipboard.writeText(window.location.origin);
+          await navigator.clipboard.writeText(url);
           toast.success(t('common.linkCopied'));
         } catch {
           toast.error(t('common.shareError'));

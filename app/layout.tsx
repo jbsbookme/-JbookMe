@@ -18,6 +18,13 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const dynamic = 'force-dynamic';
 
+const PROD_BASE_URL = 'https://www.jbsbookme.com';
+const metadataBaseUrl =
+  process.env.VERCEL_ENV === 'production'
+    ? PROD_BASE_URL
+    : process.env.NEXT_PUBLIC_APP_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : PROD_BASE_URL);
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -28,9 +35,12 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.jbsbookme.com'),
-  title: 'JBookMe – Booking | JB’s Barbershop',
-  description: 'Book your appointment with JBookMe',
+  metadataBase: new URL(metadataBaseUrl),
+  title: {
+    default: '💈 JBookMe — JB Barbershop',
+    template: '%s | 💈 JBookMe — JB Barbershop',
+  },
+  description: 'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
   applicationName: 'JBookMe',
   appleWebApp: {
     capable: true,
@@ -57,17 +67,31 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   openGraph: {
     type: 'website',
-    title: 'JBookMe - Booking',
-    description: 'by JB’s Barbershop\n\nBook your appointment\nFast • Secure • Professional',
-    url: 'https://www.jbsbookme.com',
+    title: '💈 JBookMe — JB Barbershop',
+    description: 'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
+    url: '/',
     siteName: "JB's Barbershop",
-    images: ['/opengraph-image'],
+    images: [
+      {
+        url: '/opengraph-image',
+        width: 1200,
+        height: 630,
+        alt: 'JBookMe',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'JBookMe - Booking',
-    description: 'by JB’s Barbershop\n\nBook your appointment\nFast • Secure • Professional',
-    images: ['/twitter-image'],
+    title: '💈 JBookMe — JB Barbershop',
+    description: 'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
+    images: [
+      {
+        url: '/twitter-image',
+        width: 1200,
+        height: 630,
+        alt: 'JBookMe',
+      },
+    ],
   },
 };
 

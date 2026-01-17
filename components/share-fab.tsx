@@ -9,10 +9,9 @@ export function ShareFAB() {
   const { t } = useI18n();
 
   const handleShare = async () => {
+    const url = window.location.origin;
     const shareData = {
-      title: 'JBookMe - by @jbsbook',
-      text: t('common.shareText'),
-      url: window.location.origin,
+      url,
     };
 
     try {
@@ -22,7 +21,7 @@ export function ShareFAB() {
         toast.success(t('common.shareSuccess'));
       } else {
         // Fallback: Copy link to clipboard
-        await navigator.clipboard.writeText(window.location.origin);
+        await navigator.clipboard.writeText(url);
         toast.success(t('common.linkCopied'));
       }
     } catch (error: unknown) {
@@ -36,7 +35,7 @@ export function ShareFAB() {
         console.error('Error sharing:', error);
         // Try clipboard as final fallback
         try {
-          await navigator.clipboard.writeText(window.location.origin);
+          await navigator.clipboard.writeText(url);
           toast.success(t('common.linkCopied'));
         } catch {
           toast.error(t('common.shareError'));

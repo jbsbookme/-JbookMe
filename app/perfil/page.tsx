@@ -72,6 +72,7 @@ export default function PerfilPage() {
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [myPostsLoading, setMyPostsLoading] = useState(false);
   const [openedPost, setOpenedPost] = useState<{
+    id: string;
     url: string;
     isVideo: boolean;
     caption?: string | null;
@@ -152,6 +153,26 @@ export default function PerfilPage() {
       setMyPostsLoading(false);
     }
   }, [session?.user]);
+
+  const handleDeleteMyPost = async (postId: string) => {
+    const accepted = window.confirm(t('feed.confirmDeletePost'));
+    if (!accepted) return;
+
+    try {
+      const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || t('feed.errorDeletingPost'));
+      }
+
+      setMyPosts((prev) => prev.filter((p) => p.id !== postId));
+      setOpenedPost((prev) => (prev?.id === postId ? null : prev));
+      toast.success(t('feed.postDeleted'));
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error(error instanceof Error ? error.message : t('feed.errorDeletingPost'));
+    }
+  };
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -556,14 +577,26 @@ export default function PerfilPage() {
                         role="button"
                         tabIndex={0}
                         aria-label={post.caption || 'Open post'}
-                        onClick={() => setOpenedPost({ url: src, isVideo: video, caption: post.caption })}
+                        onClick={() => setOpenedPost({ id: post.id, url: src, isVideo: video, caption: post.caption })}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            setOpenedPost({ url: src, isVideo: video, caption: post.caption });
+                            setOpenedPost({ id: post.id, url: src, isVideo: video, caption: post.caption });
                           }
                         }}
                       >
+                        <button
+                          type="button"
+                          className="absolute top-2 right-2 z-10 rounded-full p-2 text-white/90 drop-shadow-md hover:text-red-400 active:scale-95 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDeleteMyPost(post.id);
+                          }}
+                          aria-label={t('feed.deletePostAria')}
+                          title={t('feed.deletePostTitle')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                         {video ? (
                           <video
                             src={src}
@@ -610,6 +643,16 @@ export default function PerfilPage() {
                   aria-label="Close"
                 >
                   ✕
+                </button>
+
+                <button
+                  type="button"
+                  className="absolute -top-12 right-10 text-white/80 hover:text-red-400"
+                  onClick={() => void handleDeleteMyPost(openedPost.id)}
+                  aria-label={t('feed.deletePostAria')}
+                  title={t('feed.deletePostTitle')}
+                >
+                  <Trash2 className="w-5 h-5" />
                 </button>
 
                 <div className="relative w-full bg-black rounded-xl overflow-hidden border border-white/10">

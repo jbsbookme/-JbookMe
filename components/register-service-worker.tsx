@@ -11,10 +11,9 @@ export function RegisterServiceWorker() {
         if (typeof window === 'undefined') return;
         if (!('serviceWorker' in navigator)) return;
 
-        const existing = await navigator.serviceWorker.getRegistration('/');
-        if (existing) return;
-
-        await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+        const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+        // Proactively check for updates so users get the latest build sooner.
+        await registration.update();
       } catch (error) {
         if (!cancelled) {
           console.error('[PWA] Service worker registration failed:', error);

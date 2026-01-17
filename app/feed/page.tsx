@@ -55,12 +55,13 @@ interface Comment {
 
 interface Post {
   id: string;
+  authorId: string;
   caption: string;
   hashtags: string[];
   cloud_storage_path: string;
   imageUrl?: string;
   postType: 'BARBER_WORK' | 'CLIENT_SHARE';
-  authorType: 'USER' | 'BARBER';
+  authorType: string;
   likes: number;
   viewCount: number;
   createdAt: string;
@@ -132,6 +133,8 @@ export default function FeedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sharedPostId = searchParams.get('post');
+
+  const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
   const [posts, setPosts] = useState<Post[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [stylists, setStylists] = useState<Barber[]>([]);
@@ -1516,7 +1519,7 @@ export default function FeedPage() {
                             </DropdownMenuContent>
                           </DropdownMenu>
 
-                          {(session?.user?.role === 'ADMIN' || post.author?.id === session?.user?.id) && (
+                          {(session?.user?.role === 'ADMIN' || (sessionUserId && (post.author?.id === sessionUserId || post.authorId === sessionUserId))) && (
                             <motion.button
                               onClick={() => handleDeletePost(post.id)}
                               className="ml-auto"

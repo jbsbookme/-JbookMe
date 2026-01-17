@@ -39,62 +39,161 @@ export default async function Image() {
           height: '100%',
           background: '#000000',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           color: '#ffffff',
           fontFamily: 'sans serif',
-          textAlign: 'center',
-          padding: 40,
+          padding: 60,
+          position: 'relative',
         }}
       >
-        {logoBuf ? (
-          <img
-            // @vercel/og supports ArrayBuffer sources for images.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            src={logoBuf as any}
-            width={280}
-            height={280}
-            style={{ marginBottom: 18 }}
+        {/* Left: Logo badge */}
+        <div
+          style={{
+            width: 360,
+            height: 360,
+            borderRadius: 999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'linear-gradient(135deg, rgba(0,240,255,0.18), rgba(255,215,0,0.12))',
+            border: '2px solid rgba(255,255,255,0.10)',
+            boxShadow: '0 18px 50px rgba(0,240,255,0.18), 0 18px 50px rgba(255,215,0,0.10)',
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              inset: 14,
+              borderRadius: 999,
+              border: '2px solid rgba(0,240,255,0.25)',
+              opacity: 0.9,
+            }}
           />
-        ) : null}
 
+          {logoBuf ? (
+            <img
+              // @vercel/og supports ArrayBuffer sources for images.
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              src={logoBuf as any}
+              width={280}
+              height={280}
+              style={{
+                borderRadius: 999,
+                boxShadow: '0 10px 30px rgba(0,0,0,0.55)',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 280,
+                height: 280,
+                borderRadius: 999,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid rgba(255,255,255,0.10)',
+                color: 'rgba(255,255,255,0.85)',
+                fontSize: 28,
+                fontWeight: 700,
+              }}
+            >
+              JBookMe
+            </div>
+          )}
+        </div>
+
+        {/* Right: Copy */}
         <div
           style={{
-            width: '100%',
-            fontSize: 64,
-            fontWeight: 800,
-            color: '#00e5ff',
-            lineHeight: 1.05,
-            textAlign: 'center',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            paddingLeft: 52,
+            paddingRight: 10,
           }}
         >
-          JBookMe - Booking
-        </div>
+          <div
+            style={{
+              fontSize: 64,
+              fontWeight: 900,
+              lineHeight: 1.04,
+              color: '#00f0ff',
+              letterSpacing: -1,
+            }}
+          >
+            💈 JBookMe
+          </div>
 
-        <div
-          style={{
-            width: '100%',
-            fontSize: 32,
-            marginTop: 8,
-            lineHeight: 1.1,
-            opacity: 0.95,
-            textAlign: 'center',
-          }}
-        >
-          by JB's Barbershop
-        </div>
+          <div
+            style={{
+              fontSize: 34,
+              fontWeight: 800,
+              marginTop: 10,
+              lineHeight: 1.12,
+              color: 'rgba(255,255,255,0.96)',
+            }}
+          >
+            JB Barbershop
+          </div>
 
-        <div style={{ width: '100%', fontSize: 34, marginTop: 14, lineHeight: 1.2, textAlign: 'center' }}>
-          Book your appointment
-        </div>
+          <div
+            style={{
+              fontSize: 30,
+              marginTop: 18,
+              lineHeight: 1.18,
+              color: 'rgba(255,255,255,0.92)',
+            }}
+          >
+            Book your barber online in seconds.
+          </div>
 
-        <div style={{ width: '100%', fontSize: 26, marginTop: 8, opacity: 0.9, lineHeight: 1.2, textAlign: 'center' }}>
-          Fast • Secure • Professional
-        </div>
+          <div
+            style={{
+              fontSize: 26,
+              marginTop: 12,
+              lineHeight: 1.18,
+              color: 'rgba(255,255,255,0.88)',
+            }}
+          >
+            Choose your barber • Pick your time • No waiting.
+          </div>
 
-        <div style={{ width: '100%', fontSize: 22, marginTop: 20, opacity: 0.85, lineHeight: 1.2, textAlign: 'center' }}>
-          Jbsbookme.com
+          <div
+            style={{
+              marginTop: 26,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.10)',
+                color: 'rgba(255,255,255,0.92)',
+                fontSize: 22,
+                fontWeight: 700,
+              }}
+            >
+              jbsbookme.com
+            </div>
+
+            <div
+              style={{
+                color: 'rgba(255,215,0,0.95)',
+                fontSize: 20,
+                fontWeight: 700,
+              }}
+            >
+              Fast • Simple • Mobile
+            </div>
+          </div>
         </div>
       </div>
     ),

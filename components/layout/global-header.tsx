@@ -44,11 +44,10 @@ export function GlobalHeader() {
 
   const handleShare = async () => {
     try {
-      const shareData = {
-        title: 'JBookMe',
-        text: t('common.shareText'),
-        url: window.location.origin,
-      };
+      const url = window.location.origin;
+         const shareData = {
+           url,
+         };
 
       if (navigator.share) {
         await navigator.share(shareData);
@@ -56,7 +55,7 @@ export function GlobalHeader() {
         return;
       }
 
-      await navigator.clipboard.writeText(window.location.origin);
+         await navigator.clipboard.writeText(url);
       toast.success(t('common.linkCopied'));
     } catch (error: unknown) {
       const errorName =
@@ -66,7 +65,8 @@ export function GlobalHeader() {
 
       if (errorName !== 'AbortError') {
         try {
-          await navigator.clipboard.writeText(window.location.origin);
+          const url = window.location.origin;
+             await navigator.clipboard.writeText(url);
           toast.success(t('common.linkCopied'));
         } catch {
           toast.error(t('common.shareError'));
