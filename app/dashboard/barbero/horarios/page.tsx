@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -20,8 +19,6 @@ import {
   Plus,
   Trash2,
   Coffee,
-  Moon,
-  Sun,
   AlertCircle,
   ChevronDown
 } from 'lucide-react';
@@ -30,7 +27,6 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useI18n } from '@/lib/i18n/i18n-context';
-import { formatTime12h } from '@/lib/time';
 
 interface Availability {
   id: string;
@@ -55,23 +51,14 @@ export default function HorariosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [isWeeklyScheduleOpen, setIsWeeklyScheduleOpen] = useState(false);
+  const [isWeeklyScheduleOpen, setIsWeeklyScheduleOpen] = useState(true);
+  const [bulkStartTime, setBulkStartTime] = useState('09:00');
+  const [bulkEndTime, setBulkEndTime] = useState('18:00');
   
   // Day off dialog
   const [showDayOffDialog, setShowDayOffDialog] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [dayOffReason, setDayOffReason] = useState('');
-
-  const timeOptions = useMemo(() => {
-    const options: Array<{ value: string; label: string }> = [];
-    for (let minutes = 0; minutes < 24 * 60; minutes += 15) {
-      const hours = Math.floor(minutes / 60);
-      const mins = minutes % 60;
-      const value = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-      options.push({ value, label: formatTime12h(value) });
-    }
-    return options;
-  }, []);
 
   const DAYS_OF_WEEK = [
     { value: 'MONDAY', label: t('barber.monday'), icon: '📅' },
@@ -82,6 +69,45 @@ export default function HorariosPage() {
     { value: 'SATURDAY', label: t('barber.saturday'), icon: '🎉' },
     { value: 'SUNDAY', label: t('barber.sunday'), icon: '☀️' },
   ];
+
+  const daysOrder = useMemo(() => DAYS_OF_WEEK.map((d) => d.value), [DAYS_OF_WEEK]);
+
+  const toMinutes = (hhmm: string) => {
+    const [h, m] = hhmm.split(':').map((v) => Number(v));
+    if (!Number.isFinite(h) || !Number.isFinite(m)) return NaN;
+    return h * 60 + m;
+  };
+
+  const ensureAllDays = (raw: Availability[]) => {
+    const byDay = new Map(raw.map((a) => [a.dayOfWeek, a]));
+    return daysOrder.map((day) => {
+      const existing = byDay.get(day);
+      if (existing) return existing;
+      return {
+        id: `temp-${day}`,
+        dayOfWeek: day,
+        startTime: '09:00',
+        endTime: '18:00',
+        isAvailable: day !== 'SUNDAY',
+      };
+    });
+  };
+
+  const applyTimesToDays = (days: string[], startTime: string, endTime: string) => {
+    setAvailability((prev) => {
+      const normalized = ensureAllDays(prev);
+      return normalized.map((a) =>
+        days.includes(a.dayOfWeek)
+          ? {
+              ...a,
+              isAvailable: true,
+              startTime,
+              endTime,
+            }
+          : a
+      );
+    });
+  };
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -101,7 +127,12 @@ export default function HorariosPage() {
       const res = await fetch('/api/barber/availability');
       if (res.ok) {
         const data = await res.json();
-        setAvailability(data.availability || []);
+        const normalized = ensureAllDays(data.availability || []);
+        setAvailability(normalized);
+
+        const preferred = normalized.find((a) => a.dayOfWeek === 'MONDAY') || normalized[0];
+        if (preferred?.startTime) setBulkStartTime(preferred.startTime);
+        if (preferred?.endTime) setBulkEndTime(preferred.endTime);
       }
     } catch (error) {
       console.error('Error fetching availability:', error);
@@ -130,43 +161,40 @@ export default function HorariosPage() {
   };
 
   const handleToggleDay = (dayOfWeek: string) => {
-    setAvailability(prev => {
-      const existing = prev.find(a => a.dayOfWeek === dayOfWeek);
-      if (existing) {
-        return prev.map(a => 
-          a.dayOfWeek === dayOfWeek 
-            ? { ...a, isAvailable: !a.isAvailable }
-            : a
-        );
-      } else {
-        return [...prev, {
-          id: `temp-${dayOfWeek}`,
-          dayOfWeek,
-          startTime: '09:00',
-          endTime: '18:00',
-          isAvailable: true,
-        }];
-      }
-    });
+    setAvailability((prev) =>
+      ensureAllDays(prev).map((a) =>
+        a.dayOfWeek === dayOfWeek ? { ...a, isAvailable: !a.isAvailable } : a
+      )
+    );
   };
 
   const handleTimeChange = (dayOfWeek: string, field: 'startTime' | 'endTime', value: string) => {
-    setAvailability(prev => 
-      prev.map(a => 
-        a.dayOfWeek === dayOfWeek 
-          ? { ...a, [field]: value }
-          : a
+    setAvailability((prev) =>
+      ensureAllDays(prev).map((a) =>
+        a.dayOfWeek === dayOfWeek ? { ...a, [field]: value } : a
       )
     );
   };
 
   const handleSaveAvailability = async () => {
+    const normalized = ensureAllDays(availability);
+    for (const day of normalized) {
+      if (!day.isAvailable) continue;
+      const start = toMinutes(day.startTime);
+      const end = toMinutes(day.endTime);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start >= end) {
+        const label = DAYS_OF_WEEK.find((d) => d.value === day.dayOfWeek)?.label || day.dayOfWeek;
+        toast.error(`${label}: ${t('barber.scheduleError')}`);
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const res = await fetch('/api/barber/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ availability }),
+        body: JSON.stringify({ availability: normalized }),
       });
 
       if (res.ok) {
@@ -318,6 +346,56 @@ export default function HorariosPage() {
 
                 <CollapsibleContent>
                   <CardContent className="space-y-4">
+                    {/* Quick editor */}
+                    <div className="border border-gray-700 rounded-lg p-4 bg-gray-800/30">
+                      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                        <div className="grid grid-cols-2 gap-3 w-full sm:max-w-md">
+                          <div>
+                            <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
+                            <Input
+                              type="time"
+                              step={900}
+                              value={bulkStartTime}
+                              onChange={(e) => setBulkStartTime(e.target.value)}
+                              className="bg-gray-800 border-gray-700 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
+                            <Input
+                              type="time"
+                              step={900}
+                              value={bulkEndTime}
+                              onChange={(e) => setBulkEndTime(e.target.value)}
+                              className="bg-gray-800 border-gray-700 text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-2 sm:justify-end w-full sm:w-auto">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-gray-700 text-gray-200 hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                            onClick={() => applyTimesToDays(daysOrder, bulkStartTime, bulkEndTime)}
+                          >
+                            Aplicar a todos
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-gray-700 text-gray-200 hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                            onClick={() => applyTimesToDays(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'], bulkStartTime, bulkEndTime)}
+                          >
+                            Aplicar L-V
+                          </Button>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-3">
+                        Tip: pon 09:00 a 18:00 y usa “Aplicar a todos”.
+                      </p>
+                    </div>
+
                 {DAYS_OF_WEEK.map((day) => {
                   const dayAvailability = availability.find(a => a.dayOfWeek === day.value);
                   const isAvailable = dayAvailability?.isAvailable ?? false;
@@ -341,49 +419,29 @@ export default function HorariosPage() {
                         </div>
                       </div>
 
-                      {isAvailable && dayAvailability && (
+                      {dayAvailability && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
                           <div>
-                            <Label className="text-sm text-gray-400 mb-2 flex items-center gap-1">
-                              <Sun className="w-3 h-3" />
-                              {t('barber.startTime')}
-                            </Label>
-                            <Select
+                            <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
+                            <Input
+                              type="time"
+                              step={900}
                               value={dayAvailability.startTime}
-                              onValueChange={(value) => handleTimeChange(day.value, 'startTime', value)}
-                            >
-                              <SelectTrigger className="bg-gray-700 border-gray-600 text-white text-base sm:text-sm">
-                                <SelectValue placeholder={t('barber.startTime')} />
-                              </SelectTrigger>
-                              <SelectContent className="bg-gray-900 border-gray-700 text-white max-h-72">
-                                {timeOptions.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              disabled={!isAvailable}
+                              onChange={(e) => handleTimeChange(day.value, 'startTime', e.target.value)}
+                              className="bg-gray-700 border-gray-600 text-white disabled:opacity-50"
+                            />
                           </div>
                           <div>
-                            <Label className="text-sm text-gray-400 mb-2 flex items-center gap-1">
-                              <Moon className="w-3 h-3" />
-                              {t('barber.endTime')}
-                            </Label>
-                            <Select
+                            <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
+                            <Input
+                              type="time"
+                              step={900}
                               value={dayAvailability.endTime}
-                              onValueChange={(value) => handleTimeChange(day.value, 'endTime', value)}
-                            >
-                              <SelectTrigger className="bg-gray-700 border-gray-600 text-white text-base sm:text-sm">
-                                <SelectValue placeholder={t('barber.endTime')} />
-                              </SelectTrigger>
-                              <SelectContent className="bg-gray-900 border-gray-700 text-white max-h-72">
-                                {timeOptions.map((opt) => (
-                                  <SelectItem key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              disabled={!isAvailable}
+                              onChange={(e) => handleTimeChange(day.value, 'endTime', e.target.value)}
+                              className="bg-gray-700 border-gray-600 text-white disabled:opacity-50"
+                            />
                           </div>
                         </div>
                       )}
