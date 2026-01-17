@@ -4,6 +4,8 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 ADMIN_EMAIL="${ADMIN_EMAIL:-admin@barberia.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-Admin2024!}"
+SMOKE_AUTO_START="${SMOKE_AUTO_START:-1}"
+SMOKE_WAIT_SECONDS="${SMOKE_WAIT_SECONDS:-25}"
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || { echo "Missing required command: $1"; exit 1; }
@@ -13,7 +15,66 @@ need_cmd curl
 need_cmd python3
 
 cookie_jar="$(mktemp)"
+
+smoke_started_server=0
+server_pid=""
+server_log=""
+server_port=""
+
+parse_local_port() {
+  # If BASE_URL is localhost/127.0.0.1, return its port (default 3000 if missing).
+  local url="$1"
+  if [[ "$url" =~ ^https?://(localhost|127\.0\.0\.1)(:([0-9]+))?(/.*)?$ ]]; then
+    if [[ -n "${BASH_REMATCH[3]:-}" ]]; then
+      echo "${BASH_REMATCH[3]}"
+      return 0
+    fi
+    echo "3000"
+    return 0
+  fi
+  return 1
+}
+
+start_server_if_needed() {
+  local code="$1"
+  if [[ "$code" == "200" ]]; then
+    return 0
+  fi
+
+  if [[ "$SMOKE_AUTO_START" != "1" ]]; then
+    return 0
+  fi
+
+  if ! server_port="$(parse_local_port "$BASE_URL")"; then
+    return 0
+  fi
+
+  # If something is already listening on the port, don't start a new server.
+  if command -v lsof >/dev/null 2>&1; then
+    if lsof -ti tcp:"$server_port" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+
+  server_log="/tmp/jbookme-smoke-nextdev-${server_port}.log"
+  echo "[smoke] Auto-starting dev server on http://localhost:${server_port} …"
+  nohup ./node_modules/.bin/next dev -p "$server_port" >"$server_log" 2>&1 &
+  server_pid="$!"
+  smoke_started_server=1
+}
+
+stop_server_if_started() {
+  if [[ "$smoke_started_server" != "1" ]]; then
+    return 0
+  fi
+  if [[ -n "$server_pid" ]] && kill -0 "$server_pid" >/dev/null 2>&1; then
+    echo "[smoke] Stopping dev server (pid=$server_pid)"
+    kill "$server_pid" >/dev/null 2>&1 || true
+  fi
+}
+
 cleanup() {
+  stop_server_if_started
   rm -f "$cookie_jar" || true
 }
 trap cleanup EXIT
@@ -25,9 +86,28 @@ http_code() {
 echo "[smoke] Base URL: $BASE_URL"
 
 code=$(http_code "$BASE_URL/api/auth/providers")
+start_server_if_needed "$code"
+
+if [[ "$code" != "200" ]]; then
+  deadline=$((SECONDS + SMOKE_WAIT_SECONDS))
+  while (( SECONDS < deadline )); do
+    sleep 0.5
+    code=$(http_code "$BASE_URL/api/auth/providers")
+    if [[ "$code" == "200" ]]; then
+      break
+    fi
+  done
+fi
+
 if [[ "$code" != "200" ]]; then
   echo "[smoke] FAIL: server not responding at $BASE_URL (providers=$code)"
-  echo "[smoke] Hint: start dev server with: ./node_modules/.bin/next dev -p 3001"
+  if [[ "$smoke_started_server" == "1" ]]; then
+    echo "[smoke] Dev log tail ($server_log):"
+    tail -n 40 "$server_log" 2>/dev/null || true
+  else
+    echo "[smoke] Hint: start dev server with: ./node_modules/.bin/next dev -p 3001"
+    echo "[smoke] Or run: SMOKE_AUTO_START=1 BASE_URL=$BASE_URL npm run -s smoke"
+  fi
   exit 1
 fi
 
