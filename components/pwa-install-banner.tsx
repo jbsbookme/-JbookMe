@@ -106,8 +106,8 @@ export function PwaInstallBanner() {
 
   return (
     <div className="fixed left-0 right-0 top-[calc(env(safe-area-inset-top))] z-[60] px-3 pt-3">
-      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3 rounded-lg border border-gray-800 bg-black/95 px-4 py-3 backdrop-blur">
-        <div className="min-w-0">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 rounded-lg border border-gray-800 bg-black/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
           <div className="text-sm font-semibold text-white">Install JBookMe</div>
           {mode === 'ios' ? (
             <div className="text-xs text-gray-300">
@@ -120,13 +120,18 @@ export function PwaInstallBanner() {
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
           {mode === 'android' ? (
-            <Button size="sm" onClick={onInstall}>
+            <Button size="sm" onClick={onInstall} className="whitespace-nowrap">
               Install
             </Button>
           ) : null}
-          <Button size="sm" variant="ghost" onClick={onDismiss} className="text-gray-300 hover:text-white">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onDismiss}
+            className="whitespace-nowrap text-gray-300 hover:text-white"
+          >
             Not now
           </Button>
         </div>
