@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Camera, Images, Video, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowUpCircle, Camera, Images, Video, X, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { upload } from '@vercel/blob/client';
@@ -330,10 +330,11 @@ export default function BarberUploadPage() {
         <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-              Share Your Work
+              Publicar
             </CardTitle>
-            <p className="text-zinc-400 text-sm">
-              Upload photos or videos of your cuts and show them in the feed.
+            <p className="text-zinc-400 text-sm">Comparte fotos o videos de tus trabajos.</p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Límites: fotos (máx 15MB) • videos (máx 60MB / 60s) • hasta {MAX_FILES} archivos.
             </p>
           </CardHeader>
 
@@ -350,16 +351,14 @@ export default function BarberUploadPage() {
                     <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 ring-1 ring-inset ring-white/5 hover:ring-cyan-500/20 transition">
                       <div className="flex items-start gap-4">
                         <div className="h-12 w-12 shrink-0 rounded-xl bg-cyan-500/10 text-cyan-300 ring-1 ring-inset ring-cyan-500/20 flex items-center justify-center">
-                          <Upload className="h-6 w-6" />
+                          <ArrowUpCircle className="h-6 w-6" />
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-base font-semibold text-white">Upload your post</p>
-                              <p className="mt-1 text-xs text-zinc-400">
-                                Photos (max 15MB) • Videos (max 60MB / 60s) • Up to {MAX_FILES} files
-                              </p>
+                              <p className="text-base font-semibold text-white">Publicar</p>
+                              <p className="mt-1 text-xs text-zinc-400">Elige una opción para agregar tu contenido.</p>
                             </div>
                           </div>
 
@@ -537,8 +536,8 @@ export default function BarberUploadPage() {
                     </>
                   ) : (
                     <>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Publish
+                      <ArrowUpCircle className="w-4 h-4 mr-2" />
+                      Publicar
                     </>
                   )}
                 </Button>

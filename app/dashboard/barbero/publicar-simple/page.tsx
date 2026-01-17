@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Camera, Images, Video, X, Upload, Loader2, ArrowLeft } from 'lucide-react';
+import { ArrowUpCircle, Camera, Images, Video, X, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -264,11 +264,14 @@ export default function SimpleUploadPage() {
         <Card className="glass border-cyan-500/20">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-white flex items-center gap-2">
-              <Upload className="w-6 h-6 text-cyan-400" />
-              Publish New Post (Simple Upload)
+              <ArrowUpCircle className="w-6 h-6 text-cyan-400" />
+              Publicar (Simple)
             </CardTitle>
             <p className="text-gray-400 text-sm mt-2">
-              Share your best work with the community
+              Comparte tus mejores trabajos con la comunidad
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              Límites: fotos (máx 15MB) • videos (máx 60MB / 60s) • hasta {MAX_FILES} archivos.
             </p>
           </CardHeader>
 
@@ -311,16 +314,14 @@ export default function SimpleUploadPage() {
                   <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 ring-1 ring-inset ring-white/5 hover:ring-cyan-500/20 transition">
                     <div className="flex items-start gap-4">
                       <div className="h-12 w-12 shrink-0 rounded-xl bg-cyan-500/10 text-cyan-300 ring-1 ring-inset ring-cyan-500/20 flex items-center justify-center">
-                        <Upload className="h-6 w-6" />
+                        <ArrowUpCircle className="h-6 w-6" />
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-base font-semibold text-white">Upload your post</p>
-                            <p className="mt-1 text-xs text-zinc-400">
-                              Photo (max 15MB) • Video (max 60MB / 60s) • Up to {MAX_FILES} files
-                            </p>
+                            <p className="text-base font-semibold text-white">Publicar</p>
+                            <p className="mt-1 text-xs text-zinc-400">Elige una opción para agregar tu contenido.</p>
                           </div>
                         </div>
 
@@ -483,8 +484,8 @@ export default function SimpleUploadPage() {
                   </>
                 ) : (
                   <>
-                    <Upload className="w-5 h-5 mr-2" />
-                    Publish Post
+                    <ArrowUpCircle className="w-5 h-5 mr-2" />
+                    Publicar
                   </>
                 )}
               </Button>

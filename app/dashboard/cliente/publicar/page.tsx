@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
-import { Camera, Images, Upload, Image as ImageIcon, Video, X } from "lucide-react";
+import { ArrowUpCircle, Camera, Images, Image as ImageIcon, Loader2, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -254,6 +254,9 @@ export default function PublicarPage() {
           <p className="text-zinc-400">
             Comparte tus momentos con la comunidad
           </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Límites: fotos (máx 15MB) • videos (máx 60MB / 60s) • hasta {MAX_FILES} archivos.
+          </p>
         </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -264,16 +267,14 @@ export default function PublicarPage() {
               <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 ring-1 ring-inset ring-white/5 hover:ring-cyan-500/20 transition">
                 <div className="flex items-start gap-4">
                   <div className="h-12 w-12 shrink-0 rounded-xl bg-cyan-500/10 text-cyan-300 ring-1 ring-inset ring-cyan-500/20 flex items-center justify-center">
-                    <Upload className="h-6 w-6" />
+                    <ArrowUpCircle className="h-6 w-6" />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-base font-semibold text-white">Sube tu post</p>
-                        <p className="mt-1 text-xs text-zinc-400">
-                          Fotos (máx 15MB) o videos (máx 60MB / 60s). Puedes seleccionar hasta {MAX_FILES}.
-                        </p>
+                        <p className="text-base font-semibold text-white">Publicar</p>
+                        <p className="mt-1 text-xs text-zinc-400">Elige una opción para agregar tu contenido.</p>
                       </div>
                     </div>
 
@@ -460,7 +461,7 @@ export default function PublicarPage() {
           >
             {isUploading ? (
               <>
-                <Upload className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Subiendo...
               </>
             ) : (

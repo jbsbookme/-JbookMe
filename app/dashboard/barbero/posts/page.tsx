@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import {
+  ArrowUpCircle,
   Camera,
   Images,
   Video,
@@ -415,16 +416,14 @@ export default function BarberPostsPage() {
                     <div className="w-full rounded-2xl border border-white/10 bg-black/40 p-6 ring-1 ring-inset ring-white/5 hover:ring-[#00f0ff]/20 transition">
                       <div className="flex items-start gap-4">
                         <div className="h-12 w-12 shrink-0 rounded-xl bg-[#00f0ff]/10 text-[#00f0ff] ring-1 ring-inset ring-[#00f0ff]/20 flex items-center justify-center">
-                          <Upload className="h-6 w-6" />
+                              <ArrowUpCircle className="h-6 w-6" />
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <p className="text-base font-semibold text-white">Upload your post</p>
-                              <p className="mt-1 text-xs text-gray-400">
-                                Photo (max 15MB) • Video (max 60MB / 60s)
-                              </p>
+                              <p className="text-base font-semibold text-white">Publicar</p>
+                              <p className="mt-1 text-xs text-gray-400">Elige una opción para agregar tu contenido.</p>
                             </div>
                           </div>
 
