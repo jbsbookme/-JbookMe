@@ -12,6 +12,7 @@ import { toast } from "sonner";
 export default function PublicarPage() {
   const router = useRouter();
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -93,11 +94,6 @@ export default function PublicarPage() {
       return;
     }
 
-    if (!caption.trim()) {
-      toast.error("Por favor agrega una descripción");
-      return;
-    }
-
     setIsUploading(true);
     setUploadProgressPct(0);
     setUploadingFileIndex(0);
@@ -147,7 +143,9 @@ export default function PublicarPage() {
         // Step 2: Create post record with Vercel Blob URL
         const postFormData = new FormData();
         postFormData.append("cloud_storage_path", cloudPath);
-        postFormData.append("caption", caption.trim());
+        if (caption.trim()) {
+          postFormData.append("caption", caption.trim());
+        }
 
         const postController = new AbortController();
         const postTimeout = setTimeout(() => postController.abort(), 60_000);
@@ -226,7 +224,7 @@ export default function PublicarPage() {
                   <p className="text-sm text-zinc-300 font-semibold">Sube tu post</p>
                   <p className="mt-1 text-xs text-zinc-500">Fotos o videos (máx 200MB). Puedes seleccionar hasta {MAX_FILES}.</p>
 
-                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
                     <Button
                       type="button"
                       className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
@@ -235,6 +233,16 @@ export default function PublicarPage() {
                     >
                       Tomar foto
                     </Button>
+
+                    <Button
+                      type="button"
+                      className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold"
+                      onClick={() => videoInputRef.current?.click()}
+                      disabled={isUploading}
+                    >
+                      Grabar video
+                    </Button>
+
                     <Button
                       type="button"
                       variant="outline"
@@ -257,6 +265,17 @@ export default function PublicarPage() {
                   onChange={handleFileSelect}
                   disabled={isUploading}
                 />
+
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  className="hidden"
+                  accept="video/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  disabled={isUploading}
+                />
+
                 <input
                   ref={galleryInputRef}
                   type="file"
@@ -331,7 +350,7 @@ export default function PublicarPage() {
         {/* Caption Section */}
         <div className="space-y-2">
           <label htmlFor="caption" className="text-sm font-medium text-white">
-            Descripción
+            Descripción (opcional)
           </label>
           <Textarea
             id="caption"
@@ -367,7 +386,7 @@ export default function PublicarPage() {
           <Button
             type="submit"
             className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
-            disabled={isUploading || selectedFiles.length === 0 || !caption.trim()}
+            disabled={isUploading || selectedFiles.length === 0}
           >
             {isUploading ? (
               <>

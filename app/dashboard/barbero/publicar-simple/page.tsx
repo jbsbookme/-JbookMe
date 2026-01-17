@@ -16,6 +16,7 @@ export default function SimpleUploadPage() {
   const router = useRouter();
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
@@ -95,6 +96,7 @@ export default function SimpleUploadPage() {
     setFileType(null);
     if (galleryInputRef.current) galleryInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -252,6 +254,16 @@ export default function SimpleUploadPage() {
                   id="file-input-camera"
                 />
 
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-input-video"
+                />
+
                 {selectedFiles.length === 0 ? (
                   <div className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-cyan-500/30 rounded-lg bg-gradient-to-br from-zinc-900/80 to-black/60 px-4">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -265,7 +277,7 @@ export default function SimpleUploadPage() {
                       <p className="mb-2 text-sm text-gray-300 font-semibold">Upload your post</p>
                       <p className="text-xs text-gray-500">Image or Video (MAX 200MB) • Up to {MAX_FILES} files</p>
 
-                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-sm">
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-sm">
                         <Button
                           type="button"
                           className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
@@ -273,6 +285,15 @@ export default function SimpleUploadPage() {
                           disabled={isUploading}
                         >
                           Take photo
+                        </Button>
+
+                        <Button
+                          type="button"
+                          className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold"
+                          onClick={() => videoInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          Record video
                         </Button>
                         <Button
                           type="button"

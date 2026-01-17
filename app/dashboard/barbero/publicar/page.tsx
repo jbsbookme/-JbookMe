@@ -15,6 +15,7 @@ export default function BarberUploadPage() {
   const router = useRouter();
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [caption, setCaption] = useState('');
@@ -80,6 +81,7 @@ export default function BarberUploadPage() {
     setFileType(null);
     if (galleryInputRef.current) galleryInputRef.current.value = '';
     if (cameraInputRef.current) cameraInputRef.current.value = '';
+    if (videoInputRef.current) videoInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -198,7 +200,10 @@ export default function BarberUploadPage() {
         const uploadedFile = lastFile as File;
 
         // Auto-share after successful upload (single file only)
-        const text = `${caption.trim()}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
+        const trimmedCaption = caption.trim();
+        const text = trimmedCaption
+          ? `${trimmedCaption}\n\nJb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`
+          : `Jb Barbershop • BookMe\nBook your appointment: https://www.jbsbookme.com`;
         const isVideoUpload =
           uploadedFile.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(uploadedFile.name);
 
@@ -319,6 +324,18 @@ export default function BarberUploadPage() {
                         >
                           Take photo
                         </Button>
+
+                        <Button
+                          type="button"
+                          className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            videoInputRef.current?.click();
+                          }}
+                          disabled={isUploading}
+                        >
+                          Record video
+                        </Button>
                         <Button
                           type="button"
                           variant="outline"
@@ -381,6 +398,15 @@ export default function BarberUploadPage() {
                   ref={cameraInputRef}
                   type="file"
                   accept="image/*"
+                  capture="environment"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+
+                <input
+                  ref={videoInputRef}
+                  type="file"
+                  accept="video/*"
                   capture="environment"
                   onChange={handleFileSelect}
                   className="hidden"
