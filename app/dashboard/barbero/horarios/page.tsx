@@ -56,6 +56,17 @@ export default function HorariosPage() {
   const [isWeeklyScheduleOpen, setIsWeeklyScheduleOpen] = useState(true);
   const [bulkStartTime, setBulkStartTime] = useState('09:00');
   const [bulkEndTime, setBulkEndTime] = useState('18:00');
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+  const [bulkDraft, setBulkDraft] = useState<{ startTime: string; endTime: string }>({
+    startTime: '09:00',
+    endTime: '18:00',
+  });
+
+  const [editingDay, setEditingDay] = useState<string | null>(null);
+  const [dayDraft, setDayDraft] = useState<{ startTime: string; endTime: string }>({
+    startTime: '09:00',
+    endTime: '18:00',
+  });
   
   // Day off dialog
   const [showDayOffDialog, setShowDayOffDialog] = useState(false);
@@ -135,6 +146,18 @@ export default function HorariosPage() {
     });
   };
 
+  const openBulkEdit = () => {
+    setBulkDraft({ startTime: bulkStartTime, endTime: bulkEndTime });
+    setShowBulkEditDialog(true);
+  };
+
+  const openDayEdit = (dayOfWeek: string) => {
+    const normalized = ensureAllDays(availability);
+    const day = normalized.find((a) => a.dayOfWeek === dayOfWeek);
+    setDayDraft({ startTime: day?.startTime ?? '09:00', endTime: day?.endTime ?? '18:00' });
+    setEditingDay(dayOfWeek);
+  };
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth');
@@ -159,6 +182,9 @@ export default function HorariosPage() {
         const preferred = normalized.find((a) => a.dayOfWeek === 'MONDAY') || normalized[0];
         if (preferred?.startTime) setBulkStartTime(preferred.startTime);
         if (preferred?.endTime) setBulkEndTime(preferred.endTime);
+        if (preferred?.startTime && preferred?.endTime) {
+          setBulkDraft({ startTime: preferred.startTime, endTime: preferred.endTime });
+        }
       }
     } catch (error) {
       console.error('Error fetching availability:', error);
@@ -378,129 +404,27 @@ export default function HorariosPage() {
                         <div className="grid grid-cols-2 gap-3 w-full sm:max-w-md">
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={String(to12hParts(bulkStartTime).hour12)}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(bulkStartTime);
-                                  setBulkStartTime(from12hParts(Number(v), parts.minute, parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
-                                  <SelectValue placeholder="9" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {hourOptions.map((h) => (
-                                    <SelectItem key={h} value={h}>
-                                      {h}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <span className="text-gray-500">:</span>
-
-                              <Select
-                                value={pad2(to12hParts(bulkStartTime).minute)}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(bulkStartTime);
-                                  setBulkStartTime(from12hParts(parts.hour12, Number(v), parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
-                                  <SelectValue placeholder="00" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {minuteOptions.map((m) => (
-                                    <SelectItem key={m} value={m}>
-                                      {m}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <Select
-                                value={to12hParts(bulkStartTime).ampm}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(bulkStartTime);
-                                  setBulkStartTime(from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
-                                  <SelectValue placeholder="AM" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  <SelectItem value="AM">AM</SelectItem>
-                                  <SelectItem value="PM">PM</SelectItem>
-                                </SelectContent>
-                              </Select>
+                            <div className="bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm">
+                              {formatTime12h(bulkStartTime)}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(bulkStartTime)}</p>
                           </div>
                           <div>
                             <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={String(to12hParts(bulkEndTime).hour12)}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(bulkEndTime);
-                                  setBulkEndTime(from12hParts(Number(v), parts.minute, parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
-                                  <SelectValue placeholder="6" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {hourOptions.map((h) => (
-                                    <SelectItem key={h} value={h}>
-                                      {h}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <span className="text-gray-500">:</span>
-
-                              <Select
-                                value={pad2(to12hParts(bulkEndTime).minute)}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(bulkEndTime);
-                                  setBulkEndTime(from12hParts(parts.hour12, Number(v), parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
-                                  <SelectValue placeholder="00" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {minuteOptions.map((m) => (
-                                    <SelectItem key={m} value={m}>
-                                      {m}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <Select
-                                value={to12hParts(bulkEndTime).ampm}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(bulkEndTime);
-                                  setBulkEndTime(from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
-                                  <SelectValue placeholder="PM" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  <SelectItem value="AM">AM</SelectItem>
-                                  <SelectItem value="PM">PM</SelectItem>
-                                </SelectContent>
-                              </Select>
+                            <div className="bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-sm">
+                              {formatTime12h(bulkEndTime)}
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(bulkEndTime)}</p>
                           </div>
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-2 sm:justify-end w-full sm:w-auto">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-gray-700 text-gray-200 hover:border-[#00f0ff] hover:text-[#00f0ff]"
+                            onClick={openBulkEdit}
+                          >
+                            Editar horas
+                          </Button>
                           <Button
                             type="button"
                             variant="outline"
@@ -523,6 +447,177 @@ export default function HorariosPage() {
                         Tip: pon 09:00 a 18:00 y usa “Aplicar a todos”.
                       </p>
                     </div>
+
+                    <Dialog open={showBulkEditDialog} onOpenChange={setShowBulkEditDialog}>
+                      <DialogContent className="bg-gray-900 border-gray-700 max-w-lg">
+                        <DialogHeader>
+                          <DialogTitle className="text-white">Editar horario rápido</DialogTitle>
+                          <DialogDescription className="text-gray-400">
+                            Cambia la hora de inicio y fin (con AM/PM).
+                          </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                          <div>
+                            <Label className="text-sm text-gray-300 mb-2 block">{t('barber.startTime')}</Label>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={String(to12hParts(bulkDraft.startTime).hour12)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkDraft.startTime);
+                                  setBulkDraft((prev) => ({
+                                    ...prev,
+                                    startTime: from12hParts(Number(v), parts.minute, parts.ampm),
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="9" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {hourOptions.map((h) => (
+                                    <SelectItem key={h} value={h}>
+                                      {h}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <span className="text-gray-500">:</span>
+                              <Select
+                                value={pad2(to12hParts(bulkDraft.startTime).minute)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkDraft.startTime);
+                                  setBulkDraft((prev) => ({
+                                    ...prev,
+                                    startTime: from12hParts(parts.hour12, Number(v), parts.ampm),
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {minuteOptions.map((m) => (
+                                    <SelectItem key={m} value={m}>
+                                      {m}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select
+                                value={to12hParts(bulkDraft.startTime).ampm}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkDraft.startTime);
+                                  setBulkDraft((prev) => ({
+                                    ...prev,
+                                    startTime: from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'),
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="AM" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(bulkDraft.startTime)}</p>
+                          </div>
+
+                          <div>
+                            <Label className="text-sm text-gray-300 mb-2 block">{t('barber.endTime')}</Label>
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={String(to12hParts(bulkDraft.endTime).hour12)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkDraft.endTime);
+                                  setBulkDraft((prev) => ({
+                                    ...prev,
+                                    endTime: from12hParts(Number(v), parts.minute, parts.ampm),
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="6" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {hourOptions.map((h) => (
+                                    <SelectItem key={h} value={h}>
+                                      {h}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <span className="text-gray-500">:</span>
+                              <Select
+                                value={pad2(to12hParts(bulkDraft.endTime).minute)}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkDraft.endTime);
+                                  setBulkDraft((prev) => ({
+                                    ...prev,
+                                    endTime: from12hParts(parts.hour12, Number(v), parts.ampm),
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="00" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  {minuteOptions.map((m) => (
+                                    <SelectItem key={m} value={m}>
+                                      {m}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Select
+                                value={to12hParts(bulkDraft.endTime).ampm}
+                                onValueChange={(v) => {
+                                  const parts = to12hParts(bulkDraft.endTime);
+                                  setBulkDraft((prev) => ({
+                                    ...prev,
+                                    endTime: from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'),
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                                  <SelectValue placeholder="PM" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                                  <SelectItem value="AM">AM</SelectItem>
+                                  <SelectItem value="PM">PM</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(bulkDraft.endTime)}</p>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-4">
+                          <Button
+                            type="button"
+                            className="flex-1 bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold"
+                            onClick={() => {
+                              setBulkStartTime(bulkDraft.startTime);
+                              setBulkEndTime(bulkDraft.endTime);
+                              setShowBulkEditDialog(false);
+                            }}
+                          >
+                            {t('common.save')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                            onClick={() => setShowBulkEditDialog(false)}
+                          >
+                            {t('common.cancel')}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
 
                 {DAYS_OF_WEEK.map((day) => {
                   const dayAvailability = availability.find(a => a.dayOfWeek === day.value);
@@ -548,140 +643,196 @@ export default function HorariosPage() {
                       </div>
 
                       {dayAvailability && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3">
-                          <div>
-                            <Label className="text-sm text-gray-400 mb-2 block">{t('barber.startTime')}</Label>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={String(to12hParts(dayAvailability.startTime).hour12)}
-                                disabled={!isAvailable}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(dayAvailability.startTime);
-                                  handleTimeChange(day.value, 'startTime', from12hParts(Number(v), parts.minute, parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
-                                  <SelectValue placeholder="9" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {hourOptions.map((h) => (
-                                    <SelectItem key={h} value={h}>
-                                      {h}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <span className="text-gray-500">:</span>
-
-                              <Select
-                                value={pad2(to12hParts(dayAvailability.startTime).minute)}
-                                disabled={!isAvailable}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(dayAvailability.startTime);
-                                  handleTimeChange(day.value, 'startTime', from12hParts(parts.hour12, Number(v), parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
-                                  <SelectValue placeholder="00" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {minuteOptions.map((m) => (
-                                    <SelectItem key={m} value={m}>
-                                      {m}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <Select
-                                value={to12hParts(dayAvailability.startTime).ampm}
-                                disabled={!isAvailable}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(dayAvailability.startTime);
-                                  handleTimeChange(day.value, 'startTime', from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
-                                  <SelectValue placeholder="AM" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  <SelectItem value="AM">AM</SelectItem>
-                                  <SelectItem value="PM">PM</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(dayAvailability.startTime)}</p>
+                        <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="text-sm text-white">
+                            {formatTime12h(dayAvailability.startTime)} – {formatTime12h(dayAvailability.endTime)}
                           </div>
-                          <div>
-                            <Label className="text-sm text-gray-400 mb-2 block">{t('barber.endTime')}</Label>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={String(to12hParts(dayAvailability.endTime).hour12)}
-                                disabled={!isAvailable}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(dayAvailability.endTime);
-                                  handleTimeChange(day.value, 'endTime', from12hParts(Number(v), parts.minute, parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
-                                  <SelectValue placeholder="6" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {hourOptions.map((h) => (
-                                    <SelectItem key={h} value={h}>
-                                      {h}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <span className="text-gray-500">:</span>
-
-                              <Select
-                                value={pad2(to12hParts(dayAvailability.endTime).minute)}
-                                disabled={!isAvailable}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(dayAvailability.endTime);
-                                  handleTimeChange(day.value, 'endTime', from12hParts(parts.hour12, Number(v), parts.ampm));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
-                                  <SelectValue placeholder="00" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  {minuteOptions.map((m) => (
-                                    <SelectItem key={m} value={m}>
-                                      {m}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              <Select
-                                value={to12hParts(dayAvailability.endTime).ampm}
-                                disabled={!isAvailable}
-                                onValueChange={(v) => {
-                                  const parts = to12hParts(dayAvailability.endTime);
-                                  handleTimeChange(day.value, 'endTime', from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'));
-                                }}
-                              >
-                                <SelectTrigger className="bg-gray-700 border-gray-600 text-white disabled:opacity-50 w-24">
-                                  <SelectValue placeholder="PM" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-gray-900 border-gray-700 text-white">
-                                  <SelectItem value="AM">AM</SelectItem>
-                                  <SelectItem value="PM">PM</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">{formatTime12h(dayAvailability.endTime)}</p>
-                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!isAvailable}
+                            className="border-gray-700 text-gray-200 hover:border-[#00f0ff] hover:text-[#00f0ff] disabled:opacity-50"
+                            onClick={() => openDayEdit(day.value)}
+                          >
+                            Editar
+                          </Button>
                         </div>
                       )}
                     </div>
                   );
                 })}
+
+                <Dialog open={Boolean(editingDay)} onOpenChange={(open) => setEditingDay(open ? editingDay : null)}>
+                  <DialogContent className="bg-gray-900 border-gray-700 max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle className="text-white">Editar horario del día</DialogTitle>
+                      <DialogDescription className="text-gray-400">
+                        Cambia la hora de inicio y fin (con AM/PM).
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                      <div>
+                        <Label className="text-sm text-gray-300 mb-2 block">{t('barber.startTime')}</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={String(to12hParts(dayDraft.startTime).hour12)}
+                            onValueChange={(v) => {
+                              const parts = to12hParts(dayDraft.startTime);
+                              setDayDraft((prev) => ({
+                                ...prev,
+                                startTime: from12hParts(Number(v), parts.minute, parts.ampm),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                              <SelectValue placeholder="9" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                              {hourOptions.map((h) => (
+                                <SelectItem key={h} value={h}>
+                                  {h}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-gray-500">:</span>
+                          <Select
+                            value={pad2(to12hParts(dayDraft.startTime).minute)}
+                            onValueChange={(v) => {
+                              const parts = to12hParts(dayDraft.startTime);
+                              setDayDraft((prev) => ({
+                                ...prev,
+                                startTime: from12hParts(parts.hour12, Number(v), parts.ampm),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                              <SelectValue placeholder="00" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                              {minuteOptions.map((m) => (
+                                <SelectItem key={m} value={m}>
+                                  {m}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={to12hParts(dayDraft.startTime).ampm}
+                            onValueChange={(v) => {
+                              const parts = to12hParts(dayDraft.startTime);
+                              setDayDraft((prev) => ({
+                                ...prev,
+                                startTime: from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                              <SelectValue placeholder="AM" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{formatTime12h(dayDraft.startTime)}</p>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm text-gray-300 mb-2 block">{t('barber.endTime')}</Label>
+                        <div className="flex items-center gap-2">
+                          <Select
+                            value={String(to12hParts(dayDraft.endTime).hour12)}
+                            onValueChange={(v) => {
+                              const parts = to12hParts(dayDraft.endTime);
+                              setDayDraft((prev) => ({
+                                ...prev,
+                                endTime: from12hParts(Number(v), parts.minute, parts.ampm),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                              <SelectValue placeholder="6" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                              {hourOptions.map((h) => (
+                                <SelectItem key={h} value={h}>
+                                  {h}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="text-gray-500">:</span>
+                          <Select
+                            value={pad2(to12hParts(dayDraft.endTime).minute)}
+                            onValueChange={(v) => {
+                              const parts = to12hParts(dayDraft.endTime);
+                              setDayDraft((prev) => ({
+                                ...prev,
+                                endTime: from12hParts(parts.hour12, Number(v), parts.ampm),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                              <SelectValue placeholder="00" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                              {minuteOptions.map((m) => (
+                                <SelectItem key={m} value={m}>
+                                  {m}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={to12hParts(dayDraft.endTime).ampm}
+                            onValueChange={(v) => {
+                              const parts = to12hParts(dayDraft.endTime);
+                              setDayDraft((prev) => ({
+                                ...prev,
+                                endTime: from12hParts(parts.hour12, parts.minute, v as 'AM' | 'PM'),
+                              }));
+                            }}
+                          >
+                            <SelectTrigger className="bg-gray-800 border-gray-700 text-white w-24">
+                              <SelectValue placeholder="PM" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-gray-900 border-gray-700 text-white">
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{formatTime12h(dayDraft.endTime)}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        type="button"
+                        className="flex-1 bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold"
+                        onClick={() => {
+                          if (!editingDay) return;
+                          handleTimeChange(editingDay, 'startTime', dayDraft.startTime);
+                          handleTimeChange(editingDay, 'endTime', dayDraft.endTime);
+                          setEditingDay(null);
+                        }}
+                      >
+                        {t('common.save')}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                        onClick={() => setEditingDay(null)}
+                      >
+                        {t('common.cancel')}
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                   <div className="flex items-start gap-3">
