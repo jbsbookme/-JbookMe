@@ -103,13 +103,14 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
             <button
               key={ratingValue}
               type="button"
-              className="p-1"
+              className={`p-1 ${submitting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
               aria-label={
                 language === 'es'
                   ? `Calificar ${ratingValue} estrella${ratingValue > 1 ? 's' : ''}`
                   : `Rate ${ratingValue} star${ratingValue > 1 ? 's' : ''}`
               }
-              disabled={!canRate || submitting}
+              aria-disabled={!canRate || submitting}
+              disabled={submitting}
               onMouseEnter={() => setHoverRating(ratingValue)}
               onFocus={() => setHoverRating(ratingValue)}
               onClick={() => submitRating(ratingValue)}
