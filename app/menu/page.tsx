@@ -382,7 +382,18 @@ export default function MenuPage() {
                     <MapPin className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.address')}</p>
-                      <p className="text-white">{settings.address || t('common.notAvailable')}</p>
+                      {settings.address ? (
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white hover:text-[#00f0ff]"
+                        >
+                          {settings.address}
+                        </a>
+                      ) : (
+                        <p className="text-white">{t('common.notAvailable')}</p>
+                      )}
                     </div>
                   </div>
 
