@@ -1397,6 +1397,16 @@ export default function FeedPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               whileHover={{ scale: 1.05, rotate: 1 }}
               whileTap={{ scale: 0.95 }}
+              onPointerDown={() => {
+                try {
+                  // Subtle haptic feedback (supported on many Android devices / some PWAs).
+                  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                    navigator.vibrate?.(10);
+                  }
+                } catch {
+                  // ignore
+                }
+              }}
             >
               <Card className="glass-cyan hover:glow-cyan smooth-transition overflow-hidden relative">
                 <div className="pointer-events-none absolute inset-0">
