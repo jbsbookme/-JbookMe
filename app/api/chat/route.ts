@@ -6,6 +6,66 @@ type ChatMessage = {
   content?: string
 }
 
+type Lang = 'en' | 'es'
+
+function detectLang(text: string): Lang {
+  const value = (text || '').trim()
+  if (!value) return 'en'
+  const lower = value.toLowerCase()
+
+  // Quick Spanish signal words + characters.
+  const spanishSignals = [
+    'hola',
+    'buenas',
+    'buenos',
+    'gracias',
+    'por favor',
+    'quiero',
+    'necesito',
+    'reserv',
+    'cita',
+    'turno',
+    'barberia',
+    'barbero',
+    'peluquer',
+    'corte',
+    'barba',
+    'horario',
+    'precio',
+    'direccion',
+    'ubicacion',
+    'mañana',
+    'hoy',
+    'lunes',
+    'martes',
+    'miércoles',
+    'miercoles',
+    'jueves',
+    'viernes',
+    'sábado',
+    'sabado',
+    'domingo',
+  ]
+
+  const hasSpanishChar = /[ñáéíóúü¿¡]/i.test(value)
+  const hitCount = spanishSignals.reduce((acc, s) => (lower.includes(s) ? acc + 1 : acc), 0)
+  return hasSpanishChar || hitCount >= 2 ? 'es' : 'en'
+}
+
+function serviceLabel(service: string | null, lang: Lang): string | null {
+  if (!service) return null
+  const key = service.toLowerCase()
+  const map: Record<string, { en: string; es: string }> = {
+    haircut: { en: 'Haircut', es: 'Corte' },
+    beard: { en: 'Beard', es: 'Barba' },
+    eyebrows: { en: 'Eyebrows', es: 'Cejas' },
+    treatment: { en: 'Treatment', es: 'Tratamiento' },
+    combo: { en: 'Combo', es: 'Combo' },
+  }
+  const item = map[key]
+  return item ? item[lang] : service
+}
+
 function chunkText(text: string, chunkSize = 24): string[] {
   if (!text) return []
   const chunks: string[] = []
@@ -43,19 +103,23 @@ function extractAppointmentInfo(messages: ChatMessage[]) {
   
   // Extract service
   let service = null
-  if (conversationText.includes('haircut')) service = 'haircut'
-  else if (conversationText.includes('beard')) service = 'beard'
-  else if (conversationText.includes('eyebrows')) service = 'eyebrows'
-  else if (conversationText.includes('treatment')) service = 'treatment'
-  else if (conversationText.includes('combo')) service = 'combo'
+  if (conversationText.includes('haircut') || conversationText.includes('corte')) service = 'haircut'
+  else if (conversationText.includes('beard') || conversationText.includes('barba')) service = 'beard'
+  else if (conversationText.includes('eyebrows') || conversationText.includes('cejas')) service = 'eyebrows'
+  else if (conversationText.includes('treatment') || conversationText.includes('tratamiento')) service = 'treatment'
+  else if (conversationText.includes('combo') || conversationText.includes('paquete')) service = 'combo'
   
   // Extract date
   let date = null
   const datePatterns = [
     /\b(tomorrow)\b/i,
     /\b(today)\b/i,
+    /\b(mañana)\b/i,
+    /\b(hoy)\b/i,
     /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+    /\b(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\b/i,
     /\b(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)\b/i,
+    /\b(\d{1,2})\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)\b/i,
     /\b(\d{1,2})[\/\-](\d{1,2})\b/
   ]
   for (const pattern of datePatterns) {
@@ -71,7 +135,8 @@ function extractAppointmentInfo(messages: ChatMessage[]) {
   const timePatterns = [
       /\b(\d{1,2})\s*(?::|\.)\s*(\d{2})\s*(am|pm|a\.?m\.?|p\.?m\.?)?\b/i,
       /\b(\d{1,2})\s*(am|pm|a\.?m\.?|p\.?m\.?)\b/i,
-      /\b(morning|afternoon|evening)\s+(early|mid|late)\b/i
+      /\b(morning|afternoon|evening)\s+(early|mid|late)\b/i,
+      /\b(\d{1,2})\s*(de\s+la\s+mañana|de\s+la\s+tarde|de\s+la\s+noche)\b/i
   ]
   for (const pattern of timePatterns) {
     const match = conversationText.match(pattern)
@@ -102,7 +167,9 @@ export async function POST(request: NextRequest) {
     const typedMessages: ChatMessage[] = messages as ChatMessage[]
 
     // Get user message
-    const userMessage = typedMessages[typedMessages.length - 1]?.content?.toLowerCase() || ''
+    const userMessageRaw = (typedMessages[typedMessages.length - 1]?.content || '') as string
+    const userMessage = userMessageRaw.toLowerCase() || ''
+    const lang = detectLang(userMessageRaw)
     
     // Extract appointment info from entire conversation
     const info = extractAppointmentInfo(typedMessages)
@@ -116,19 +183,32 @@ export async function POST(request: NextRequest) {
         content.includes('what service') ||
         content.includes('what day') ||
         content.includes('what time') ||
-        content.includes("i can book you")
+        content.includes("i can book you") ||
+        content.includes('qué servicio') ||
+        content.includes('que servicio') ||
+        content.includes('qué día') ||
+        content.includes('que dia') ||
+        content.includes('qué hora') ||
+        content.includes('que hora') ||
+        content.includes('puedo reservarte')
       )
     })
     
     // Check if user wants to make an appointment
-    const wantsAppointment = userMessage.match(/\b(book|schedule|make|need|want)\s+(an\s+)?(appointment)\b/i) ||
-                userMessage.match(/\bappointment\s+with\b/i) ||
-                            isInAppointmentFlow
+    const wantsAppointment =
+      userMessage.match(/\b(book|schedule|make|need|want)\s+(an\s+)?(appointment)\b/i) ||
+      userMessage.match(/\bappointment\s+with\b/i) ||
+      userMessage.match(/\b(reserv(ar|a)|agendar|programar)\b/i) ||
+      userMessage.match(/\b(cita|turno)\b/i) ||
+      isInAppointmentFlow
     
     if (wantsAppointment || isInAppointmentFlow) {
       // Ask for missing information step by step
       if (!info.service) {
-        const message = `Perfect! ${info.barber ? `I can book you with ${info.barber}. ` : ''}What service would you like? We offer haircuts, beard services, eyebrows, hair treatments, and special combos. Which one do you prefer?`
+        const message =
+          lang === 'es'
+            ? `¡Perfecto! ${info.barber ? `Puedo reservarte con ${info.barber}. ` : ''}¿Qué servicio deseas? Tenemos cortes, barba, cejas, tratamientos y combos. ¿Cuál prefieres?`
+            : `Perfect! ${info.barber ? `I can book you with ${info.barber}. ` : ''}What service would you like? We offer haircuts, beard services, eyebrows, hair treatments, and special combos. Which one do you prefer?`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
         }
@@ -150,7 +230,11 @@ export async function POST(request: NextRequest) {
       }
       
       if (!info.date) {
-        const message = `Great — a ${info.service}${info.barber ? ` with ${info.barber}` : ''}. What day would you like the appointment? You can say tomorrow, a day of the week, or a specific date.`
+        const svc = serviceLabel(info.service, lang) ?? info.service
+        const message =
+          lang === 'es'
+            ? `Excelente — ${svc}${info.barber ? ` con ${info.barber}` : ''}. ¿Qué día te gustaría la cita? Puedes decir mañana, un día de la semana o una fecha específica.`
+            : `Great — a ${svc}${info.barber ? ` with ${info.barber}` : ''}. What day would you like the appointment? You can say tomorrow, a day of the week, or a specific date.`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
         }
@@ -172,7 +256,11 @@ export async function POST(request: NextRequest) {
       }
       
       if (!info.time) {
-        const message = `Perfect! So ${info.service}${info.barber ? ` with ${info.barber}` : ''} on ${info.date}. What time works best for you? Our hours are 9am–8pm Monday–Saturday, and 10am–6pm on Sundays.`
+        const svc = serviceLabel(info.service, lang) ?? info.service
+        const message =
+          lang === 'es'
+            ? `¡Perfecto! Entonces ${svc}${info.barber ? ` con ${info.barber}` : ''} el ${info.date}. ¿A qué hora te queda bien? Nuestro horario es 9am–8pm de lunes a sábado y 10am–6pm los domingos.`
+            : `Perfect! So ${svc}${info.barber ? ` with ${info.barber}` : ''} on ${info.date}. What time works best for you? Our hours are 9am–8pm Monday–Saturday, and 10am–6pm on Sundays.`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
         }
@@ -196,13 +284,23 @@ export async function POST(request: NextRequest) {
       // All info collected - confirm
       if (info.service && info.date && info.time) {
         const timeDisplay = formatTime12h(info.time)
-        const message = `Awesome! Let me confirm your appointment:
+        const svc = serviceLabel(info.service, lang) ?? info.service
+        const message =
+          lang === 'es'
+            ? `¡Listo! Confirmo tu cita:
 
-      📅 Service: ${info.service}
+      📅 Servicio: ${svc}
+      ${info.barber ? `👨‍🦲 Con: ${info.barber}\n` : ''}📆 Día: ${info.date}
+        🕒 Hora: ${timeDisplay}
+
+      Para finalizar la reserva, ve al menú y toca "Book" / "Reservar" y selecciona estos datos. ¿Quieres que te guíe paso a paso?`
+            : `Awesome! Let me confirm your appointment:
+
+      📅 Service: ${svc}
       ${info.barber ? `👨‍🦲 With: ${info.barber}\n` : ''}📆 Date: ${info.date}
         🕒 Time: ${timeDisplay}
 
-      To confirm this appointment, go to the main menu and tap "Book Now" where you can select these details and receive your confirmation. Would you like help with anything else?`
+      To confirm this appointment, go to the main menu and tap "Book" where you can select these details and receive your confirmation. Would you like help with anything else?`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
         }
@@ -232,39 +330,101 @@ export async function POST(request: NextRequest) {
     let response = ''
     
     // Greetings
-    if (userMessage.match(/^(hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|greetings|how\s+are\s+you)/i)) {
-      response = `Hi! I'm JBookMe's virtual assistant. I can help you with service info, hours, pricing, location, or booking an appointment. What can I help you with today?`
+    if (userMessage.match(/^(hey|hi|hello|good\s+morning|good\s+afternoon|good\s+evening|greetings|how\s+are\s+you)/i) ||
+        userMessage.match(/^(hola|buenas|buenos\s+d(i|í)as|buenas\s+tardes|buenas\s+noches|saludos|c(o|ó)mo\s+est(a|á)s)/i)) {
+      response =
+        lang === 'es'
+          ? `¡Hola! Bienvenido a JBookMe Barbershop. Puedo ayudarte con servicios y precios, horarios, ubicación y reservar una cita. ¿Qué necesitas hoy?`
+          : `Hi! Welcome to JBookMe Barbershop. I can help with services and prices, hours, location, and booking an appointment. What do you need today?`
     }
     
     // Services & Prices
-    else if (userMessage.includes('service') || userMessage.includes('price') || userMessage.includes('cost') || userMessage.includes('how much') || userMessage.includes('rate')) {
-      if (userMessage.includes('haircut') || userMessage.includes('hair')) {
-        response = `Sure! Here are our haircut options: Classic Cut $20, Modern Cut $25, Design Cut $30, and Premium Cut $35. Each includes wash and professional finish. Would you like to book an appointment?`
-      } else if (userMessage.includes('beard') || userMessage.includes('shave')) {
-        response = `Absolutely! For beard services: Beard Trim $15, Beard Shaping $20, and Classic Hot Towel Shave $30. We also offer Beard + Mustache for $25. Want me to help you book?`
+    else if (
+      userMessage.includes('service') ||
+      userMessage.includes('price') ||
+      userMessage.includes('cost') ||
+      userMessage.includes('how much') ||
+      userMessage.includes('rate') ||
+      userMessage.includes('servicio') ||
+      userMessage.includes('precio') ||
+      userMessage.includes('costo') ||
+      userMessage.includes('cuanto')
+    ) {
+      if (userMessage.includes('haircut') || userMessage.includes('hair') || userMessage.includes('corte')) {
+        response =
+          lang === 'es'
+            ? `Claro. Cortes: Clásico $20, Moderno $25, Con diseño $30 y Premium $35. ¿Quieres que te ayude a reservar una cita?`
+            : `Sure! Haircuts: Classic $20, Modern $25, Design $30, and Premium $35. Want me to help you book an appointment?`
+      } else if (userMessage.includes('beard') || userMessage.includes('shave') || userMessage.includes('barba')) {
+        response =
+          lang === 'es'
+            ? `¡Perfecto! Barba: Recorte $15, Perfilado $20 y Afeitado con toalla caliente $30. ¿Quieres reservar?`
+            : `Absolutely! Beard: Trim $15, Shaping $20, and Hot Towel Shave $30. Want to book?`
       } else {
-        response = `Happy to help. Haircuts range from $20 to $35, beard services from $15 to $30, eyebrow design is $10, and hair treatments are $40 to $50. We also have combos like Haircut + Beard for $40, and Full Service for $65. Which service would you like details on?`
+        response =
+          lang === 'es'
+            ? `Con gusto. Cortes $20–$35, barba $15–$30, cejas $10 y tratamientos $40–$50. También hay combos. ¿Qué servicio quieres?`
+            : `Happy to help. Haircuts $20–$35, beard $15–$30, eyebrows $10, treatments $40–$50, and combos. Which service do you want?`
       }
     }
     
     // Schedule
-    else if (userMessage.includes('hours') || userMessage.includes('open') || userMessage.includes('when') || userMessage.includes('schedule')) {
-      response = `Our hours are Monday–Saturday 9:00am–8:00pm, and Sundays 10:00am–6:00pm. You can also book online anytime, 24/7. Would you like to book now?`
+    else if (
+      userMessage.includes('hours') ||
+      userMessage.includes('open') ||
+      userMessage.includes('when') ||
+      userMessage.includes('schedule') ||
+      userMessage.includes('horario') ||
+      userMessage.includes('abren') ||
+      userMessage.includes('cierran') ||
+      userMessage.includes('a que hora')
+    ) {
+      response =
+        lang === 'es'
+          ? `Nuestro horario es de lunes a sábado 9:00am–8:00pm y domingos 10:00am–6:00pm. ¿Quieres reservar una cita?`
+          : `Our hours are Monday–Saturday 9:00am–8:00pm and Sundays 10:00am–6:00pm. Would you like to book an appointment?`
     }
     
     // Reservations - also check if part of appointment flow
-    else if ((userMessage.includes('book') || userMessage.includes('appointment') || userMessage.includes('schedule') || userMessage.includes('reserve')) && !wantsAppointment) {
-      response = `Sure! I can help you book right now. Tell me who you'd like the appointment with, what service you need, and what day/time you prefer. Or you can go to the main menu and tap Book Now. Which do you prefer?`
+    else if (
+      (userMessage.includes('book') ||
+        userMessage.includes('appointment') ||
+        userMessage.includes('schedule') ||
+        userMessage.includes('reserve') ||
+        userMessage.includes('reserv') ||
+        userMessage.includes('cita') ||
+        userMessage.includes('turno')) &&
+      !wantsAppointment
+    ) {
+      response =
+        lang === 'es'
+          ? `¡Claro! Para reservar dime: 1) con qué barbero, 2) qué servicio, y 3) qué día y hora prefieres. Si quieres, también puedes ir a "Book" y hacerlo ahí. ¿Cómo prefieres?`
+          : `Sure! To book, tell me: 1) which barber, 2) what service, and 3) what day/time you prefer. You can also go to "Book" and do it there. Which do you prefer?`
     }
     
     // Location
-    else if (userMessage.includes('location') || userMessage.includes('address') || userMessage.includes('where') || userMessage.includes('directions')) {
-      response = `To see exactly where we are, go to the main menu and tap Location. You'll find our full address and an interactive map. You can also open it in Google Maps or get directions from your current location. Anything else you need?`
+    else if (
+      userMessage.includes('location') ||
+      userMessage.includes('address') ||
+      userMessage.includes('where') ||
+      userMessage.includes('directions') ||
+      userMessage.includes('ubicacion') ||
+      userMessage.includes('dirección') ||
+      userMessage.includes('direccion') ||
+      userMessage.includes('como llegar')
+    ) {
+      response =
+        lang === 'es'
+          ? `Para ver la ubicación exacta, ve al menú y toca "Ubicación". Ahí puedes abrir GPS/Directions. ¿Necesitas la dirección?`
+          : `To see our exact location, go to the menu and tap "Location". You can open GPS directions from there. Need the address?`
     }
     
     // Payment
     else if (userMessage.includes('pay') || userMessage.includes('payment') || userMessage.includes('cash') || userMessage.includes('card')) {
-      response = `We accept multiple payment methods: cash, credit/debit cards, PayPal, Zelle, and bank transfers. Want to book an appointment?`
+      response =
+        lang === 'es'
+          ? `Aceptamos efectivo, tarjetas, PayPal, Zelle y transferencias. ¿Quieres reservar una cita?`
+          : `We accept cash, cards, PayPal, Zelle, and bank transfers. Want to book an appointment?`
     }
     
     // Cancellation
@@ -289,17 +449,20 @@ export async function POST(request: NextRequest) {
     
     // Thanks
     else if (userMessage.match(/(thanks|thx|ty)/i)) {
-      response = `You're welcome! If you need anything else, just tell me. Anything else I can help with?`
+      response = lang === 'es' ? `¡Con gusto! ¿Te ayudo con una reserva?` : `You're welcome! Anything else I can help with?`
     }
     
     // Goodbye
     else if (userMessage.match(/(bye|goodbye|see\s+you|later)/i)) {
-      response = `See you soon! Have a great day. Remember you can book an appointment anytime, 24/7.`
+      response = lang === 'es' ? `¡Nos vemos! Cuando quieras, te ayudo a reservar.` : `See you soon! Whenever you're ready, I can help you book.`
     }
     
     // Default response
     else {
-      response = `I want to make sure I understand. I can help with services and prices, hours, booking an appointment, location, payment methods, meeting our team, or browsing the style gallery. What would you like to talk about?`
+      response =
+        lang === 'es'
+          ? `¡Claro! Puedo ayudarte a reservar una cita. Dime: barbero (opcional), servicio, día y hora. ¿Qué te gustaría reservar?`
+          : `Got it. I can help you book an appointment. Tell me: barber (optional), service, day, and time. What would you like to book?`
     }
     
     if (!wantsStream(request)) {

@@ -38,9 +38,11 @@ type SpeechRecognitionErrorEvent = {
 }
 
 export default function AsistentePage() {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const tRef = useRef(t)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
+  const lastInputWasVoiceRef = useRef(false)
+  const shouldSpeakResponseRef = useRef(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -51,7 +53,7 @@ export default function AsistentePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [autoSpeak, setAutoSpeak] = useState(true)
+  const [autoSpeak, setAutoSpeak] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
@@ -124,7 +126,7 @@ export default function AsistentePage() {
 
       if (SpeechRecognitionCtor) {
         const recognition = new SpeechRecognitionCtor()
-        recognition.lang = 'es-ES'
+        recognition.lang = language === 'es' ? 'es-ES' : 'en-US'
         recognition.continuous = false
         recognition.interimResults = false
 
@@ -132,6 +134,7 @@ export default function AsistentePage() {
           const e = event as unknown as SpeechRecognitionResultEvent
           const transcript = e.results?.[0]?.[0]?.transcript
           if (!transcript) return
+          lastInputWasVoiceRef.current = true
           setInput(transcript)
           setIsListening(false)
           toast.success(tRef.current('assistant.capturedMessage'))
@@ -233,6 +236,10 @@ export default function AsistentePage() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
+
+    // Only speak back when user used voice input (or explicitly enables it).
+    shouldSpeakResponseRef.current = autoSpeak && lastInputWasVoiceRef.current
+    lastInputWasVoiceRef.current = false
 
     const userMessage: Message = { role: 'user', content: input }
     setMessages(prev => [...prev, userMessage])
@@ -338,7 +345,7 @@ export default function AsistentePage() {
             }
             return newMessages
           })
-        } else if (autoSpeak) {
+        } else if (shouldSpeakResponseRef.current) {
           // Auto-speak the assistant's response
           speak(assistantMessage)
         }
@@ -357,6 +364,7 @@ export default function AsistentePage() {
       ])
     } finally {
       setIsLoading(false)
+      shouldSpeakResponseRef.current = false
     }
   }
 
@@ -499,7 +507,10 @@ export default function AsistentePage() {
             <div className="flex gap-2">
               <Input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  lastInputWasVoiceRef.current = false
+                  setInput(e.target.value)
+                }}
                 onKeyPress={handleKeyPress}
                 placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
                 disabled={isLoading || isListening}
