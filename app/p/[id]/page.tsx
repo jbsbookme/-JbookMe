@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/db';
+import { authOptions } from '@/lib/auth/auth-options';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -85,6 +87,11 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function PublicPostPage({ params }: Params) {
   const { id } = await params;
 
+  const session = await getServerSession(authOptions);
+  if (session) {
+    redirect(`/feed?post=${encodeURIComponent(id)}`);
+  }
+
   const post = await prisma.post.findUnique({
     where: { id },
     select: {
@@ -113,7 +120,7 @@ export default async function PublicPostPage({ params }: Params) {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between mb-6">
           <Link href="/" className="text-sm text-gray-300 hover:text-white">
-             Back
+            Back
           </Link>
           <Link href="/feed" className="text-sm text-cyan-300 hover:text-cyan-200">
             Open JBookMe
@@ -128,7 +135,8 @@ export default async function PublicPostPage({ params }: Params) {
                   src={mediaUrl}
                   controls
                   playsInline
-                  className="w-full max-h-[70vh] object-contain"
+                  preload="metadata"
+                  className="w-full max-h-[70vh] object-contain bg-black"
                 />
               ) : (
                 // Use plain img to avoid remote image config issues.
