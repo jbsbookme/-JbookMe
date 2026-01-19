@@ -96,7 +96,7 @@ function extractAppointmentInfo(messages: ChatMessage[]) {
   
   // Extract barber name
   let barber = null
-  const barberMatches = conversationText.match(/\b(jose|miguel|carlos|sandra|maria|ana|juan)\b/i)
+  const barberMatches = conversationText.match(/\b(jose|miguel|carlos|sandra|maria|ana|juan|adolfo)\b/i)
   if (barberMatches) {
     barber = barberMatches[1]
   }
