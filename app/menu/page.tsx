@@ -72,6 +72,18 @@ export default function MenuPage() {
   const [contactExpanded, setContactExpanded] = useState(false);
   const [hoursExpanded, setHoursExpanded] = useState(false);
 
+  const directionsHrefFor = (address: string) => {
+    const encoded = encodeURIComponent(address);
+
+    // Prefer Apple Maps on iOS (opens the native Maps app more reliably).
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+    const isIOS = /iPad|iPhone|iPod/i.test(ua);
+    if (isIOS) return `https://maps.apple.com/?daddr=${encoded}`;
+
+    // Default: Google Maps Directions.
+    return `https://www.google.com/maps/dir/?api=1&destination=${encoded}`;
+  };
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/auth');
@@ -382,7 +394,18 @@ export default function MenuPage() {
                     <MapPin className="w-5 h-5 text-[#00f0ff] mt-0.5" />
                     <div>
                       <p className="text-gray-400 text-sm">{t('common.address')}</p>
-                      <p className="text-white">{settings.address || t('common.notAvailable')}</p>
+                      {settings.address ? (
+                        <a
+                          href={directionsHrefFor(settings.address)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-white hover:text-[#00f0ff]"
+                        >
+                          {settings.address}
+                        </a>
+                      ) : (
+                        <p className="text-white">{t('common.notAvailable')}</p>
+                      )}
                     </div>
                   </div>
 
