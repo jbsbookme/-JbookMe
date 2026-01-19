@@ -134,6 +134,9 @@ export default function FeedPage() {
   const searchParams = useSearchParams();
   const sharedPostId = searchParams.get('post');
 
+  const FEED_CACHE_KEY = 'jbookme_feed_cache_v1';
+  const POSTS_PAGE_SIZE = 24;
+
   const sessionUserId = (session?.user as { id?: string } | undefined)?.id;
   const [posts, setPosts] = useState<Post[]>([]);
   const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -144,6 +147,24 @@ export default function FeedPage() {
   const [commentText, setCommentText] = useState<{[key: string]: string}>({});
   const [loading, setLoading] = useState(true);
   const [commentsModalOpen, setCommentsModalOpen] = useState<string | null>(null);
+  const [postsCursor, setPostsCursor] = useState<string | null>(null);
+  const [hasMorePosts, setHasMorePosts] = useState(false);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+  const [restoredFromCache, setRestoredFromCache] = useState(false);
+  const restoredScrollOnceRef = useRef(false);
+  const openedSharedPostIdRef = useRef<string | null>(null);
+  const scrollLockRef = useRef<{
+    locked: boolean;
+    scrollY: number;
+    prevBodyPosition: string;
+    prevBodyTop: string;
+    prevBodyLeft: string;
+    prevBodyRight: string;
+    prevBodyWidth: string;
+    prevBodyOverflow: string;
+    prevBodyPaddingRight: string;
+  } | null>(null);
 
   const sharePost = useCallback(async (post: Post) => {
     const shareUrl = `${window.location.origin}/p/${post.id}`;
@@ -255,9 +276,84 @@ export default function FeedPage() {
   const [zoomedMedia, setZoomedMedia] = useState<{
     url: string;
     isVideo: boolean;
+    poster?: string;
     authorName?: string;
     dateLabel?: string;
   } | null>(null);
+
+  const captureVideoPoster = useCallback((video: HTMLVideoElement): string | null => {
+    try {
+      // Need decoded frame; otherwise drawing will be blank.
+      if (video.readyState < 2) return null;
+      if (!video.videoWidth || !video.videoHeight) return null;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return canvas.toDataURL('image/jpeg', 0.82);
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // Instagram-like scroll lock: freeze background without jumping and restore exact scroll.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const modalOpen = !!zoomedMedia || !!commentsModalOpen;
+
+    if (modalOpen) {
+      if (scrollLockRef.current?.locked) return;
+
+      const scrollY = window.scrollY || 0;
+      const bodyStyle = window.document.body.style;
+
+      const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+      const prev = {
+        locked: true,
+        scrollY,
+        prevBodyPosition: bodyStyle.position,
+        prevBodyTop: bodyStyle.top,
+        prevBodyLeft: bodyStyle.left,
+        prevBodyRight: bodyStyle.right,
+        prevBodyWidth: bodyStyle.width,
+        prevBodyOverflow: bodyStyle.overflow,
+        prevBodyPaddingRight: bodyStyle.paddingRight,
+      };
+      scrollLockRef.current = prev;
+
+      bodyStyle.position = 'fixed';
+      bodyStyle.top = `-${scrollY}px`;
+      bodyStyle.left = '0';
+      bodyStyle.right = '0';
+      bodyStyle.width = '100%';
+      bodyStyle.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        bodyStyle.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      return;
+    }
+
+    // Modal closed → restore.
+    const lock = scrollLockRef.current;
+    if (!lock?.locked) return;
+
+    const bodyStyle = window.document.body.style;
+    bodyStyle.position = lock.prevBodyPosition;
+    bodyStyle.top = lock.prevBodyTop;
+    bodyStyle.left = lock.prevBodyLeft;
+    bodyStyle.right = lock.prevBodyRight;
+    bodyStyle.width = lock.prevBodyWidth;
+    bodyStyle.overflow = lock.prevBodyOverflow;
+    bodyStyle.paddingRight = lock.prevBodyPaddingRight;
+
+    scrollLockRef.current = null;
+    window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
+  }, [zoomedMedia, commentsModalOpen]);
 
   const [feedAudioEnabled, setFeedAudioEnabled] = useState(false);
   const feedAudioEnabledRef = useRef(false);
@@ -655,21 +751,81 @@ export default function FeedPage() {
   };
 
   useEffect(() => {
-    // Shared post view should be accessible without login.
-    if (sharedPostId) {
-      fetchSharedPost(sharedPostId);
-      return;
+    // Instagram-like UX: restore feed state + scroll position when coming back.
+    // Only restore for authenticated users (the feed requires auth anyway).
+    if (typeof window !== 'undefined' && status === 'authenticated' && !restoredFromCache) {
+      try {
+        const raw = window.sessionStorage.getItem(FEED_CACHE_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw) as {
+            posts?: Post[];
+            cursor?: string | null;
+            hasMore?: boolean;
+            scrollY?: number;
+            ts?: number;
+          };
+
+          if (Array.isArray(cached.posts) && cached.posts.length > 0) {
+            setPosts(cached.posts);
+            setPostsCursor(cached.cursor ?? null);
+            setHasMorePosts(!!cached.hasMore);
+            setLoading(false);
+            setRestoredFromCache(true);
+
+            const targetScroll = Number.isFinite(cached.scrollY) ? Number(cached.scrollY) : 0;
+            // Defer scroll restore until after paint.
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                if (!restoredScrollOnceRef.current) {
+                  restoredScrollOnceRef.current = true;
+                  window.scrollTo({ top: targetScroll, left: 0, behavior: 'auto' });
+                }
+              });
+            });
+            return;
+          }
+        }
+      } catch {
+        // Ignore cache errors.
+      }
     }
 
+    // Shared post view should be accessible without login.
+    // If unauthenticated and a shared post id is present, render the shared post view.
     if (status === 'unauthenticated') {
+      if (sharedPostId) {
+        fetchSharedPost(sharedPostId);
+        return;
+      }
+
       router.push('/auth');
       return;
     }
 
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && !restoredFromCache) {
       fetchData();
     }
-  }, [status, router, sharedPostId, fetchSharedPost]);
+  }, [status, router, sharedPostId, fetchSharedPost, restoredFromCache]);
+
+  // Persist feed state on unmount/navigation (Instagram-like back behavior).
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    return () => {
+      try {
+        const payload = {
+          posts,
+          cursor: postsCursor,
+          hasMore: hasMorePosts,
+          scrollY: typeof window !== 'undefined' ? window.scrollY : 0,
+          ts: Date.now(),
+        };
+        window.sessionStorage.setItem(FEED_CACHE_KEY, JSON.stringify(payload));
+      } catch {
+        // Ignore cache write errors.
+      }
+    };
+  }, [sharedPostId, status, posts, postsCursor, hasMorePosts]);
 
   // Show the persistent mobile BOOK button only after the main booking CTA card
   // (date card) has scrolled out of view.
@@ -694,10 +850,12 @@ export default function FeedPage() {
   const fetchData = async () => {
     try {
       // Fetch approved posts
-      const postsRes = await fetch(`/api/posts?status=APPROVED&_ts=${Date.now()}`);
+      const postsRes = await fetch(`/api/posts?status=APPROVED&limit=${POSTS_PAGE_SIZE}&_ts=${Date.now()}`);
       if (postsRes.ok) {
         const postsData = await postsRes.json();
-        setPosts(postsData.posts?.slice(0, 12) || []); // Latest 12 posts
+        setPosts(postsData.posts || []);
+        setPostsCursor(postsData.nextCursor || null);
+        setHasMorePosts(!!postsData.nextCursor);
       }
 
       // FIXED: Fetch barbers and stylists using gender filter
@@ -728,6 +886,131 @@ export default function FeedPage() {
       setLoading(false);
     }
   };
+
+  // If we landed on /feed?post=..., open that post in the modal (Instagram-like) for authenticated users.
+  // We keep the full feed behind (restored from cache or freshly loaded).
+  useEffect(() => {
+    if (!sharedPostId) return;
+    if (status !== 'authenticated') return;
+    if (openedSharedPostIdRef.current === sharedPostId) return;
+
+    const isVideoAsset = (path: string): boolean => {
+      if (/(\.(mp4|webm|ogg|mov|avi|mkv|flv)$)/i.test(path)) return true;
+      const lowerPath = String(path || '').toLowerCase();
+      if (lowerPath.includes('video') || lowerPath.includes('.mp4') || lowerPath.includes('.mov')) return true;
+      try {
+        const url = new URL(path);
+        const contentType = url.searchParams.get('content-type') || url.searchParams.get('contentType');
+        if (contentType && contentType.startsWith('video/')) return true;
+      } catch {
+        // ignore
+      }
+      return false;
+    };
+
+    const openFromPost = (post: Post) => {
+      const authorName =
+        post.authorType === 'BARBER'
+          ? post.barber?.user?.name
+          : post.author?.name || 'User';
+
+      const dateLabel = new Date(post.createdAt).toLocaleDateString('en', {
+        month: 'short',
+        day: 'numeric',
+      });
+
+      const isVideoPost = isVideoAsset(post.cloud_storage_path);
+      const mediaUrl = isVideoPost
+        ? `/api/posts/${post.id}/media`
+        : (post as any).imageUrl || resolvePublicMediaUrl(post.cloud_storage_path);
+
+      pauseAllVideos();
+      setZoomedMedia({
+        url: mediaUrl,
+        isVideo: isVideoPost,
+        poster: undefined,
+        authorName,
+        dateLabel,
+      });
+    };
+
+    const fromFeed = posts.find((p) => p.id === sharedPostId);
+    if (fromFeed) {
+      openedSharedPostIdRef.current = sharedPostId;
+      openFromPost(fromFeed);
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/posts/${encodeURIComponent(sharedPostId)}?_ts=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const post = data?.post as Post | undefined;
+        if (!post) return;
+        openedSharedPostIdRef.current = sharedPostId;
+        openFromPost(post);
+      } catch {
+        // ignore
+      }
+    })();
+  }, [sharedPostId, status, posts, pauseAllVideos]);
+
+  const loadMorePosts = useCallback(async () => {
+    if (!hasMorePosts || !postsCursor || loadingMorePosts) return;
+    setLoadingMorePosts(true);
+    try {
+      const res = await fetch(
+        `/api/posts?status=APPROVED&limit=${POSTS_PAGE_SIZE}&cursor=${encodeURIComponent(postsCursor)}&_ts=${Date.now()}`
+      );
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const newPosts = (data.posts || []) as Post[];
+
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        const merged = [...prev];
+        for (const p of newPosts) {
+          if (!seen.has(p.id)) merged.push(p);
+        }
+        return merged;
+      });
+
+      setPostsCursor(data.nextCursor || null);
+      setHasMorePosts(!!data.nextCursor);
+    } catch {
+      // Ignore and keep existing posts.
+    } finally {
+      setLoadingMorePosts(false);
+    }
+  }, [hasMorePosts, postsCursor, loadingMorePosts]);
+
+  // Infinite scroll: auto-load more posts when user nears the bottom.
+  useEffect(() => {
+    if (sharedPostId) return;
+    if (!hasMorePosts) return;
+    const el = loadMoreSentinelRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry?.isIntersecting) {
+          loadMorePosts();
+        }
+      },
+      {
+        root: null,
+        // Preload aggressively (Instagram-like) so the next page is ready.
+        rootMargin: '4000px 0px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [sharedPostId, hasMorePosts, loadMorePosts]);
 
   const handleLike = async (postId: string) => {
     if (status !== 'authenticated') {
@@ -1297,8 +1580,8 @@ export default function FeedPage() {
                           isVideo(post.cloud_storage_path)
                             ? 'h-[78vh] md:h-[70vh] lg:h-[620px]'
                             : 'aspect-square'
-                        } bg-zinc-800 cursor-pointer`}
-                        onClick={() => {
+                        } ${isVideo(post.cloud_storage_path) ? 'bg-black' : 'bg-zinc-800'} cursor-pointer`}
+                        onClick={(e) => {
                           // Prevent background audio/video from continuing when opening modal.
                           pauseAllVideos();
 
@@ -1312,12 +1595,24 @@ export default function FeedPage() {
                             day: 'numeric',
                           });
 
-                          const mediaUrl = isVideo(post.cloud_storage_path)
+                          const isVideoPost = isVideo(post.cloud_storage_path);
+                          const mediaUrl = isVideoPost
                             ? `/api/posts/${post.id}/media`
                             : post.imageUrl || getMediaUrl(post.cloud_storage_path);
+
+                          let poster: string | undefined;
+                          if (isVideoPost) {
+                            const videoEl = (e.currentTarget as HTMLElement).querySelector('video') as
+                              | HTMLVideoElement
+                              | null;
+                            const captured = videoEl ? captureVideoPoster(videoEl) : null;
+                            if (captured) poster = captured;
+                          }
+
                           setZoomedMedia({
                             url: mediaUrl,
-                            isVideo: isVideo(post.cloud_storage_path),
+                            isVideo: isVideoPost,
+                            poster,
                             authorName,
                             dateLabel,
                           });
@@ -1376,7 +1671,7 @@ export default function FeedPage() {
                               muted={!feedAudioEnabled}
                               playsInline
                               preload="metadata"
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-cover bg-black"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleVideoTap(e.currentTarget);
@@ -1564,6 +1859,37 @@ export default function FeedPage() {
                 </motion.div>
               ))}
             </div>
+
+            {!sharedPostId && (
+              <div className="mt-8">
+                {/* Sentinel for infinite scrolling */}
+                <div ref={loadMoreSentinelRef} className="h-1 w-full" />
+
+                {loadingMorePosts && (
+                  <div className="mt-6 space-y-6">
+                    {Array.from({ length: 2 }).map((_, idx) => (
+                      <Card key={idx} className="glass smooth-transition overflow-hidden relative">
+                        <CardContent className="p-0">
+                          <div className="p-4 flex items-center gap-3 animate-pulse">
+                            <div className="h-10 w-10 rounded-full bg-white/10" />
+                            <div className="flex-1 space-y-2">
+                              <div className="h-3 w-28 bg-white/10 rounded" />
+                              <div className="h-3 w-16 bg-white/10 rounded" />
+                            </div>
+                            <div className="h-7 w-7 rounded bg-white/10" />
+                          </div>
+                          <div className="aspect-square bg-white/5 animate-pulse" />
+                          <div className="p-4 space-y-3 animate-pulse">
+                            <div className="h-4 w-40 bg-white/10 rounded" />
+                            <div className="h-3 w-3/4 bg-white/10 rounded" />
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1579,6 +1905,13 @@ export default function FeedPage() {
             pauseAllVideos();
             setZoomedMedia(null);
             resetZoom();
+            if (sharedPostId) {
+              try {
+                window.history.replaceState(null, '', '/feed');
+              } catch {
+                // ignore
+              }
+            }
           }}
         >
           <motion.button
@@ -1587,6 +1920,13 @@ export default function FeedPage() {
               pauseAllVideos();
               setZoomedMedia(null);
               resetZoom();
+              if (sharedPostId) {
+                try {
+                  window.history.replaceState(null, '', '/feed');
+                } catch {
+                  // ignore
+                }
+              }
             }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -1633,10 +1973,11 @@ export default function FeedPage() {
                 <div className="relative">
                   <video
                     src={zoomedMedia.url}
+                    poster={zoomedMedia.poster}
                     controls
                     playsInline
                     preload="metadata"
-                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
                     onPlay={() => setIsZoomVideoPlaying(true)}
                     onPause={() => setIsZoomVideoPlaying(false)}
                     onEnded={() => setIsZoomVideoPlaying(false)}
@@ -1712,7 +2053,16 @@ export default function FeedPage() {
       <CommentsModal 
         postId={commentsModalOpen || ''}
         isOpen={!!commentsModalOpen}
-        onClose={() => setCommentsModalOpen(null)}
+        onClose={() => {
+          setCommentsModalOpen(null);
+          if (sharedPostId) {
+            try {
+              window.history.replaceState(null, '', '/feed');
+            } catch {
+              // ignore
+            }
+          }
+        }}
       />
 
     </div>
