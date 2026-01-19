@@ -1424,7 +1424,7 @@ export default function FeedPage() {
                       })}
                     </div>
                     <div className="mt-2 text-xs text-gray-300">
-                      Elige tu barbero o estilista de tu preferencia
+                      Choose your preferred barber or stylist
                     </div>
                   </motion.div>
 
