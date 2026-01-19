@@ -1401,7 +1401,12 @@ export default function FeedPage() {
               <Card className="glass-cyan hover:glow-cyan smooth-transition overflow-hidden relative">
                 <div className="pointer-events-none absolute inset-0">
                   <div className="absolute inset-0 bg-gradient-to-r from-[#00f0ff]/25 via-transparent to-[#ffd700]/20" />
-                  <div className="absolute -inset-1 bg-gradient-to-r from-[#00f0ff]/30 to-[#ffd700]/20 blur-2xl opacity-70" />
+                  <motion.div
+                    className="absolute -inset-1 bg-gradient-to-r from-[#00f0ff]/30 to-[#ffd700]/20 blur-2xl"
+                    initial={{ opacity: 0.65 }}
+                    animate={{ opacity: [0.6, 0.85, 0.6] }}
+                    transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+                  />
                 </div>
                 <CardContent className="p-6 text-center relative z-10">
                   <motion.div
@@ -1418,16 +1423,29 @@ export default function FeedPage() {
                         year: 'numeric' 
                       })}
                     </div>
+                    <div className="mt-2 text-xs text-gray-300">
+                      Choose your preferred barber or stylist
+                    </div>
                   </motion.div>
 
-                  <div className="mt-3 flex items-center justify-center gap-2">
+                  <motion.div
+                    className="mt-3 flex items-center justify-center gap-2"
+                    animate={{ scale: [1, 1.03, 1] }}
+                    transition={{ duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
+                  >
                     <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#00f0ff]/25 to-[#ffd700]/20 border border-[#00f0ff]/30 flex items-center justify-center">
-                      <Calendar className="w-5 h-5 text-[#00f0ff]" />
+                      <motion.div
+                        initial={{ opacity: 0, y: 2, scale: 0.96 }}
+                        animate={{ opacity: 1, y: [0, -4, 0], scale: [1, 1.06, 1] }}
+                        transition={{ duration: 0.65, ease: 'easeOut' }}
+                      >
+                        <Calendar className="w-5 h-5 text-[#00f0ff]" />
+                      </motion.div>
                     </div>
                     <p className="text-white font-extrabold text-xl tracking-wide">
                       {t('nav.book').toUpperCase()}
                     </p>
-                  </div>
+                  </motion.div>
                 </CardContent>
                 <div className="absolute inset-0 shimmer opacity-50" />
               </Card>
