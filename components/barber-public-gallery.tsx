@@ -30,7 +30,7 @@ export function BarberPublicGallery({ images }: Props) {
   const zoomRef = useRef<any>(null);
   const zoomedInRef = useRef(false);
   const [isZoomedIn, setIsZoomedIn] = useState(false);
-  const touchStartXRef = useRef<number | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const thumbsRef = useRef<HTMLDivElement | null>(null);
 
   const openAtIndex = useCallback(
@@ -283,17 +283,35 @@ export function BarberPublicGallery({ images }: Props) {
             className="absolute inset-0 flex items-center justify-center p-4 pb-28 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
             onTouchStart={(e) => {
-              touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
+              if (isZoomedIn) {
+                touchStartRef.current = null;
+                return;
+              }
+              if (e.touches.length !== 1) {
+                touchStartRef.current = null;
+                return;
+              }
+              const touch = e.touches[0];
+              touchStartRef.current = { x: touch.clientX, y: touch.clientY, t: Date.now() };
             }}
             onTouchEnd={(e) => {
-              const startX = touchStartXRef.current;
-              touchStartXRef.current = null;
-              if (startX == null) return;
-              const endX = e.changedTouches?.[0]?.clientX;
-              if (typeof endX !== 'number') return;
-              const delta = startX - endX;
-              if (Math.abs(delta) < 60) return;
-              if (delta > 0) goNext();
+              const start = touchStartRef.current;
+              touchStartRef.current = null;
+              if (!start) return;
+              if (isZoomedIn) return;
+              const touch = e.changedTouches?.[0];
+              if (!touch) return;
+              const endX = touch.clientX;
+              const endY = touch.clientY;
+              const deltaX = start.x - endX;
+              const deltaY = start.y - endY;
+              const dt = Date.now() - start.t;
+
+              if (dt > 600) return;
+              if (Math.abs(deltaX) < 120) return;
+              if (Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+
+              if (deltaX > 0) goNext();
               else goPrev();
             }}
           >
