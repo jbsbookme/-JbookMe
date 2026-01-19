@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { Heart, Tag, Filter, User, Sparkles, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Tag, Filter, User, Sparkles, X } from 'lucide-react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,8 +43,89 @@ export default function GaleriaPage() {
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showGenderSelection, setShowGenderSelection] = useState(true);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const zoomRef = useRef<any>(null);
+  const zoomedInRef = useRef(false);
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
+  const touchStartXRef = useRef<number | null>(null);
+  const thumbsRef = useRef<HTMLDivElement | null>(null);
   const [galleryMaleCircleImage, setGalleryMaleCircleImage] = useState<string | null>(null);
   const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
+
+  const openAtIndex = useCallback(
+    (index: number) => {
+      if (filteredImages.length === 0) return;
+      const normalized = (index + filteredImages.length) % filteredImages.length;
+      setSelectedIndex(normalized);
+      setSelectedImage(filteredImages[normalized]);
+      requestAnimationFrame(() => zoomRef.current?.resetTransform?.(0));
+    },
+    [filteredImages]
+  );
+
+  const goNext = useCallback(() => {
+    if (filteredImages.length <= 1) return;
+    const base = selectedIndex >= 0 ? selectedIndex : 0;
+    openAtIndex(base + 1);
+  }, [filteredImages.length, openAtIndex, selectedIndex]);
+
+  const goPrev = useCallback(() => {
+    if (filteredImages.length <= 1) return;
+    const base = selectedIndex >= 0 ? selectedIndex : 0;
+    openAtIndex(base - 1);
+  }, [filteredImages.length, openAtIndex, selectedIndex]);
+
+  useEffect(() => {
+    if (!selectedImage) {
+      setSelectedIndex(-1);
+      return;
+    }
+    const idx = filteredImages.findIndex((img) => img.id === selectedImage.id);
+    if (idx === -1) {
+      setSelectedImage(null);
+      setSelectedIndex(-1);
+      return;
+    }
+    setSelectedIndex(idx);
+  }, [filteredImages, selectedImage]);
+
+  useEffect(() => {
+    if (!selectedImage) return;
+    if (selectedIndex < 0) return;
+    const container = thumbsRef.current;
+    if (!container) return;
+    const el = container.querySelector(`[data-thumb-idx="${selectedIndex}"]`) as HTMLElement | null;
+    if (!el) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const elCenter = elRect.left + elRect.width / 2;
+    const containerCenter = containerRect.left + containerRect.width / 2;
+    const delta = elCenter - containerCenter;
+    if (Math.abs(delta) < 4) return;
+
+    container.scrollTo({ left: container.scrollLeft + delta, behavior: 'smooth' });
+  }, [selectedImage, selectedIndex]);
+
+  useEffect(() => {
+    if (!selectedImage) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedImage(null);
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goNext();
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goPrev();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [goNext, goPrev, selectedImage]);
 
   useEffect(() => {
     // Protect this route - requires authentication
@@ -431,7 +512,10 @@ export default function GaleriaPage() {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedImage(image)}
+                onClick={() => {
+                  setSelectedImage(image);
+                  setSelectedIndex(index);
+                }}
                 className="relative aspect-square group cursor-pointer overflow-hidden bg-gray-900"
               >
                 <Image
@@ -519,6 +603,33 @@ export default function GaleriaPage() {
           className="fixed inset-0 z-50 bg-black/95"
           onClick={() => setSelectedImage(null)}
         >
+          {filteredImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goPrev();
+                }}
+                className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+                aria-label={t('common.previous')}
+              >
+                <ChevronLeft className="w-6 h-6 text-white" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goNext();
+                }}
+                className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+                aria-label={t('common.next')}
+              >
+                <ChevronRight className="w-6 h-6 text-white" />
+              </button>
+            </>
+          )}
+
           <button
             onClick={() => setSelectedImage(null)}
             className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
@@ -530,11 +641,49 @@ export default function GaleriaPage() {
           <div
             className="absolute inset-0 flex items-center justify-center p-4 pb-40 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={(e) => {
+              touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
+            }}
+            onTouchEnd={(e) => {
+              const startX = touchStartXRef.current;
+              touchStartXRef.current = null;
+              if (startX == null) return;
+              const endX = e.changedTouches?.[0]?.clientX;
+              if (typeof endX !== 'number') return;
+              const delta = startX - endX;
+              if (Math.abs(delta) < 60) return;
+              if (delta > 0) goNext();
+              else goPrev();
+            }}
           >
             <TransformWrapper
               initialScale={1}
-              minScale={0.5}
+              minScale={1}
               maxScale={4}
+              centerOnInit
+              centerZoomedOut
+              limitToBounds
+              onInit={(ref) => {
+                zoomRef.current = ref;
+              }}
+              onTransformed={(_ref, state) => {
+                const next = state.scale > 1.05;
+                if (zoomedInRef.current === next) return;
+                zoomedInRef.current = next;
+                setIsZoomedIn(next);
+              }}
+              onPanningStop={(ref) => {
+                if (ref.state.scale <= 1.001) ref.resetTransform(200);
+              }}
+              onPinchingStop={(ref) => {
+                if (ref.state.scale <= 1.001) ref.resetTransform(200);
+              }}
+              onWheelStop={(ref) => {
+                if (ref.state.scale <= 1.001) ref.resetTransform(200);
+              }}
+              onZoomStop={(ref) => {
+                if (ref.state.scale <= 1.001) ref.resetTransform(200);
+              }}
               doubleClick={{ disabled: false }}
               wheel={{ step: 0.1 }}
             >
@@ -558,7 +707,45 @@ export default function GaleriaPage() {
 
           {/* Image Info */}
           <div className="absolute bottom-0 left-0 right-0 bg-black/90 p-6 text-white">
+            {filteredImages.length > 1 && selectedIndex >= 0 && (
+              <div
+                ref={thumbsRef}
+                className={`mb-4 flex gap-2 overflow-x-auto pb-1 transition-all duration-200 ${
+                  isZoomedIn ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-24 opacity-100'
+                }`}
+                style={{ WebkitOverflowScrolling: 'touch' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {filteredImages.map((img, idx) => (
+                  <button
+                    key={img.id}
+                    type="button"
+                    data-thumb-idx={idx}
+                    onClick={() => openAtIndex(idx)}
+                    className={
+                      idx === selectedIndex
+                        ? 'shrink-0 rounded-md ring-2 ring-[#00f0ff] ring-offset-0'
+                        : 'shrink-0 rounded-md opacity-80 hover:opacity-100'
+                    }
+                    aria-label={`${t('gallery.photos')} ${idx + 1}`}
+                  >
+                    <Image
+                      src={img.imageUrl}
+                      alt={img.title}
+                      width={72}
+                      height={72}
+                      className="h-16 w-16 md:h-[72px] md:w-[72px] rounded-md object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
             <h3 className="text-xl font-bold mb-2">{selectedImage.title}</h3>
+            {filteredImages.length > 1 && selectedIndex >= 0 && (
+              <p className="text-xs text-gray-400 mb-2">
+                {selectedIndex + 1} / {filteredImages.length}
+              </p>
+            )}
             {selectedImage.barber?.user?.name && (
               <p className="text-[#00f0ff] text-sm mb-2">
                 {t('gallery.by')} {selectedImage.barber.user.name}
