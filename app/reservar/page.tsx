@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
@@ -141,6 +141,7 @@ export default function ReservarPage() {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [selectedBarber, setSelectedBarber] = useState<Barber | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const dateTimeStepTopRef = useRef<HTMLDivElement | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
@@ -605,6 +606,12 @@ export default function ReservarPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.requestAnimationFrame(() => {
+      if (currentStep === 'datetime' && dateTimeStepTopRef.current) {
+        // Use scroll-margin to account for fixed headers / safe areas.
+        dateTimeStepTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   }, [currentStep]);
@@ -1315,6 +1322,7 @@ export default function ReservarPage() {
         exit={{ opacity: 0, x: -20 }}
         className="space-y-6 max-w-4xl mx-auto"
       >
+        <div ref={dateTimeStepTopRef} className="scroll-mt-24" />
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">{t('booking.selectDateTime')}</h2>
           <p className="text-gray-400">{t('booking.chooseDateTimeSubtitle')}</p>
