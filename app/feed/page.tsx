@@ -1443,7 +1443,8 @@ export default function FeedPage() {
                       </motion.div>
                     </div>
                     <p className="text-white font-extrabold text-xl tracking-wide">
-                      {t('nav.book').toUpperCase()}
+                      <span>BOOK </span>
+                      <span className="font-black drop-shadow-[0_0_10px_rgba(0,240,255,0.35)]">NOW</span>
                     </p>
                   </motion.div>
                 </CardContent>
