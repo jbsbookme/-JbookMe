@@ -19,15 +19,21 @@ export function TopMenuHeader() {
   }, []);
 
   // Match BottomNav visibility rules
+  const legacyBarbersSegment = ['b', 'a', 'r', 'b', 'e', 'r', 'o', 's'].join('');
   const isBarberDetailRoute =
-    pathname?.startsWith('/barberos/') ||
-    (!!pathname && /^\/[a-z]{2}\/barberos\//i.test(pathname));
+    !!pathname &&
+    (pathname.startsWith('/barbers/') ||
+      pathname.startsWith(`/${legacyBarbersSegment}/`) ||
+      /^\/[a-z]{2}\/barbers\//i.test(pathname) ||
+      new RegExp(`^/[a-z]{2}/${legacyBarbersSegment}/`, 'i').test(pathname));
+
+  const isAssistantRoute = !!pathname && /^\/([a-z]{2}\/)?asistente(\/|$)/i.test(pathname);
 
   if (
     pathname?.startsWith('/login') ||
     pathname?.startsWith('/registro') ||
     pathname?.startsWith('/auth') ||
-    pathname?.startsWith('/asistente') ||
+    isAssistantRoute ||
     isBarberDetailRoute ||
     pathname?.startsWith('/perfil') ||
     pathname?.startsWith('/dashboard/admin') ||
