@@ -17,10 +17,13 @@ export default function BottomNav() {
     setMounted(true);
   }, []);
 
-  // Solo ocultar en páginas de auth y dashboards de admin/barbero
+  const isAssistantRoute = !!pathname && /^\/([a-z]{2}\/)?asistente(\/|$)/i.test(pathname);
+
+  // Solo ocultar en páginas de auth, asistente y dashboards de admin/barbero
   if (pathname?.startsWith('/login') || 
       pathname?.startsWith('/registro') ||
       pathname?.startsWith('/auth') ||
+      isAssistantRoute ||
       pathname?.startsWith('/dashboard/admin') ||
       pathname?.startsWith('/dashboard/barbero')) {
     return null;
