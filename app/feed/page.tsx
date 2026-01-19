@@ -2062,19 +2062,7 @@ export default function FeedPage() {
             )}
           </div>
 
-          {/* Instructions */}
-          {!zoomedMedia.isVideo && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm px-6 py-3 rounded-full"
-            >
-              <p className="text-white/90 text-sm text-center font-medium">
-                Pellizca con 2 dedos para hacer zoom
-              </p>
-            </motion.div>
-          )}
+          {/* Instructions removed per UX request */}
         </motion.div>
       )}
 
