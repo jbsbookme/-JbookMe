@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { formatTime12h } from '@/lib/time'
+import { prisma } from '@/lib/db'
 
 type ChatMessage = {
   role?: string
@@ -87,27 +88,135 @@ function wantsStream(request: NextRequest): boolean {
   )
 }
 
+function normalizeForMatch(value: string): string {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+type CachedLookup<T> = {
+  at: number
+  value: T
+}
+
+type BarberLookup = { displayName: string; normalized: string }
+type ServiceLookup = { name: string; normalized: string }
+
+let cachedBarbers: CachedLookup<BarberLookup[]> | null = null
+let cachedServices: CachedLookup<ServiceLookup[]> | null = null
+
+async function getActiveBarberLookups(): Promise<BarberLookup[]> {
+  const now = Date.now()
+  const ttlMs = 5 * 60 * 1000
+  if (cachedBarbers && now - cachedBarbers.at < ttlMs) return cachedBarbers.value
+
+  try {
+    const barbers = await prisma.barber.findMany({
+      where: { isActive: true },
+      select: {
+        user: { select: { name: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    const list = barbers
+      .map((b) => (typeof b.user?.name === 'string' ? b.user.name.trim() : ''))
+      .filter(Boolean)
+      .map((displayName) => ({ displayName, normalized: normalizeForMatch(displayName) }))
+      .filter((b) => b.normalized.length > 0)
+
+    cachedBarbers = { at: now, value: list }
+    return list
+  } catch {
+    // DB might be unavailable in some environments; keep a safe fallback.
+    const fallback = ['jose', 'miguel', 'carlos', 'sandra', 'maria', 'ana', 'juan', 'adolfo'].map((n) => ({
+      displayName: n,
+      normalized: normalizeForMatch(n),
+    }))
+    cachedBarbers = { at: now, value: fallback }
+    return fallback
+  }
+}
+
+async function getActiveServiceLookups(): Promise<ServiceLookup[]> {
+  const now = Date.now()
+  const ttlMs = 5 * 60 * 1000
+  if (cachedServices && now - cachedServices.at < ttlMs) return cachedServices.value
+
+  try {
+    const services = await prisma.service.findMany({
+      where: { isActive: true },
+      select: { name: true },
+      orderBy: { updatedAt: 'desc' },
+    })
+
+    const list = services
+      .map((s) => (typeof s.name === 'string' ? s.name.trim() : ''))
+      .filter(Boolean)
+      .map((name) => ({ name, normalized: normalizeForMatch(name) }))
+      .filter((s) => s.normalized.length > 0)
+      // Prefer longer matches first (e.g., "haircut + beard" over "haircut")
+      .sort((a, b) => b.normalized.length - a.normalized.length)
+
+    cachedServices = { at: now, value: list }
+    return list
+  } catch {
+    // Safe fallback: basic keywords.
+    const fallbackNames = ['haircut', 'beard', 'eyebrows', 'treatment', 'combo', 'corte', 'barba', 'cejas', 'tratamiento', 'paquete']
+    const list = fallbackNames.map((name) => ({ name, normalized: normalizeForMatch(name) }))
+    cachedServices = { at: now, value: list }
+    return list
+  }
+}
+
+function findFirstIncluded(normalizedHaystack: string, normalizedNeedle: string): boolean {
+  if (!normalizedNeedle) return false
+  const padded = ` ${normalizedHaystack} `
+  const needle = ` ${normalizedNeedle} `
+  return padded.includes(needle)
+}
+
 // Helper function to extract appointment info from conversation
-function extractAppointmentInfo(messages: ChatMessage[]) {
-  const conversationText = messages
+async function extractAppointmentInfo(messages: ChatMessage[]) {
+  const conversationTextRaw = messages
     .map((m) => (typeof m.content === 'string' ? m.content : ''))
     .join(' ')
-    .toLowerCase()
+
+  const conversationText = conversationTextRaw.toLowerCase()
+  const conversationNorm = normalizeForMatch(conversationTextRaw)
   
   // Extract barber name
   let barber = null
-  const barberMatches = conversationText.match(/\b(jose|miguel|carlos|sandra|maria|ana|juan|adolfo)\b/i)
-  if (barberMatches) {
-    barber = barberMatches[1]
+  const barberLookups = await getActiveBarberLookups()
+  for (const b of barberLookups) {
+    if (findFirstIncluded(conversationNorm, b.normalized)) {
+      barber = b.displayName
+      break
+    }
   }
   
   // Extract service
   let service = null
-  if (conversationText.includes('haircut') || conversationText.includes('corte')) service = 'haircut'
-  else if (conversationText.includes('beard') || conversationText.includes('barba')) service = 'beard'
-  else if (conversationText.includes('eyebrows') || conversationText.includes('cejas')) service = 'eyebrows'
-  else if (conversationText.includes('treatment') || conversationText.includes('tratamiento')) service = 'treatment'
-  else if (conversationText.includes('combo') || conversationText.includes('paquete')) service = 'combo'
+  const serviceLookups = await getActiveServiceLookups()
+  for (const s of serviceLookups) {
+    if (findFirstIncluded(conversationNorm, s.normalized)) {
+      service = s.name
+      break
+    }
+  }
+
+  // Fallback keyword mapping if service name matching didn't trigger.
+  if (!service) {
+    if (conversationText.includes('haircut') || conversationText.includes('corte')) service = 'haircut'
+    else if (conversationText.includes('beard') || conversationText.includes('barba')) service = 'beard'
+    else if (conversationText.includes('eyebrows') || conversationText.includes('cejas')) service = 'eyebrows'
+    else if (conversationText.includes('treatment') || conversationText.includes('tratamiento')) service = 'treatment'
+    else if (conversationText.includes('combo') || conversationText.includes('paquete')) service = 'combo'
+  }
   
   // Extract date
   let date = null
@@ -172,7 +281,7 @@ export async function POST(request: NextRequest) {
     const lang = detectLang(userMessageRaw)
     
     // Extract appointment info from entire conversation
-    const info = extractAppointmentInfo(typedMessages)
+    const info = await extractAppointmentInfo(typedMessages)
     
     // Check if we're in an appointment conversation flow
     const isInAppointmentFlow = typedMessages.slice(-4).some((m) => {
