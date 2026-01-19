@@ -40,6 +40,7 @@ type SpeechRecognitionErrorEvent = {
 export default function AsistentePage() {
   const { t } = useI18n()
   const tRef = useRef(t)
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -66,6 +67,33 @@ export default function AsistentePage() {
   useEffect(() => {
     tRef.current = t
   }, [t])
+
+  // Keep layout within the visible viewport when the mobile keyboard opens.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const vv = window.visualViewport
+
+    const update = () => {
+      const nextHeight = vv?.height ?? window.innerHeight
+      // Guard against transient 0 values during rotations.
+      if (nextHeight && nextHeight > 0) {
+        setViewportHeight(nextHeight)
+      }
+    }
+
+    update()
+
+    vv?.addEventListener('resize', update)
+    vv?.addEventListener('scroll', update)
+    window.addEventListener('resize', update)
+
+    return () => {
+      vv?.removeEventListener('resize', update)
+      vv?.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [])
 
   // Initialize speech recognition and synthesis
   useEffect(() => {
@@ -340,7 +368,10 @@ export default function AsistentePage() {
   }
 
   return (
-    <div className="h-[100dvh] bg-black flex flex-col overflow-hidden">
+    <div
+      className="bg-black flex flex-col overflow-hidden"
+      style={{ height: viewportHeight ? `${viewportHeight}px` : '100dvh' }}
+    >
       {/* Header */}
       <div
         className="sticky top-0 z-40 bg-black/90 backdrop-blur-sm border-b border-gray-800"

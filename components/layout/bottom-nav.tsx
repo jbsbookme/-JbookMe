@@ -21,6 +21,7 @@ export default function BottomNav() {
   if (pathname?.startsWith('/login') || 
       pathname?.startsWith('/registro') ||
       pathname?.startsWith('/auth') ||
+      pathname?.startsWith('/asistente') ||
       pathname?.startsWith('/dashboard/admin') ||
       pathname?.startsWith('/dashboard/barbero')) {
     return null;
