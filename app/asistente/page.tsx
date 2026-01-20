@@ -50,6 +50,7 @@ export default function AsistentePage() {
       content: t('assistant.greeting')
     }
   ])
+  const messagesRef = useRef<Message[]>(messages)
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -58,6 +59,7 @@ export default function AsistentePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
+  const sendMessageRef = useRef<(text: string, fromVoice: boolean) => void>(() => {})
 
   const detectPreferredLocale = (text: string): 'es' | 'en' => {
     const value = (text || '').trim()
@@ -98,7 +100,7 @@ export default function AsistentePage() {
     const hasSpanishChar = /[ñáéíóúü¿¡]/i.test(value)
     const hitCount = spanishSignals.reduce((acc, s) => (lower.includes(s) ? acc + 1 : acc), 0)
 
-    if (hasSpanishChar || hitCount >= 2) return 'es'
+    if (hasSpanishChar || hitCount >= 1) return 'es'
     return language === 'es' ? 'es' : 'en'
   }
 
@@ -120,6 +122,10 @@ export default function AsistentePage() {
   useEffect(() => {
     tRef.current = t
   }, [t])
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   // Keep layout within the visible viewport when the mobile keyboard opens.
   useEffect(() => {
@@ -189,6 +195,8 @@ export default function AsistentePage() {
           setInput(transcript)
           setIsListening(false)
           toast.success(tRef.current('assistant.capturedMessage'))
+          // Auto-send so voice feels conversational.
+          sendMessageRef.current(transcript, true)
         }
 
         recognition.onerror = (event: Event) => {
@@ -255,17 +263,19 @@ export default function AsistentePage() {
     }
   }
 
-  const speak = (text: string) => {
+  const speak = (text: string, locale?: 'es' | 'en') => {
     if (!synthesisRef.current) {
       console.error('Speech synthesis not available')
       return
     }
 
+    const effectiveLocale = locale ?? (language === 'es' ? 'es' : 'en')
+
     // Cancel any ongoing speech
     synthesisRef.current.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = language === 'es' ? 'es-ES' : 'en-US'
+    utterance.lang = effectiveLocale === 'es' ? 'es-ES' : 'en-US'
     utterance.rate = 1.0
     utterance.pitch = 1.0
     utterance.volume = 1.0
@@ -273,7 +283,7 @@ export default function AsistentePage() {
     // Try to select a matching voice
     const voices = synthesisRef.current.getVoices()
     const preferredVoice =
-      language === 'es'
+      effectiveLocale === 'es'
         ? voices.find((voice) => voice.lang.toLowerCase().startsWith('es') || voice.lang.includes('Spanish'))
         : voices.find((voice) => voice.lang.toLowerCase().startsWith('en') || voice.lang.includes('English'))
     if (preferredVoice) utterance.voice = preferredVoice
@@ -301,17 +311,22 @@ export default function AsistentePage() {
     }
   }
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return
+  const handleSend = async (overrideText?: string, options?: { fromVoice?: boolean }) => {
+    const text = (overrideText ?? input).trim()
+    if (!text || isLoading) return
 
-    const preferredLocale = detectPreferredLocale(input)
+    const preferredLocale = detectPreferredLocale(text)
+
+    if (options?.fromVoice) {
+      lastInputWasVoiceRef.current = true
+    }
 
     // Speak back when user used voice input OR user explicitly enabled autoSpeak.
     shouldSpeakResponseRef.current = lastInputWasVoiceRef.current || autoSpeak
     lastInputWasVoiceRef.current = false
 
-    const userMessage: Message = { role: 'user', content: input }
-    setMessages(prev => [...prev, userMessage])
+    const userMessage: Message = { role: 'user', content: text }
+    setMessages((prev) => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
 
@@ -325,7 +340,7 @@ export default function AsistentePage() {
         },
         body: JSON.stringify({
           locale: preferredLocale,
-          messages: [...messages, userMessage].map(m => ({
+          messages: [...messagesRef.current, userMessage].map(m => ({
             role: m.role,
             content: m.content
           }))
@@ -417,7 +432,7 @@ export default function AsistentePage() {
           })
         } else if (shouldSpeakResponseRef.current) {
           // Auto-speak the assistant's response
-          speak(assistantMessage)
+          speak(assistantMessage, preferredLocale)
         }
       } catch (streamError) {
         console.error('Stream reading error:', streamError)
@@ -436,6 +451,10 @@ export default function AsistentePage() {
       setIsLoading(false)
       shouldSpeakResponseRef.current = false
     }
+  }
+
+  sendMessageRef.current = (text: string, fromVoice: boolean) => {
+    void handleSend(text, { fromVoice })
   }
 
   const BOOKING_MARKER = '[[BOOKING_LINK]]'
@@ -629,7 +648,7 @@ export default function AsistentePage() {
               </Button>
 
               <Button
-                onClick={handleSend}
+                onClick={() => void handleSend()}
                 disabled={!input.trim() || isLoading}
                 className="bg-cyan-500 hover:bg-cyan-600 text-black h-9"
               >

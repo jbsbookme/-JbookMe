@@ -50,7 +50,8 @@ function detectLang(text: string): Lang {
 
   const hasSpanishChar = /[ñáéíóúü¿¡]/i.test(value)
   const hitCount = spanishSignals.reduce((acc, s) => (lower.includes(s) ? acc + 1 : acc), 0)
-  return hasSpanishChar || hitCount >= 2 ? 'es' : 'en'
+  // One strong Spanish signal (e.g. "hola") should already be enough.
+  return hasSpanishChar || hitCount >= 1 ? 'es' : 'en'
 }
 
 function serviceLabel(service: string | null, lang: Lang): string | null {
