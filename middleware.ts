@@ -13,6 +13,30 @@ function redirectToAuth(req: NextRequest) {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
+  const assistantEnabled =
+    process.env.ASSISTANT_ENABLED === 'true' || process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true';
+
+  if (!assistantEnabled) {
+    // Block the assistant UI and API while keeping code intact.
+    if (pathname === '/asistente' || pathname.startsWith('/asistente/')) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/menu';
+      url.searchParams.set('assistantDisabled', '1');
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname === '/api/chat' || pathname.startsWith('/api/chat/')) {
+      return NextResponse.json({ error: 'Assistant temporarily disabled' }, { status: 503 });
+    }
+
+    if (pathname === '/dashboard/admin/asistente' || pathname.startsWith('/dashboard/admin/asistente/')) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/dashboard/admin';
+      url.searchParams.set('assistantDisabled', '1');
+      return NextResponse.redirect(url);
+    }
+  }
+
   // Legacy route namespace: keep old links/bookmarks working.
   if (pathname === '/dashboard/barber' || pathname.startsWith('/dashboard/barber/')) {
     const url = req.nextUrl.clone();
@@ -128,6 +152,7 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/inicio',
+    '/asistente/:path*',
     '/feed/:path*',
     '/reservar/:path*',
     '/inbox/:path*',
@@ -141,5 +166,7 @@ export const config = {
     '/dashboard/cliente/:path*',
     '/api/admin/:path*',
     '/api/barber/:path*',
+    '/api/chat',
+    '/api/chat/:path*',
   ],
 };

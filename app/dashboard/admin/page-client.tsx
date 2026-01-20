@@ -33,6 +33,7 @@ type AdminStats = {
 };
 
 export function AdminDashboardClient() {
+    const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true';
   const router = useRouter();
   const { data: session, status } = useSession() || {};
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -360,15 +361,17 @@ export function AdminDashboardClient() {
             </Card>
           </Link>
 
-          <Link href="/asistente">
-            <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border-gray-800 hover:border-[#00f0ff] transition-all cursor-pointer h-full">
-              <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6 space-y-1.5 sm:space-y-2">
-                <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-[#00f0ff]" />
-                <h3 className="text-base sm:text-lg font-semibold text-white">Asistente IA</h3>
-                <p className="text-xs sm:text-sm text-gray-400 text-center">Chat inteligente</p>
-              </CardContent>
-            </Card>
-          </Link>
+          {assistantEnabled ? (
+            <Link href="/asistente">
+              <Card className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border-gray-800 hover:border-[#00f0ff] transition-all cursor-pointer h-full">
+                <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6 space-y-1.5 sm:space-y-2">
+                  <Bot className="w-7 h-7 sm:w-8 sm:h-8 text-[#00f0ff]" />
+                  <h3 className="text-base sm:text-lg font-semibold text-white">Asistente IA</h3>
+                  <p className="text-xs sm:text-sm text-gray-400 text-center">Chat inteligente</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ) : null}
         </div>
 
         {/* Recent Activity */}

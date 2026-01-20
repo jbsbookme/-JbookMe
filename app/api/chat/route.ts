@@ -307,6 +307,15 @@ async function extractAppointmentInfo(messages: ChatMessage[]) {
 
 export async function POST(request: NextRequest) {
   try {
+    const assistantEnabled =
+      process.env.ASSISTANT_ENABLED === 'true' || process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
+    if (!assistantEnabled) {
+      return NextResponse.json(
+        { error: 'Assistant temporarily disabled' },
+        { status: 503 }
+      )
+    }
+
     const body: unknown = await request.json()
     const messages =
       typeof body === 'object' && body !== null && 'messages' in body

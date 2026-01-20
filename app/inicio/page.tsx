@@ -153,6 +153,8 @@ export default function InicioPage() {
     );
   }
 
+  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
+
   const navigationCards = [
     {
       title: t('common.bookAppointmentCard'),
@@ -194,14 +196,18 @@ export default function InicioPage() {
       color: 'from-green-500 to-emerald-500',
       gradient: 'bg-gradient-to-br from-green-500/20 to-emerald-500/20',
     },
-    {
-      title: t('common.assistantCard'),
-      description: t('common.assistantDesc'),
-      icon: MessageSquare,
-      href: '/asistente',
-      color: 'from-blue-500 to-cyan-500',
-      gradient: 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20',
-    },
+    ...(assistantEnabled
+      ? [
+          {
+            title: t('common.assistantCard'),
+            description: t('common.assistantDesc'),
+            icon: MessageSquare,
+            href: '/asistente',
+            color: 'from-blue-500 to-cyan-500',
+            gradient: 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20',
+          },
+        ]
+      : []),
   ];
 
   return (

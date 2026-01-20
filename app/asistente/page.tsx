@@ -40,6 +40,34 @@ type SpeechRecognitionErrorEvent = {
 
 export default function AsistentePage() {
   const { t, language } = useI18n()
+
+  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
+  if (!assistantEnabled) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center space-y-4">
+          <h1 className="text-xl font-bold text-white">{language === 'es' ? 'Asistente desactivado' : 'Assistant disabled'}</h1>
+          <p className="text-sm text-gray-400">
+            {language === 'es'
+              ? 'El asistente está temporalmente desactivado. Más adelante lo activamos de nuevo.'
+              : 'The assistant is temporarily disabled. We will enable it again later.'}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Link href="/menu">
+              <Button className="bg-[#00f0ff] text-black hover:bg-[#00d0df]">
+                {language === 'es' ? 'Volver al menú' : 'Back to menu'}
+              </Button>
+            </Link>
+            <Link href="/reservar">
+              <Button variant="outline" className="border-gray-700 text-white hover:bg-gray-800">
+                {language === 'es' ? 'Reservar' : 'Book'}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const tRef = useRef(t)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
   const lastInputWasVoiceRef = useRef(false)

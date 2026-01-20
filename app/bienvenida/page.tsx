@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
 export default function BienvenidaPage() {
+  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
   const { data: session, status } = useSession() || {};
   const router = useRouter();
   const { t } = useI18n();
@@ -167,9 +168,13 @@ export default function BienvenidaPage() {
         >
           <p className="text-sm text-gray-500">
             {t('welcome.needHelp')}{' '}
-            <Link href="/asistente" className="text-[#00f0ff] hover:underline">
-              {t('welcome.virtualAssistant')}
-            </Link>
+            {assistantEnabled ? (
+              <Link href="/asistente" className="text-[#00f0ff] hover:underline">
+                {t('welcome.virtualAssistant')}
+              </Link>
+            ) : (
+              <span className="text-gray-400">{t('welcome.virtualAssistant')}</span>
+            )}
             {' '}{t('welcome.orContact')}
           </p>
         </motion.div>

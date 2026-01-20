@@ -5,6 +5,9 @@ import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function AssistantFAB() {
+  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
+  if (!assistantEnabled) return null
+
   return (
     <Link href="/asistente">
       <motion.div

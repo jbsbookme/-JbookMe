@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
@@ -65,6 +65,7 @@ interface Settings {
 export default function MenuPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useI18n();
   const { user } = useUser();
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -94,6 +95,14 @@ export default function MenuPage() {
       fetchSettings();
     }
   }, [status, router]);
+
+  useEffect(() => {
+    if (searchParams?.get('assistantDisabled') === '1') {
+      toast.info('Asistente temporalmente desactivado');
+    }
+  }, [searchParams]);
+
+  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true';
 
   const fetchSettings = async () => {
     try {
@@ -344,17 +353,19 @@ export default function MenuPage() {
                 </div>
               </Link>
 
-              <Link href="/asistente" className="block">
-                <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
-                      <MessageCircle className="w-5 h-5 text-pink-400" />
+              {assistantEnabled ? (
+                <Link href="/asistente" className="block">
+                  <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors border-b border-gray-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center">
+                        <MessageCircle className="w-5 h-5 text-pink-400" />
+                      </div>
+                      <span className="text-white">{t('assistant.title')}</span>
                     </div>
-                    <span className="text-white">{t('assistant.title')}</span>
+                    <ChevronRight className="w-5 h-5 text-gray-500" />
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-500" />
-                </div>
-              </Link>
+                </Link>
+              ) : null}
 
               <button onClick={handleShare} className="block w-full">
                 <div className="flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors">
