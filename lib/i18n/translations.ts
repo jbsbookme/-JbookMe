@@ -36,6 +36,8 @@ export const translations = {
       dismiss: 'Cerrar',
       hourShort: 'h',
       minuteShort: 'min',
+      perHour: '/hora',
+      perhour: '/hora',
       photo: 'Foto',
       photos: 'Fotos',
       videos: 'Videos',
@@ -349,14 +351,41 @@ export const translations = {
     reviews: {
       title: 'Reseñas de Clientes',
       writeReview: 'Escribir Reseña',
+      writeReviewPrompt: 'Cuéntanos tu experiencia. La reseña escrita es obligatoria.',
+      subtitle: 'Lo que dicen los clientes',
+      whatClientsSay: 'Lo que dicen nuestros clientes',
+      shareExperienceWith: 'Comparte tu experiencia con {name}',
+      yourFeedbackMatters: 'Tu opinión importa',
+      serviceLabel: 'Servicio',
+      appointmentNotFound: 'No se encontró la cita',
+      errorLoadingAppointment: 'Error cargando la cita',
       rating: 'Calificación',
+      selectRating: 'Selecciona una calificación',
+      ratingLabel1: 'Muy malo',
+      ratingLabel2: 'Malo',
+      ratingLabel3: 'Regular',
+      ratingLabel4: 'Bueno',
+      ratingLabel5: '¡Excelente!',
       comment: 'Comentario',
+      commentPlaceholder: 'Escribe tu reseña aquí…',
+      commentHelp: 'Mínimo 10 caracteres. Sé específico para ayudar a otros clientes.',
+      commentRequired: 'Escribe un comentario para enviar tu reseña',
+      commentMinLength: 'El comentario debe tener al menos {min} caracteres',
+      toggleCommentAria: 'Mostrar u ocultar comentario',
+      showLessReviews: 'Mostrar menos',
+      showMoreReviews: 'Mostrar {count} más',
+      reviewSingular: 'reseña',
+      reviewPlural: 'reseñas',
       submit: 'Enviar Reseña',
+      submitting: 'Enviando…',
       loginToRate: 'Inicia sesión para calificar',
       clientsOnlyToRate: 'Solo los clientes pueden calificar',
       ratingSubmitFailed: 'No se pudo enviar la calificación',
       ratingSubmitted: 'Calificación enviada con éxito',
       ratingNetworkError: 'Error de red al enviar la calificación',
+      reviewSubmitFailed: 'No se pudo enviar la reseña',
+      reviewSubmitted: 'Reseña enviada con éxito',
+      reviewNetworkError: 'Error de red al enviar la reseña',
       clientsOnlyLabel: 'Solo clientes',
       averageRating: 'Calificación Promedio',
       totalReviews: 'Total de Reseñas',
@@ -369,6 +398,11 @@ export const translations = {
       noReviewsYet: 'Aún no hay reseñas',
       clientsCanLeaveReviews: 'Los clientes podrán dejar reseñas después de su cita',
       noReviews: 'No hay reseñas aún',
+      noReviewsAvailable: 'No hay reseñas disponibles',
+      loadingReviews: 'Cargando reseñas...',
+      barber: 'Barbero',
+      teamResponse: 'Respuesta del equipo',
+      noComment: 'Sin comentario',
     },
 
     // Gallery
@@ -431,7 +465,7 @@ export const translations = {
       placeholder: 'Escribe tu mensaje...',
       send: 'Enviar',
       thinking: 'Pensando...',
-      greeting: '¡Hola! ¿Cómo puedo ayudarte hoy?',
+      greeting: '¡Hola! Bienvenido a JBookMe Barbershop. ¿En qué puedo ayudarte hoy?',
     },
 
     // Dashboard - Common
@@ -447,8 +481,10 @@ export const translations = {
     // Dashboard - Admin
     admin: {
       title: 'Panel de Administración',
+      subtitle: 'Resumen del sistema',
       appointments: 'Citas',
       barbers: 'Barberos',
+      stylists: 'Estilistas',
       services: 'Servicios',
       gallery: 'Galería',
       today: 'Hoy',
@@ -456,6 +492,98 @@ export const translations = {
       manageEarnings: 'Gestiona tus ganancias y transacciones',
       paymentMethods: 'Métodos de Pago',
       recentTransactions: 'Transacciones Recientes',
+
+      actions: {
+        messages: 'Mensajes',
+      },
+
+      dataStatus: {
+        title: 'Estado de datos',
+        dbNotAvailable:
+          'Base de datos no disponible. Instala o inicia Postgres local para ver estadísticas.',
+        couldNotLoadStatistics: 'No se pudieron cargar las estadísticas.',
+      },
+
+      stats: {
+        totalAppointments: 'Citas totales',
+        activeClients: 'Clientes activos',
+        monthlyRevenue: 'Ingresos mensuales',
+        averageRating: 'Calificación promedio',
+      },
+
+      cards: {
+        users: {
+          title: 'Usuarios',
+          subtitle: 'Gestión de usuarios y roles',
+        },
+        notifications: {
+          title: 'Notificaciones',
+          subtitle: 'Enviar notificaciones a usuarios',
+        },
+        promotions: {
+          title: 'Promociones',
+          subtitle: 'Crear y programar promociones',
+        },
+        barbers: {
+          title: 'Barberos',
+          subtitle: 'Gestionar barberos (hombres)',
+        },
+        stylists: {
+          title: 'Estilistas',
+          subtitle: 'Gestionar estilistas (mujeres)',
+        },
+        appointments: {
+          title: 'Citas',
+          subtitle: 'Ver y gestionar reservas',
+        },
+        services: {
+          title: 'Servicios',
+          subtitle: 'Gestionar catálogo',
+        },
+        reviews: {
+          title: 'Reseñas',
+          subtitle: 'Moderar reseñas',
+        },
+        accounting: {
+          title: 'Contabilidad',
+          subtitle: 'Pagos y gastos',
+        },
+        earnings: {
+          title: 'Ganancias',
+          subtitle: 'Estadísticas financieras',
+        },
+        moderation: {
+          title: 'Moderación',
+          subtitle: 'Contenido reportado',
+        },
+        gallery: {
+          title: 'Galería',
+          subtitle: 'Gestión de contenido',
+        },
+        genderImages: {
+          title: 'Imágenes por género',
+          subtitle: 'Imágenes para tarjetas de reserva',
+        },
+        location: {
+          title: 'Ubicación',
+          subtitle: 'Contacto y dirección',
+        },
+        socialMedia: {
+          title: 'Redes sociales',
+          subtitle: 'Enlaces y perfiles',
+        },
+        assistant: {
+          title: 'Asistente IA',
+          subtitle: 'Chat inteligente',
+        },
+      },
+
+      sections: {
+        recentAppointments: 'Citas recientes',
+        newClients: 'Nuevos clientes',
+        noRecentAppointments: 'No hay citas recientes',
+        noNewClients: 'No hay clientes nuevos',
+      },
 
       locationManager: {
         title: 'Gestión de Ubicación y Contacto',
@@ -1857,6 +1985,8 @@ export const translations = {
       dismiss: 'Dismiss',
       hourShort: 'hr',
       minuteShort: 'min',
+      perHour: '/hour',
+      perhour: '/hour',
       photo: 'Photo',
       photos: 'Photos',
       videos: 'Videos',
@@ -2319,11 +2449,32 @@ export const translations = {
       positive: 'positive',
       stars: 'stars',
       writeReview: 'Write Review',
+      writeReviewPrompt: 'Tell us about your experience. A written review is required.',
+      shareExperienceWith: 'Share your experience with {name}',
+      yourFeedbackMatters: 'Your feedback matters',
+      serviceLabel: 'Service',
+      appointmentNotFound: 'Appointment not found',
+      errorLoadingAppointment: 'Error loading appointment',
+      rating: 'Rating',
       yourRating: 'Your Rating',
+      ratingLabel1: 'Very bad',
+      ratingLabel2: 'Bad',
+      ratingLabel3: 'Okay',
+      ratingLabel4: 'Good',
+      ratingLabel5: 'Excellent!',
       yourReview: 'Your Review',
+      comment: 'Comment',
       submit: 'Submit Review',
+      submitting: 'Submitting…',
+      toggleCommentAria: 'Toggle comment',
+      showLessReviews: 'Show less',
+      showMoreReviews: 'Show {count} more',
+      reviewSingular: 'review',
+      reviewPlural: 'reviews',
       reviewSubmitted: 'Review submitted successfully!',
       reviewError: 'Error submitting review',
+      reviewSubmitFailed: 'Failed to submit review',
+      reviewNetworkError: 'Network error submitting review',
       noReviewsAvailable: 'No reviews available',
       barber: 'Barber',
       teamResponse: 'Team Response',
@@ -2336,10 +2487,16 @@ export const translations = {
       notHelpful: 'Not Helpful',
       loginToRate: 'Please log in to leave a rating',
       clientsOnlyToRate: 'Only clients can leave ratings',
+      selectRating: 'Please select a rating',
+      commentPlaceholder: 'Write your review here…',
+      commentHelp: 'Minimum 10 characters. Be specific to help other clients.',
+      commentRequired: 'Please write a comment to submit your review',
+      commentMinLength: 'Comment must be at least {min} characters',
       ratingSubmitFailed: 'Failed to submit rating',
       ratingSubmitted: 'Rating submitted successfully',
       ratingNetworkError: 'Network error submitting rating',
       clientsOnlyLabel: 'Clients only',
+      noComment: 'No comment provided',
     },
 
     // Location
@@ -2367,7 +2524,7 @@ export const translations = {
     assistant: {
       title: 'AI Assistant',
       subtitle: 'Your virtual barbershop assistant',
-      greeting: "Hello! I'm your virtual assistant. I'm here to help you with everything related to our barbershop. You can ask me about services, schedules, prices, our location, or anything else you need. How can I assist you today?",
+      greeting: 'Hello! Welcome to JBookMe Barbershop. How can I help you today?',
       virtualAssistant: 'Virtual Assistant',
       hereToHelp: "I'm here to help!",
       speaking: 'Speaking...',
@@ -2928,6 +3085,106 @@ export const translations = {
 
     // Dashboard - Admin
     admin: {
+      title: 'Admin Dashboard',
+      subtitle: 'System overview',
+      appointments: 'Appointments',
+      barbers: 'Barbers',
+      stylists: 'Stylists',
+      services: 'Services',
+      gallery: 'Gallery',
+
+      actions: {
+        messages: 'Messages',
+      },
+
+      dataStatus: {
+        title: 'Data status',
+        dbNotAvailable:
+          'Database not available. Install/start local Postgres to view statistics.',
+        couldNotLoadStatistics: 'Could not load statistics.',
+      },
+
+      stats: {
+        totalAppointments: 'Total Appointments',
+        activeClients: 'Active Clients',
+        monthlyRevenue: 'Monthly Revenue',
+        averageRating: 'Average Rating',
+      },
+
+      cards: {
+        users: {
+          title: 'Users',
+          subtitle: 'User and role management',
+        },
+        notifications: {
+          title: 'Notifications',
+          subtitle: 'Send notifications to users',
+        },
+        promotions: {
+          title: 'Promotions',
+          subtitle: 'Create and schedule promotions',
+        },
+        barbers: {
+          title: 'Barbers',
+          subtitle: 'Manage barbers (men)',
+        },
+        stylists: {
+          title: 'Stylists',
+          subtitle: 'Manage stylists (women)',
+        },
+        appointments: {
+          title: 'Appointments',
+          subtitle: 'View and manage bookings',
+        },
+        services: {
+          title: 'Services',
+          subtitle: 'Manage catalog',
+        },
+        reviews: {
+          title: 'Reviews',
+          subtitle: 'Moderate reviews',
+        },
+        accounting: {
+          title: 'Accounting',
+          subtitle: 'Payments and expenses',
+        },
+        earnings: {
+          title: 'Earnings',
+          subtitle: 'Financial statistics',
+        },
+        moderation: {
+          title: 'Moderation',
+          subtitle: 'Reported content',
+        },
+        gallery: {
+          title: 'Gallery',
+          subtitle: 'Media management',
+        },
+        genderImages: {
+          title: 'Gender Images',
+          subtitle: 'Images for booking cards',
+        },
+        location: {
+          title: 'Location',
+          subtitle: 'Contact and address',
+        },
+        socialMedia: {
+          title: 'Social Media',
+          subtitle: 'Links and profiles',
+        },
+        assistant: {
+          title: 'AI Assistant',
+          subtitle: 'Smart chat',
+        },
+      },
+
+      sections: {
+        recentAppointments: 'Recent Appointments',
+        newClients: 'New Clients',
+        noRecentAppointments: 'No recent appointments',
+        noNewClients: 'No new clients',
+      },
+
       galleryMale: {
         titlePrefix: "Men's ",
         titleSuffix: 'Gallery',

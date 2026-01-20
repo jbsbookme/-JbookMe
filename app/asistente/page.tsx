@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { HistoryBackButton } from '@/components/layout/history-back-button'
+import Link from 'next/link'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -38,9 +39,11 @@ type SpeechRecognitionErrorEvent = {
 }
 
 export default function AsistentePage() {
-  const { t } = useI18n()
+  const { t, language } = useI18n()
   const tRef = useRef(t)
   const [viewportHeight, setViewportHeight] = useState<number | null>(null)
+  const lastInputWasVoiceRef = useRef(false)
+  const shouldSpeakResponseRef = useRef(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -51,7 +54,7 @@ export default function AsistentePage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [isSpeaking, setIsSpeaking] = useState(false)
-  const [autoSpeak, setAutoSpeak] = useState(true)
+  const [autoSpeak, setAutoSpeak] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
@@ -124,7 +127,7 @@ export default function AsistentePage() {
 
       if (SpeechRecognitionCtor) {
         const recognition = new SpeechRecognitionCtor()
-        recognition.lang = 'es-ES'
+        recognition.lang = language === 'es' ? 'es-ES' : 'en-US'
         recognition.continuous = false
         recognition.interimResults = false
 
@@ -132,6 +135,7 @@ export default function AsistentePage() {
           const e = event as unknown as SpeechRecognitionResultEvent
           const transcript = e.results?.[0]?.[0]?.transcript
           if (!transcript) return
+          lastInputWasVoiceRef.current = true
           setInput(transcript)
           setIsListening(false)
           toast.success(tRef.current('assistant.capturedMessage'))
@@ -194,19 +198,18 @@ export default function AsistentePage() {
     synthesisRef.current.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'es-ES'
+    utterance.lang = language === 'es' ? 'es-ES' : 'en-US'
     utterance.rate = 1.0
     utterance.pitch = 1.0
     utterance.volume = 1.0
 
-    // Try to select a Spanish voice
+    // Try to select a matching voice
     const voices = synthesisRef.current.getVoices()
-    const spanishVoice = voices.find(voice => 
-      voice.lang.startsWith('es') || voice.lang.includes('Spanish')
-    )
-    if (spanishVoice) {
-      utterance.voice = spanishVoice
-    }
+    const preferredVoice =
+      language === 'es'
+        ? voices.find((voice) => voice.lang.toLowerCase().startsWith('es') || voice.lang.includes('Spanish'))
+        : voices.find((voice) => voice.lang.toLowerCase().startsWith('en') || voice.lang.includes('English'))
+    if (preferredVoice) utterance.voice = preferredVoice
 
     utterance.onstart = () => {
       setIsSpeaking(true)
@@ -234,6 +237,10 @@ export default function AsistentePage() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
+    // Speak back when user used voice input OR user explicitly enabled autoSpeak.
+    shouldSpeakResponseRef.current = lastInputWasVoiceRef.current || autoSpeak
+    lastInputWasVoiceRef.current = false
+
     const userMessage: Message = { role: 'user', content: input }
     setMessages(prev => [...prev, userMessage])
     setInput('')
@@ -248,6 +255,7 @@ export default function AsistentePage() {
           'X-Stream': '1'
         },
         body: JSON.stringify({
+          locale: language,
           messages: [...messages, userMessage].map(m => ({
             role: m.role,
             content: m.content
@@ -338,7 +346,7 @@ export default function AsistentePage() {
             }
             return newMessages
           })
-        } else if (autoSpeak) {
+        } else if (shouldSpeakResponseRef.current) {
           // Auto-speak the assistant's response
           speak(assistantMessage)
         }
@@ -357,7 +365,33 @@ export default function AsistentePage() {
       ])
     } finally {
       setIsLoading(false)
+      shouldSpeakResponseRef.current = false
     }
+  }
+
+  const BOOKING_MARKER = '[[BOOKING_LINK]]'
+  const renderAssistantContent = (content: string) => {
+    if (!content.includes(BOOKING_MARKER)) {
+      return <p className="whitespace-pre-wrap text-sm leading-relaxed">{content}</p>
+    }
+
+    const [textPart, linkPartRaw] = content.split(BOOKING_MARKER)
+    const bookingHref = (linkPartRaw || '').trim().split(/\s+/)[0]
+
+    return (
+      <div className="space-y-3">
+        {textPart?.trim() ? (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{textPart.trim()}</p>
+        ) : null}
+        {bookingHref ? (
+          <Link href={bookingHref} className="block">
+            <Button className="w-full bg-[#00f0ff] text-black hover:bg-[#00d0df]">
+              {language === 'es' ? 'Reservar ahora' : 'Book now'}
+            </Button>
+          </Link>
+        ) : null}
+      </div>
+    )
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -457,7 +491,9 @@ export default function AsistentePage() {
                         : 'bg-gray-800 text-white'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                    {message.role === 'assistant' ? renderAssistantContent(message.content) : (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                    )}
                   </div>
 
                   {message.role === 'user' && (
@@ -499,7 +535,10 @@ export default function AsistentePage() {
             <div className="flex gap-2">
               <Input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  lastInputWasVoiceRef.current = false
+                  setInput(e.target.value)
+                }}
                 onKeyPress={handleKeyPress}
                 placeholder={isListening ? t('assistant.listening') : t('assistant.typePlaceholder')}
                 disabled={isLoading || isListening}
