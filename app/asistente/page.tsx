@@ -60,6 +60,8 @@ export default function AsistentePage() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
   const sendMessageRef = useRef<(text: string, fromVoice: boolean) => void>(() => {})
+  // Keep a stable conversation locale to avoid flip-flopping between ES/EN.
+  const conversationLocaleRef = useRef<'es' | 'en'>(language === 'es' ? 'es' : 'en')
 
   const detectPreferredLocale = (text: string): 'es' | 'en' => {
     const value = (text || '').trim()
@@ -73,6 +75,9 @@ export default function AsistentePage() {
       'por favor',
       'quiero',
       'necesito',
+      'servicio',
+      'servicios',
+      'reserva',
       'reserv',
       'cita',
       'turno',
@@ -105,6 +110,7 @@ export default function AsistentePage() {
   }
 
   const getPreferredRecognitionLocale = (): 'es-ES' | 'en-US' => {
+    if (conversationLocaleRef.current === 'es') return 'es-ES'
     if (language === 'es') return 'es-ES'
     // If the app language is still EN but the device is Spanish, default mic to ES.
     if (typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('es')) return 'es-ES'
@@ -122,6 +128,13 @@ export default function AsistentePage() {
   useEffect(() => {
     tRef.current = t
   }, [t])
+
+  // If the user sets the whole app to Spanish, keep assistant Spanish.
+  useEffect(() => {
+    if (language === 'es') {
+      conversationLocaleRef.current = 'es'
+    }
+  }, [language])
 
   useEffect(() => {
     messagesRef.current = messages
@@ -235,6 +248,9 @@ export default function AsistentePage() {
     }
 
     try {
+      // Keep recognition language aligned with the conversation.
+      recognitionRef.current.lang = getPreferredRecognitionLocale()
+
       // Force the browser to request microphone permission (improves reliability on iOS/Chrome).
       if (typeof window !== 'undefined' && !window.isSecureContext) {
         toast.error(language === 'es' ? 'El micrófono requiere HTTPS.' : 'Microphone requires HTTPS.')
@@ -371,7 +387,12 @@ export default function AsistentePage() {
     const text = (overrideText ?? input).trim()
     if (!text || isLoading) return
 
-    const preferredLocale = detectPreferredLocale(text)
+    // Infer locale from the message, but keep Spanish "sticky" once detected.
+    const inferredLocale = detectPreferredLocale(text)
+    if (inferredLocale === 'es') {
+      conversationLocaleRef.current = 'es'
+    }
+    const preferredLocale: 'es' | 'en' = conversationLocaleRef.current === 'es' ? 'es' : inferredLocale
 
     if (options?.fromVoice) {
       lastInputWasVoiceRef.current = true
