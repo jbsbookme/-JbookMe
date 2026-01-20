@@ -10,6 +10,9 @@ type User = {
   image: string | null;
   legalAcceptedVersion?: string | null;
   legalAcceptedAt?: string | null;
+  termsAccepted?: boolean | null;
+  termsVersion?: string | null;
+  termsAcceptedAt?: string | null;
 };
 
 type UserContextType = {
@@ -47,6 +50,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
           image: imageUrl,
           legalAcceptedVersion: data.legalAcceptedVersion ?? null,
           legalAcceptedAt: data.legalAcceptedAt ?? null,
+          termsAccepted: typeof data.termsAccepted === 'boolean' ? data.termsAccepted : null,
+          termsVersion: data.termsVersion ?? null,
+          termsAcceptedAt: data.termsAcceptedAt ?? null,
         });
       }
     } catch (error) {
