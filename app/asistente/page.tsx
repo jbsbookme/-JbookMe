@@ -275,18 +275,74 @@ export default function AsistentePage() {
     synthesisRef.current.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = effectiveLocale === 'es' ? 'es-ES' : 'en-US'
-    utterance.rate = 1.0
+    const deviceLang =
+      typeof navigator !== 'undefined' && typeof navigator.language === 'string'
+        ? navigator.language
+        : undefined
+
+    const candidateLangs =
+      effectiveLocale === 'es'
+        ? [
+            deviceLang?.toLowerCase().startsWith('es') ? deviceLang : undefined,
+            'es-US',
+            'es-MX',
+            'es-ES',
+            'es'
+          ].filter(Boolean)
+        : [
+            deviceLang?.toLowerCase().startsWith('en') ? deviceLang : undefined,
+            'en-US',
+            'en-GB',
+            'en'
+          ].filter(Boolean)
+
+    utterance.lang = (candidateLangs[0] as string) || (effectiveLocale === 'es' ? 'es-ES' : 'en-US')
+    utterance.rate = effectiveLocale === 'es' ? 0.95 : 1.0
     utterance.pitch = 1.0
     utterance.volume = 1.0
 
     // Try to select a matching voice
     const voices = synthesisRef.current.getVoices()
-    const preferredVoice =
-      effectiveLocale === 'es'
-        ? voices.find((voice) => voice.lang.toLowerCase().startsWith('es') || voice.lang.includes('Spanish'))
-        : voices.find((voice) => voice.lang.toLowerCase().startsWith('en') || voice.lang.includes('English'))
-    if (preferredVoice) utterance.voice = preferredVoice
+    const pickVoice = () => {
+      const normalizedCandidateLangs = candidateLangs.map((l) => String(l).toLowerCase())
+      const targetPrefix = effectiveLocale === 'es' ? 'es' : 'en'
+
+      let best: SpeechSynthesisVoice | undefined
+      let bestScore = -1
+
+      for (const voice of voices) {
+        const vLang = (voice.lang || '').toLowerCase()
+        const vName = (voice.name || '').toLowerCase()
+
+        if (!vLang) continue
+        if (!vLang.startsWith(targetPrefix)) continue
+
+        let score = 0
+        const exactIndex = normalizedCandidateLangs.indexOf(vLang)
+        if (exactIndex >= 0) score += 200 - exactIndex * 10
+        if (vLang.startsWith(targetPrefix)) score += 80
+
+        // Prefer higher-quality voices when available.
+        if (vName.includes('google')) score += 20
+        if (vName.includes('microsoft')) score += 15
+        if (vName.includes('siri')) score += 15
+        if (effectiveLocale === 'es' && (vName.includes('español') || vName.includes('spanish'))) score += 10
+        if (effectiveLocale === 'en' && (vName.includes('english') || vName.includes('inglés'))) score += 10
+
+        if (score > bestScore) {
+          bestScore = score
+          best = voice
+        }
+      }
+
+      return best
+    }
+
+    const preferredVoice = pickVoice()
+    if (preferredVoice) {
+      utterance.voice = preferredVoice
+      utterance.lang = preferredVoice.lang || utterance.lang
+    }
 
     utterance.onstart = () => {
       setIsSpeaking(true)
