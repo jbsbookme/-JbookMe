@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { HistoryBackButton } from '@/components/layout/history-back-button'
+import Link from 'next/link'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -197,19 +198,18 @@ export default function AsistentePage() {
     synthesisRef.current.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'es-ES'
+    utterance.lang = language === 'es' ? 'es-ES' : 'en-US'
     utterance.rate = 1.0
     utterance.pitch = 1.0
     utterance.volume = 1.0
 
-    // Try to select a Spanish voice
+    // Try to select a matching voice
     const voices = synthesisRef.current.getVoices()
-    const spanishVoice = voices.find(voice => 
-      voice.lang.startsWith('es') || voice.lang.includes('Spanish')
-    )
-    if (spanishVoice) {
-      utterance.voice = spanishVoice
-    }
+    const preferredVoice =
+      language === 'es'
+        ? voices.find((voice) => voice.lang.toLowerCase().startsWith('es') || voice.lang.includes('Spanish'))
+        : voices.find((voice) => voice.lang.toLowerCase().startsWith('en') || voice.lang.includes('English'))
+    if (preferredVoice) utterance.voice = preferredVoice
 
     utterance.onstart = () => {
       setIsSpeaking(true)
@@ -237,8 +237,8 @@ export default function AsistentePage() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
-    // Only speak back when user used voice input (or explicitly enables it).
-    shouldSpeakResponseRef.current = autoSpeak && lastInputWasVoiceRef.current
+    // Speak back when user used voice input OR user explicitly enabled autoSpeak.
+    shouldSpeakResponseRef.current = lastInputWasVoiceRef.current || autoSpeak
     lastInputWasVoiceRef.current = false
 
     const userMessage: Message = { role: 'user', content: input }
@@ -255,6 +255,7 @@ export default function AsistentePage() {
           'X-Stream': '1'
         },
         body: JSON.stringify({
+          locale: language,
           messages: [...messages, userMessage].map(m => ({
             role: m.role,
             content: m.content
@@ -368,6 +369,31 @@ export default function AsistentePage() {
     }
   }
 
+  const BOOKING_MARKER = '[[BOOKING_LINK]]'
+  const renderAssistantContent = (content: string) => {
+    if (!content.includes(BOOKING_MARKER)) {
+      return <p className="whitespace-pre-wrap text-sm leading-relaxed">{content}</p>
+    }
+
+    const [textPart, linkPartRaw] = content.split(BOOKING_MARKER)
+    const bookingHref = (linkPartRaw || '').trim().split(/\s+/)[0]
+
+    return (
+      <div className="space-y-3">
+        {textPart?.trim() ? (
+          <p className="whitespace-pre-wrap text-sm leading-relaxed">{textPart.trim()}</p>
+        ) : null}
+        {bookingHref ? (
+          <Link href={bookingHref} className="block">
+            <Button className="w-full bg-[#00f0ff] text-black hover:bg-[#00d0df]">
+              {language === 'es' ? 'Reservar ahora' : 'Book now'}
+            </Button>
+          </Link>
+        ) : null}
+      </div>
+    )
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -465,7 +491,9 @@ export default function AsistentePage() {
                         : 'bg-gray-800 text-white'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                    {message.role === 'assistant' ? renderAssistantContent(message.content) : (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
+                    )}
                   </div>
 
                   {message.role === 'user' && (

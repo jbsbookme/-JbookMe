@@ -8,6 +8,8 @@ type User = {
   name: string | null;
   email: string | null;
   image: string | null;
+  legalAcceptedVersion?: string | null;
+  legalAcceptedAt?: string | null;
 };
 
 type UserContextType = {
@@ -43,6 +45,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           name: data.name,
           email: data.email,
           image: imageUrl,
+          legalAcceptedVersion: data.legalAcceptedVersion ?? null,
+          legalAcceptedAt: data.legalAcceptedAt ?? null,
         });
       }
     } catch (error) {

@@ -103,8 +103,8 @@ type CachedLookup<T> = {
   value: T
 }
 
-type BarberLookup = { displayName: string; normalized: string }
-type ServiceLookup = { name: string; normalized: string }
+type BarberLookup = { id: string; displayName: string; normalized: string }
+type ServiceLookup = { id: string; name: string; normalized: string; barberId: string | null }
 
 let cachedBarbers: CachedLookup<BarberLookup[]> | null = null
 let cachedServices: CachedLookup<ServiceLookup[]> | null = null
@@ -118,22 +118,29 @@ async function getActiveBarberLookups(): Promise<BarberLookup[]> {
     const barbers = await prisma.barber.findMany({
       where: { isActive: true },
       select: {
+        id: true,
         user: { select: { name: true } },
       },
       orderBy: { updatedAt: 'desc' },
     })
 
     const list = barbers
-      .map((b) => (typeof b.user?.name === 'string' ? b.user.name.trim() : ''))
-      .filter(Boolean)
-      .map((displayName) => ({ displayName, normalized: normalizeForMatch(displayName) }))
-      .filter((b) => b.normalized.length > 0)
+      .map((b) => {
+        const displayName = typeof b.user?.name === 'string' ? b.user.name.trim() : ''
+        return {
+          id: b.id,
+          displayName,
+          normalized: normalizeForMatch(displayName),
+        }
+      })
+      .filter((b) => b.displayName && b.normalized.length > 0)
 
     cachedBarbers = { at: now, value: list }
     return list
   } catch {
     // DB might be unavailable in some environments; keep a safe fallback.
     const fallback = ['jose', 'miguel', 'carlos', 'sandra', 'maria', 'ana', 'juan', 'adolfo'].map((n) => ({
+      id: n,
       displayName: n,
       normalized: normalizeForMatch(n),
     }))
@@ -150,15 +157,21 @@ async function getActiveServiceLookups(): Promise<ServiceLookup[]> {
   try {
     const services = await prisma.service.findMany({
       where: { isActive: true },
-      select: { name: true },
+      select: { id: true, name: true, barberId: true },
       orderBy: { updatedAt: 'desc' },
     })
 
     const list = services
-      .map((s) => (typeof s.name === 'string' ? s.name.trim() : ''))
-      .filter(Boolean)
-      .map((name) => ({ name, normalized: normalizeForMatch(name) }))
-      .filter((s) => s.normalized.length > 0)
+      .map((s) => {
+        const name = typeof s.name === 'string' ? s.name.trim() : ''
+        return {
+          id: s.id,
+          name,
+          barberId: s.barberId ?? null,
+          normalized: normalizeForMatch(name),
+        }
+      })
+      .filter((s) => s.name && s.normalized.length > 0)
       // Prefer longer matches first (e.g., "haircut + beard" over "haircut")
       .sort((a, b) => b.normalized.length - a.normalized.length)
 
@@ -167,7 +180,7 @@ async function getActiveServiceLookups(): Promise<ServiceLookup[]> {
   } catch {
     // Safe fallback: basic keywords.
     const fallbackNames = ['haircut', 'beard', 'eyebrows', 'treatment', 'combo', 'corte', 'barba', 'cejas', 'tratamiento', 'paquete']
-    const list = fallbackNames.map((name) => ({ name, normalized: normalizeForMatch(name) }))
+    const list = fallbackNames.map((name) => ({ id: name, name, barberId: null, normalized: normalizeForMatch(name) }))
     cachedServices = { at: now, value: list }
     return list
   }
@@ -191,22 +204,38 @@ async function extractAppointmentInfo(messages: ChatMessage[]) {
   
   // Extract barber name
   let barber = null
+  let barberId: string | null = null
   const barberLookups = await getActiveBarberLookups()
   for (const b of barberLookups) {
     if (findFirstIncluded(conversationNorm, b.normalized)) {
       barber = b.displayName
+      barberId = b.id
       break
     }
   }
   
   // Extract service
   let service = null
+  let serviceId: string | null = null
   const serviceLookups = await getActiveServiceLookups()
-  for (const s of serviceLookups) {
-    if (findFirstIncluded(conversationNorm, s.normalized)) {
-      service = s.name
-      break
+  const findServiceMatch = (predicate: (s: ServiceLookup) => boolean) => {
+    for (const s of serviceLookups) {
+      if (!predicate(s)) continue
+      if (findFirstIncluded(conversationNorm, s.normalized)) {
+        service = s.name
+        serviceId = s.id
+        return true
+      }
     }
+    return false
+  }
+
+  // If barber is known, prefer services tied to that barber first.
+  if (barberId) {
+    findServiceMatch((s) => s.barberId === barberId)
+  }
+  if (!serviceId) {
+    findServiceMatch(() => true)
   }
 
   // Fallback keyword mapping if service name matching didn't trigger.
@@ -216,6 +245,20 @@ async function extractAppointmentInfo(messages: ChatMessage[]) {
     else if (conversationText.includes('eyebrows') || conversationText.includes('cejas')) service = 'eyebrows'
     else if (conversationText.includes('treatment') || conversationText.includes('tratamiento')) service = 'treatment'
     else if (conversationText.includes('combo') || conversationText.includes('paquete')) service = 'combo'
+  }
+
+  // If we got a keyword service but no id, try to map it to a real active service.
+  if (service && !serviceId) {
+    const serviceNorm = normalizeForMatch(service)
+    const preferred = barberId
+      ? serviceLookups.find((s) => s.barberId === barberId && (s.normalized === serviceNorm || s.normalized.includes(serviceNorm)))
+      : null
+    const any = serviceLookups.find((s) => s.normalized === serviceNorm || s.normalized.includes(serviceNorm))
+    const hit = preferred ?? any
+    if (hit) {
+      service = hit.name
+      serviceId = hit.id
+    }
   }
   
   // Extract date
@@ -255,7 +298,7 @@ async function extractAppointmentInfo(messages: ChatMessage[]) {
     }
   }
   
-  return { barber, service, date, time }
+  return { barber, barberId, service, serviceId, date, time }
 }
 
 export async function POST(request: NextRequest) {
@@ -275,10 +318,16 @@ export async function POST(request: NextRequest) {
 
     const typedMessages: ChatMessage[] = messages as ChatMessage[]
 
+    const bodyObj = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : null
+    const requestedLocale =
+      (typeof bodyObj?.locale === 'string' && bodyObj.locale) ||
+      (typeof bodyObj?.language === 'string' && bodyObj.language) ||
+      null
+
     // Get user message
     const userMessageRaw = (typedMessages[typedMessages.length - 1]?.content || '') as string
     const userMessage = userMessageRaw.toLowerCase() || ''
-    const lang = detectLang(userMessageRaw)
+    const lang: Lang = requestedLocale === 'es' || requestedLocale === 'en' ? requestedLocale : detectLang(userMessageRaw)
     
     // Extract appointment info from entire conversation
     const info = await extractAppointmentInfo(typedMessages)
@@ -310,14 +359,45 @@ export async function POST(request: NextRequest) {
       userMessage.match(/\b(reserv(ar|a)|agendar|programar)\b/i) ||
       userMessage.match(/\b(cita|turno)\b/i) ||
       isInAppointmentFlow
+
+    const bookingLink = info.barberId && info.serviceId ? `/reservar?barberId=${encodeURIComponent(info.barberId)}&serviceId=${encodeURIComponent(info.serviceId)}` : null
+    const bookingMarker = bookingLink ? `\n\n[[BOOKING_LINK]]${bookingLink}` : ''
     
     if (wantsAppointment || isInAppointmentFlow) {
-      // Ask for missing information step by step
+      // If we have barber + service IDs, send the user straight to booking.
+      if (bookingLink) {
+        const message =
+          lang === 'es'
+            ? `Listo. Te dejo la reserva lista para ${info.service}${info.barber ? ` con ${info.barber}` : ''}.${bookingMarker}`
+            : `Done. Your booking is ready for ${info.service}${info.barber ? ` with ${info.barber}` : ''}.${bookingMarker}`
+        if (!wantsStream(request)) {
+          return NextResponse.json({ message, fallback: true })
+        }
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            const encoder = new TextEncoder()
+            for (const chunk of chunkText(message, 18)) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: chunk } }] })}\n\n`))
+            }
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+            controller.close()
+          },
+        })
+        return new Response(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream; charset=utf-8',
+            'Cache-Control': 'no-cache, no-transform',
+            Connection: 'keep-alive',
+          },
+        })
+      }
+
+      // Otherwise ask for missing information step by step.
       if (!info.service) {
         const message =
           lang === 'es'
-            ? `¡Perfecto! ${info.barber ? `Puedo reservarte con ${info.barber}. ` : ''}¿Qué servicio deseas? Tenemos cortes, barba, cejas, tratamientos y combos. ¿Cuál prefieres?`
-            : `Perfect! ${info.barber ? `I can book you with ${info.barber}. ` : ''}What service would you like? We offer haircuts, beard services, eyebrows, hair treatments, and special combos. Which one do you prefer?`
+            ? `Perfecto. ${info.barber ? `Con ${info.barber}. ` : ''}¿Qué servicio quieres? (corte, barba, cejas, tratamiento o combo)`
+            : `Perfect. ${info.barber ? `With ${info.barber}. ` : ''}What service do you want? (haircut, beard, eyebrows, treatment, or combo)`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
         }
@@ -342,7 +422,7 @@ export async function POST(request: NextRequest) {
         const svc = serviceLabel(info.service, lang) ?? info.service
         const message =
           lang === 'es'
-            ? `Excelente — ${svc}${info.barber ? ` con ${info.barber}` : ''}. ¿Qué día te gustaría la cita? Puedes decir mañana, un día de la semana o una fecha específica.`
+            ? `Excelente — ${svc}${info.barber ? ` con ${info.barber}` : ''}. ¿Qué día lo quieres? (hoy, mañana, o una fecha)`
             : `Great — a ${svc}${info.barber ? ` with ${info.barber}` : ''}. What day would you like the appointment? You can say tomorrow, a day of the week, or a specific date.`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
@@ -368,7 +448,7 @@ export async function POST(request: NextRequest) {
         const svc = serviceLabel(info.service, lang) ?? info.service
         const message =
           lang === 'es'
-            ? `¡Perfecto! Entonces ${svc}${info.barber ? ` con ${info.barber}` : ''} el ${info.date}. ¿A qué hora te queda bien? Nuestro horario es 9am–8pm de lunes a sábado y 10am–6pm los domingos.`
+            ? `Perfecto. ${svc}${info.barber ? ` con ${info.barber}` : ''} el ${info.date}. ¿A qué hora? (9am–8pm lun–sáb, 10am–6pm dom)`
             : `Perfect! So ${svc}${info.barber ? ` with ${info.barber}` : ''} on ${info.date}. What time works best for you? Our hours are 9am–8pm Monday–Saturday, and 10am–6pm on Sundays.`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
@@ -396,20 +476,8 @@ export async function POST(request: NextRequest) {
         const svc = serviceLabel(info.service, lang) ?? info.service
         const message =
           lang === 'es'
-            ? `¡Listo! Confirmo tu cita:
-
-      📅 Servicio: ${svc}
-      ${info.barber ? `👨‍🦲 Con: ${info.barber}\n` : ''}📆 Día: ${info.date}
-        🕒 Hora: ${timeDisplay}
-
-      Para finalizar la reserva, ve al menú y toca "Book" / "Reservar" y selecciona estos datos. ¿Quieres que te guíe paso a paso?`
-            : `Awesome! Let me confirm your appointment:
-
-      📅 Service: ${svc}
-      ${info.barber ? `👨‍🦲 With: ${info.barber}\n` : ''}📆 Date: ${info.date}
-        🕒 Time: ${timeDisplay}
-
-      To confirm this appointment, go to the main menu and tap "Book" where you can select these details and receive your confirmation. Would you like help with anything else?`
+            ? `Perfecto. Servicio: ${svc}${info.barber ? ` con ${info.barber}` : ''}. Día: ${info.date}. Hora: ${timeDisplay}.\n\nAbre “Reservar” para finalizar.`
+            : `Perfect. Service: ${svc}${info.barber ? ` with ${info.barber}` : ''}. Date: ${info.date}. Time: ${timeDisplay}.\n\nOpen “Book” to finish.`
         if (!wantsStream(request)) {
           return NextResponse.json({ message, fallback: true })
         }
@@ -537,23 +605,63 @@ export async function POST(request: NextRequest) {
     }
     
     // Cancellation
-    else if (userMessage.includes('cancel') || userMessage.includes('cancellation') || userMessage.includes('reschedule') || userMessage.includes('modify')) {
-      response = `Here’s our cancellation policy: if you cancel at least 2 hours before your appointment, there’s no charge. If it’s less than 2 hours, a fee may apply. Rescheduling is always free. To cancel or reschedule, go to your profile, open My Appointments, select the appointment, and make the change. Need help with anything else?`
+    else if (
+      userMessage.includes('cancel') ||
+      userMessage.includes('cancellation') ||
+      userMessage.includes('reschedule') ||
+      userMessage.includes('modify') ||
+      userMessage.includes('cancelar') ||
+      userMessage.includes('reprogram') ||
+      userMessage.includes('modificar')
+    ) {
+      response =
+        lang === 'es'
+          ? `Para cancelar o reprogramar: ve a tu perfil → “Mis Citas” → elige la cita y edítala. Si necesitas, dime cuál cita y te guío.`
+          : `To cancel or reschedule: go to your profile → “My Appointments” → open the appointment and edit it. If you want, tell me which one and I’ll guide you.`
     }
     
     // Barbers
-    else if (userMessage.includes('barber') || userMessage.includes('stylist') || userMessage.includes('who') || userMessage.includes('professional')) {
-      response = `We have an amazing team of professional barbers and stylists. They do everything from classic and modern cuts to beard work, coloring, and hair treatments. If you go to the menu and tap Our Team, you can see each profile, specialties, and client reviews. Want to book with someone specific?`
+    else if (
+      userMessage.includes('barber') ||
+      userMessage.includes('stylist') ||
+      userMessage.includes('who') ||
+      userMessage.includes('professional') ||
+      userMessage.includes('barbero') ||
+      userMessage.includes('equipo')
+    ) {
+      response =
+        lang === 'es'
+          ? `Tenemos un equipo completo. En el menú entra a “Barberos / Our Team” para ver perfiles y reseñas. ¿Con quién quieres reservar?`
+          : `We have a full team. In the menu, open “Our Team” to see profiles and reviews. Who do you want to book with?`
     }
     
     // Reviews
-    else if (userMessage.includes('review') || userMessage.includes('opinion') || userMessage.includes('rating') || userMessage.includes('feedback')) {
-      response = `Great question! You can see real client reviews, service ratings, and recent experiences in the menu under Client Reviews. After your appointment, you can leave your own review too. Would you like to book an appointment?`
+    else if (
+      userMessage.includes('review') ||
+      userMessage.includes('opinion') ||
+      userMessage.includes('rating') ||
+      userMessage.includes('feedback') ||
+      userMessage.includes('rese')
+    ) {
+      response =
+        lang === 'es'
+          ? `Puedes ver reseñas y calificaciones en el menú en “Reseñas”. ¿Quieres reservar ahora?`
+          : `You can see reviews and ratings in the menu under “Reviews”. Want to book now?`
     }
     
     // Gallery/Inspiration
-    else if (userMessage.includes('gallery') || userMessage.includes('photo') || userMessage.includes('example') || userMessage.includes('inspir')) {
-      response = `If you're looking for inspiration for your next look, we have a full gallery. Go to the menu and tap Get Inspired to browse styles. Want to take a look?`
+    else if (
+      userMessage.includes('gallery') ||
+      userMessage.includes('photo') ||
+      userMessage.includes('example') ||
+      userMessage.includes('inspir') ||
+      userMessage.includes('galer') ||
+      userMessage.includes('foto')
+    ) {
+      response =
+        lang === 'es'
+          ? `Para inspiración, abre “Galería / Get Inspired” en el menú. ¿Buscas corte, barba o ambos?`
+          : `For inspiration, open “Get Inspired / Gallery” in the menu. Are you looking for haircut, beard, or both?`
     }
     
     // Thanks

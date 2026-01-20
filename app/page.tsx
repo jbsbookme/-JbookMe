@@ -85,16 +85,26 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 1 }}
             className="flex flex-col items-center gap-3 justify-center"
           >
-            <Link href={authHrefFor('/barberos')}>
+            <Link href={authHrefFor('/reservar')}>
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold text-lg px-12 py-6 hover:shadow-[0_0_40px_rgba(0,240,255,0.8)] transition-all duration-300 group"
               >
-                Find Your Barber
+                Book Now
               </Button>
             </Link>
 
-            <p className="text-sm text-gray-300">Start your experience</p>
+            <p className="text-sm text-gray-300">Choose your barber • Pick your time • No waiting</p>
+
+            <Link href={authHrefFor('/barberos')} className="mt-1">
+              <Button
+                variant="outline"
+                size="lg"
+                className="border-gray-500/50 text-white hover:bg-white/10 px-12 py-6"
+              >
+                Find Your Barber
+              </Button>
+            </Link>
           </motion.div>
 
           {/* Scroll indicator */}

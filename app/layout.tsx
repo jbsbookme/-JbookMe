@@ -13,6 +13,7 @@ import { GlobalHeader } from '@/components/layout/global-header';
 import { PauseVideosOnHide } from '@/components/pause-videos-on-hide';
 import { RegisterServiceWorker } from '@/components/register-service-worker';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
+import { LegalAcceptanceGate } from '@/components/legal/legal-acceptance-gate';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -125,6 +126,7 @@ export default function RootLayout({
               <UserProvider>
                 <I18nProvider>
                   <GlobalHeader />
+                  <LegalAcceptanceGate />
                   <PwaInstallBanner />
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />

@@ -54,6 +54,8 @@ model User {
   role                                           Role                @default(CLIENT)
   phone                                          String?
   image                                          String?
+  legalAcceptedVersion                            String?
+  legalAcceptedAt                                 DateTime?
   createdAt                                      DateTime            @default(now())
   updatedAt                                      DateTime            @updatedAt
   gender                                         Gender?

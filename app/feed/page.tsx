@@ -21,7 +21,6 @@ import {
   Facebook,
   Instagram,
   Share2,
-  Trash2,
   Link2,
   Image as ImageIcon,
   Play
@@ -1843,18 +1842,6 @@ export default function FeedPage() {
                             </DropdownMenuContent>
                           </DropdownMenu>
 
-                          {(session?.user?.role === 'ADMIN' || (sessionUserId && (post.author?.id === sessionUserId || post.authorId === sessionUserId))) && (
-                            <motion.button
-                              onClick={() => handleDeletePost(post.id)}
-                              className="ml-auto"
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.9 }}
-                              aria-label={t('feed.deletePostAria')}
-                              title={t('feed.deletePostTitle')}
-                            >
-                              <Trash2 className="w-6 h-6 text-white hover:text-red-400 smooth-transition" />
-                            </motion.button>
-                          )}
                         </div>
 
                         {/* Caption */}
