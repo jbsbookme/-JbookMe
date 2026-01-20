@@ -26,6 +26,9 @@ export async function GET(_req: NextRequest) {
         gender: true,
         legalAcceptedVersion: true,
         legalAcceptedAt: true,
+        termsAccepted: true,
+        termsVersion: true,
+        termsAcceptedAt: true,
         barber: {
           select: {
             id: true,

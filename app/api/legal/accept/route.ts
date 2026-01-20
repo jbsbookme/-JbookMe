@@ -12,17 +12,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'No autorizado' }, { status: 401 })
     }
 
+    // Terms version is server-controlled; body.version is accepted for compatibility.
     const body = (await req.json()) as { version?: unknown }
-    const version = typeof body?.version === 'string' ? body.version.trim() : ''
-
-    if (!version) {
-      return NextResponse.json({ message: 'Version requerida' }, { status: 400 })
-    }
+    const requested = typeof body?.version === 'string' ? body.version.trim() : ''
+    const termsVersion = requested || 'v1.0'
 
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        legalAcceptedVersion: version,
+        termsAccepted: true,
+        termsVersion,
+        termsAcceptedAt: new Date(),
+        // Legacy fields (kept in sync)
+        legalAcceptedVersion: termsVersion,
         legalAcceptedAt: new Date(),
       },
       select: { id: true },
