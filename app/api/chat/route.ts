@@ -327,7 +327,10 @@ export async function POST(request: NextRequest) {
     // Get user message
     const userMessageRaw = (typedMessages[typedMessages.length - 1]?.content || '') as string
     const userMessage = userMessageRaw.toLowerCase() || ''
-    const lang: Lang = requestedLocale === 'es' || requestedLocale === 'en' ? requestedLocale : detectLang(userMessageRaw)
+    const detected = detectLang(userMessageRaw)
+    const requested: Lang | null = requestedLocale === 'es' || requestedLocale === 'en' ? requestedLocale : null
+    // If the client sends a default locale that doesn't match the message, prefer the detected language.
+    const lang: Lang = requested ? (requested === 'en' && detected === 'es' ? 'es' : requested) : detected
     
     // Extract appointment info from entire conversation
     const info = await extractAppointmentInfo(typedMessages)

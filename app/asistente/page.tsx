@@ -59,6 +59,56 @@ export default function AsistentePage() {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const synthesisRef = useRef<SpeechSynthesis | null>(null)
 
+  const detectPreferredLocale = (text: string): 'es' | 'en' => {
+    const value = (text || '').trim()
+    if (!value) return language === 'es' ? 'es' : 'en'
+    const lower = value.toLowerCase()
+    const spanishSignals = [
+      'hola',
+      'buenas',
+      'buenos',
+      'gracias',
+      'por favor',
+      'quiero',
+      'necesito',
+      'reserv',
+      'cita',
+      'turno',
+      'barberia',
+      'barbero',
+      'peluquer',
+      'corte',
+      'barba',
+      'horario',
+      'precio',
+      'direccion',
+      'ubicacion',
+      'mañana',
+      'hoy',
+      'lunes',
+      'martes',
+      'miércoles',
+      'miercoles',
+      'jueves',
+      'viernes',
+      'sábado',
+      'sabado',
+      'domingo',
+    ]
+    const hasSpanishChar = /[ñáéíóúü¿¡]/i.test(value)
+    const hitCount = spanishSignals.reduce((acc, s) => (lower.includes(s) ? acc + 1 : acc), 0)
+
+    if (hasSpanishChar || hitCount >= 2) return 'es'
+    return language === 'es' ? 'es' : 'en'
+  }
+
+  const getPreferredRecognitionLocale = (): 'es-ES' | 'en-US' => {
+    if (language === 'es') return 'es-ES'
+    // If the app language is still EN but the device is Spanish, default mic to ES.
+    if (typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('es')) return 'es-ES'
+    return 'en-US'
+  }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
@@ -127,7 +177,7 @@ export default function AsistentePage() {
 
       if (SpeechRecognitionCtor) {
         const recognition = new SpeechRecognitionCtor()
-        recognition.lang = language === 'es' ? 'es-ES' : 'en-US'
+        recognition.lang = getPreferredRecognitionLocale()
         recognition.continuous = false
         recognition.interimResults = false
 
@@ -164,20 +214,37 @@ export default function AsistentePage() {
     }
   }, [])
 
-  const startListening = () => {
+  // Keep recognition language in sync when user changes language.
+  useEffect(() => {
+    if (!recognitionRef.current) return
+    recognitionRef.current.lang = getPreferredRecognitionLocale()
+  }, [language])
+
+  const startListening = async () => {
     if (!recognitionRef.current) {
       toast.error(t('assistant.voiceNotAvailable'))
       return
     }
 
     try {
+      // Force the browser to request microphone permission (improves reliability on iOS/Chrome).
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        toast.error(language === 'es' ? 'El micrófono requiere HTTPS.' : 'Microphone requires HTTPS.')
+        return
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach((t) => t.stop())
+      }
+
       setIsListening(true)
       recognitionRef.current.start()
       toast.info(t('assistant.startListening'))
     } catch (error) {
       console.error('Error starting recognition:', error)
       setIsListening(false)
-      toast.error(t('assistant.errorStartingVoice'))
+      toast.error(language === 'es' ? 'No se pudo iniciar el micrófono. Revisa permisos.' : 'Could not start microphone. Check permissions.')
     }
   }
 
@@ -237,6 +304,8 @@ export default function AsistentePage() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return
 
+    const preferredLocale = detectPreferredLocale(input)
+
     // Speak back when user used voice input OR user explicitly enabled autoSpeak.
     shouldSpeakResponseRef.current = lastInputWasVoiceRef.current || autoSpeak
     lastInputWasVoiceRef.current = false
@@ -255,7 +324,7 @@ export default function AsistentePage() {
           'X-Stream': '1'
         },
         body: JSON.stringify({
-          locale: language,
+          locale: preferredLocale,
           messages: [...messages, userMessage].map(m => ({
             role: m.role,
             content: m.content
