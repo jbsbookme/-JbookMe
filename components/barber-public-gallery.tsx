@@ -347,10 +347,6 @@ export function BarberPublicGallery({ images }: Props) {
             onClick={(e) => e.stopPropagation()}
             style={{ touchAction: 'none' }}
             onTouchStart={(e) => {
-              if (isZoomedIn) {
-                touchStartRef.current = null;
-                return;
-              }
               if (e.touches.length !== 1) {
                 touchStartRef.current = null;
                 return;
