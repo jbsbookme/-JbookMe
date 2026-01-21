@@ -354,8 +354,8 @@ export default function BarberUploadPage() {
           const isAbort = err instanceof Error && err.name === 'AbortError';
           toast.error(
             isAbort
-              ? `Timeout creating post: ${uploadFile.name || file.name}`
-              : `Error creating post: ${uploadFile.name || file.name}`
+              ? `Tiempo de espera creando la publicación: ${uploadFile.name || file.name}`
+              : `Error creando la publicación: ${uploadFile.name || file.name}`
           );
           continue;
         } finally {
