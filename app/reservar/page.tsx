@@ -1024,7 +1024,7 @@ export default function ReservarPage() {
                   <p className="text-[10px] sm:text-xs text-[#00f0ff] mb-1.5 sm:mb-2 font-semibold">
                     {getProfessionalTitle(barber.gender)}
                   </p>
-                  {barber.rating && (
+                  {typeof barber.rating === 'number' && barber.rating > 0 && (
                     <div className="flex items-center justify-center gap-1 text-[#ffd700] mb-1.5 sm:mb-2">
                       <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
                       <span className="text-xs sm:text-sm font-semibold">{barber.rating.toFixed(1)}</span>
@@ -1088,7 +1088,7 @@ export default function ReservarPage() {
                 </h2>
 
                 {/* Rating */}
-                {selectedBarber.rating && (
+                {typeof selectedBarber.rating === 'number' && selectedBarber.rating > 0 && (
                   <div className="flex items-center gap-2 mb-4 justify-center md:justify-start">
                     <div className="flex gap-1">
                       {[...Array(5)].map((_, i) => (
@@ -1587,6 +1587,9 @@ export default function ReservarPage() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white">{selectedBarber.user.name}</h3>
+                {selectedBarber.user.name?.trim().toLowerCase() === 'adolfo torres' ? (
+                  <p className="text-gray-300/80 text-sm">(Barber License)</p>
+                ) : null}
                 <p className="text-gray-400">{t('booking.acceptedPaymentMethods')}</p>
               </div>
             </div>
