@@ -313,10 +313,10 @@ export default function BarberosPage() {
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => toggleFavorite(barber.id)}
-                              className="p-2 rounded-xl bg-black/30 hover:bg-black/40 border border-gray-800 transition-colors duration-300"
+                              className="p-1.5 rounded-lg bg-black/20 hover:bg-black/30 border border-white/10 hover:border-white/20 transition-colors duration-300"
                             >
                               <Heart 
-                                className={`w-5 h-5 transition-colors duration-300 ${
+                                className={`w-4 h-4 transition-colors duration-300 ${
                                   favorites.has(barber.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'
                                 }`} 
                               />
@@ -401,10 +401,10 @@ export default function BarberosPage() {
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
                               onClick={() => shareBarberProfile(barber)}
-                              className="p-3 bg-black/30 hover:bg-black/40 rounded-xl border border-gray-800 transition-colors duration-300"
+                              className="p-2 bg-black/20 hover:bg-black/30 rounded-lg border border-white/10 hover:border-white/20 transition-colors duration-300"
                               aria-label={`Share ${barber.name}'s profile`}
                             >
-                              <Share2 className="w-5 h-5 text-gray-400" />
+                              <Share2 className="w-4 h-4 text-gray-400" />
                             </motion.button>
                           </div>
                         </div>
