@@ -8,7 +8,13 @@
     "dev:3001:detached": "bash scripts/dev-3001-detached.sh",
     "dev:side:detached": "bash scripts/dev-3001-detached.sh",
     "build": "next build",
+    "web:export": "NEXT_OUTPUT_MODE=export next build",
     "vercel-build": "node scripts/vercel-build.js",
+    "cap:doctor": "cap doctor",
+    "cap:sync:android": "cap sync android",
+    "cap:sync:ios": "cap sync ios",
+    "cap:open:android": "cap open android",
+    "cap:open:ios": "cap open ios",
     "db:migrate:deploy": "prisma migrate deploy",
     "start": "next start",
     "prod:build": "next build",
@@ -31,6 +37,8 @@
     "seed": "node ./node_modules/.bin/tsx --require dotenv/config scripts/seed.ts"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "7.4.5",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
@@ -52,6 +60,9 @@
     "typescript": "5.2.2"
   },
   "dependencies": {
+    "@capacitor/android": "8.0.1",
+    "@capacitor/core": "8.0.1",
+    "@capacitor/ios": "8.0.1",
     "@floating-ui/react": "0.26.0",
     "@headlessui/react": "1.7.18",
     "@hookform/resolvers": "3.9.0",
