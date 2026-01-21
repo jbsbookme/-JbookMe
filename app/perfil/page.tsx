@@ -10,7 +10,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User, Camera, Save, ArrowLeft, MessageSquare, Calendar, Clock, RefreshCw, XCircle, ChevronRight, Trash2 } from 'lucide-react';
+import {
+  User,
+  Camera,
+  Save,
+  ArrowLeft,
+  MessageSquare,
+  Calendar,
+  Clock,
+  RefreshCw,
+  XCircle,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -78,6 +92,29 @@ export default function PerfilPage() {
     caption?: string | null;
   } | null>(null);
 
+  const [videoViewer, setVideoViewer] = useState<
+    | {
+        items: Array<{ postId: string; url: string; caption?: string | null }>;
+        index: number;
+      }
+    | null
+  >(null);
+  const videoViewerTouchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const scrollLockRef = useRef<
+    | {
+        locked: true;
+        scrollY: number;
+        prevBodyPosition: string;
+        prevBodyTop: string;
+        prevBodyLeft: string;
+        prevBodyRight: string;
+        prevBodyWidth: string;
+        prevBodyOverflow: string;
+        prevBodyPaddingRight: string;
+      }
+    | null
+  >(null);
+
   const getMediaUrl = (cloud_storage_path: string) => {
     return resolvePublicMediaUrl(cloud_storage_path);
   };
@@ -87,6 +124,55 @@ export default function PerfilPage() {
   };
 
   const isActiveAppointment = (aptStatus: string) => aptStatus === 'PENDING' || aptStatus === 'CONFIRMED';
+
+  // Lock background scroll when modals are open (better iOS/PWA UX).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const modalOpen = !!openedPost || !!videoViewer;
+    if (modalOpen) {
+      if (scrollLockRef.current?.locked) return;
+
+      const scrollY = window.scrollY || 0;
+      const bodyStyle = window.document.body.style;
+      const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+
+      scrollLockRef.current = {
+        locked: true,
+        scrollY,
+        prevBodyPosition: bodyStyle.position,
+        prevBodyTop: bodyStyle.top,
+        prevBodyLeft: bodyStyle.left,
+        prevBodyRight: bodyStyle.right,
+        prevBodyWidth: bodyStyle.width,
+        prevBodyOverflow: bodyStyle.overflow,
+        prevBodyPaddingRight: bodyStyle.paddingRight,
+      };
+
+      bodyStyle.position = 'fixed';
+      bodyStyle.top = `-${scrollY}px`;
+      bodyStyle.left = '0';
+      bodyStyle.right = '0';
+      bodyStyle.width = '100%';
+      bodyStyle.overflow = 'hidden';
+      if (scrollbarWidth > 0) bodyStyle.paddingRight = `${scrollbarWidth}px`;
+      return;
+    }
+
+    const lock = scrollLockRef.current;
+    if (!lock?.locked) return;
+
+    const bodyStyle = window.document.body.style;
+    bodyStyle.position = lock.prevBodyPosition;
+    bodyStyle.top = lock.prevBodyTop;
+    bodyStyle.left = lock.prevBodyLeft;
+    bodyStyle.right = lock.prevBodyRight;
+    bodyStyle.width = lock.prevBodyWidth;
+    bodyStyle.overflow = lock.prevBodyOverflow;
+    bodyStyle.paddingRight = lock.prevBodyPaddingRight;
+    scrollLockRef.current = null;
+    window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
+  }, [openedPost, videoViewer]);
 
   const normalizeStatusForDisplay = (aptStatus: string) => {
     // This product flow does not require manual confirmation.
@@ -577,11 +663,39 @@ export default function PerfilPage() {
                         role="button"
                         tabIndex={0}
                         aria-label={post.caption || 'Open post'}
-                        onClick={() => setOpenedPost({ id: post.id, url: src, isVideo: video, caption: post.caption })}
+                        onClick={() => {
+                          if (video) {
+                            const items = myPosts
+                              .filter((p) => isVideo(p.cloud_storage_path))
+                              .map((p) => ({ postId: p.id, url: `/api/posts/${p.id}/media`, caption: p.caption }));
+                            const idx = Math.max(
+                              0,
+                              items.findIndex((it) => it.postId === post.id)
+                            );
+                            setOpenedPost(null);
+                            setVideoViewer({ items, index: idx });
+                            return;
+                          }
+                          setVideoViewer(null);
+                          setOpenedPost({ id: post.id, url: src, isVideo: false, caption: post.caption });
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            setOpenedPost({ id: post.id, url: src, isVideo: video, caption: post.caption });
+                            if (video) {
+                              const items = myPosts
+                                .filter((p) => isVideo(p.cloud_storage_path))
+                                .map((p) => ({ postId: p.id, url: `/api/posts/${p.id}/media`, caption: p.caption }));
+                              const idx = Math.max(
+                                0,
+                                items.findIndex((it) => it.postId === post.id)
+                              );
+                              setOpenedPost(null);
+                              setVideoViewer({ items, index: idx });
+                              return;
+                            }
+                            setVideoViewer(null);
+                            setOpenedPost({ id: post.id, url: src, isVideo: false, caption: post.caption });
                           }
                         }}
                       >
@@ -684,6 +798,143 @@ export default function PerfilPage() {
               </div>
             </div>
           )}
+
+          {/* Video Viewer Modal (Instagram-like, videos only) */}
+          {videoViewer && videoViewer.items[videoViewer.index] ? (
+            <div
+              className="fixed inset-0 z-50 bg-black"
+              role="dialog"
+              aria-modal="true"
+              onClick={() => setVideoViewer(null)}
+            >
+              <button
+                type="button"
+                className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setVideoViewer(null);
+                }}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+
+              <button
+                type="button"
+                className="absolute top-4 right-16 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const current = videoViewer.items[videoViewer.index];
+                  if (!current) return;
+                  setVideoViewer(null);
+                  void handleDeleteMyPost(current.postId);
+                }}
+                aria-label={t('feed.deletePostAria')}
+                title={t('feed.deletePostTitle')}
+              >
+                <Trash2 className="w-5 h-5 text-white" />
+              </button>
+
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur flex items-center justify-center disabled:opacity-40"
+                  onClick={() =>
+                    setVideoViewer((prev) => {
+                      if (!prev) return prev;
+                      const nextIndex = Math.max(0, prev.index - 1);
+                      if (nextIndex === prev.index) return prev;
+                      return { ...prev, index: nextIndex };
+                    })
+                  }
+                  aria-label="Previous video"
+                  disabled={videoViewer.index <= 0}
+                >
+                  <ChevronUp className="h-6 w-6 text-white" />
+                </button>
+                <button
+                  type="button"
+                  className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur flex items-center justify-center disabled:opacity-40"
+                  onClick={() =>
+                    setVideoViewer((prev) => {
+                      if (!prev) return prev;
+                      const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
+                      if (nextIndex === prev.index) return prev;
+                      return { ...prev, index: nextIndex };
+                    })
+                  }
+                  aria-label="Next video"
+                  disabled={videoViewer.index >= videoViewer.items.length - 1}
+                >
+                  <ChevronDown className="h-6 w-6 text-white" />
+                </button>
+              </div>
+
+              <div
+                className="w-full h-full"
+                onClick={(e) => e.stopPropagation()}
+                style={{ touchAction: 'none' }}
+                onTouchStart={(e) => {
+                  if (e.touches.length !== 1) {
+                    videoViewerTouchStartRef.current = null;
+                    return;
+                  }
+                  const touch = e.touches[0];
+                  videoViewerTouchStartRef.current = { x: touch.clientX, y: touch.clientY, t: Date.now() };
+                }}
+                onTouchEnd={(e) => {
+                  const start = videoViewerTouchStartRef.current;
+                  videoViewerTouchStartRef.current = null;
+                  if (!start) return;
+                  const touch = e.changedTouches?.[0];
+                  if (!touch) return;
+
+                  const dt = Date.now() - start.t;
+                  if (dt > 700) return;
+                  const dx = touch.clientX - start.x;
+                  const dy = touch.clientY - start.y;
+                  if (Math.abs(dy) < 90) return;
+                  if (Math.abs(dy) < Math.abs(dx) * 1.2) return;
+
+                  if (dy < 0) {
+                    setVideoViewer((prev) => {
+                      if (!prev) return prev;
+                      const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
+                      if (nextIndex === prev.index) return prev;
+                      return { ...prev, index: nextIndex };
+                    });
+                  } else {
+                    setVideoViewer((prev) => {
+                      if (!prev) return prev;
+                      const nextIndex = Math.max(0, prev.index - 1);
+                      if (nextIndex === prev.index) return prev;
+                      return { ...prev, index: nextIndex };
+                    });
+                  }
+                }}
+              >
+                <div className="w-full h-full flex items-center justify-center">
+                  <video
+                    key={videoViewer.items[videoViewer.index].postId}
+                    src={videoViewer.items[videoViewer.index].url}
+                    controls
+                    playsInline
+                    autoPlay
+                    preload="metadata"
+                    className="w-full h-full object-contain bg-black"
+                  />
+                </div>
+
+                {videoViewer.items[videoViewer.index].caption ? (
+                  <div className="pointer-events-none absolute left-0 right-0 bottom-0 p-4 pb-8">
+                    <div className="inline-block max-w-[90vw] text-white text-sm bg-black/50 border border-white/10 backdrop-blur rounded-xl px-3 py-2">
+                      {videoViewer.items[videoViewer.index].caption}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           {/* CHAT CON BARBEROS */}
           <Card className="bg-[#0a0a0a] border-gray-800 mt-6 hover:border-[#00f0ff]/30 transition-colors">

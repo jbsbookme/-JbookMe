@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue } from 'framer-motion';
 import Image from 'next/image';
 import { ChevronLeft, ChevronRight, Heart, Tag, Filter, User, Sparkles, X } from 'lucide-react';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -44,13 +43,77 @@ export default function GaleriaPage() {
   const [showGenderSelection, setShowGenderSelection] = useState(true);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
-  const zoomRef = useRef<any>(null);
-  const zoomedInRef = useRef(false);
   const [isZoomedIn, setIsZoomedIn] = useState(false);
+  const [imageScale, setImageScale] = useState(1);
+  const imageX = useMotionValue(0);
+  const imageY = useMotionValue(0);
+  const pinchStartDistanceRef = useRef<number | null>(null);
+  const pinchStartScaleRef = useRef<number>(1);
+  const panStartRef = useRef<{ x: number; y: number } | null>(null);
+  const panOriginRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
   const thumbsRef = useRef<HTMLDivElement | null>(null);
   const [galleryMaleCircleImage, setGalleryMaleCircleImage] = useState<string | null>(null);
   const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
+
+  const resetZoom = () => {
+    setImageScale(1);
+    imageX.set(0);
+    imageY.set(0);
+    pinchStartDistanceRef.current = null;
+    panStartRef.current = null;
+    panOriginRef.current = { x: 0, y: 0 };
+  };
+
+  const handleZoomTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+
+      pinchStartDistanceRef.current = distance;
+      pinchStartScaleRef.current = imageScale;
+      panStartRef.current = null;
+      return;
+    }
+
+    if (e.touches.length === 1 && imageScale > 1) {
+      const touch = e.touches[0];
+      panStartRef.current = { x: touch.clientX, y: touch.clientY };
+      panOriginRef.current = { x: imageX.get(), y: imageY.get() };
+    }
+  };
+
+  const handleZoomTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStartDistanceRef.current) {
+      e.preventDefault();
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+
+      const rawScale = pinchStartScaleRef.current * (distance / pinchStartDistanceRef.current);
+      const nextScale = Math.min(Math.max(1, rawScale), 4);
+      setImageScale(nextScale);
+      return;
+    }
+
+    if (e.touches.length === 1 && panStartRef.current && imageScale > 1) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const dx = touch.clientX - panStartRef.current.x;
+      const dy = touch.clientY - panStartRef.current.y;
+      imageX.set(panOriginRef.current.x + dx);
+      imageY.set(panOriginRef.current.y + dy);
+    }
+  };
+
+  const handleZoomTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchStartDistanceRef.current = null;
+    if (e.touches.length === 0) {
+      panStartRef.current = null;
+      if (imageScale < 1.05) resetZoom();
+    }
+  };
 
   const openAtIndex = useCallback(
     (index: number) => {
@@ -58,10 +121,14 @@ export default function GaleriaPage() {
       const normalized = (index + filteredImages.length) % filteredImages.length;
       setSelectedIndex(normalized);
       setSelectedImage(filteredImages[normalized]);
-      requestAnimationFrame(() => zoomRef.current?.resetTransform?.(0));
+      requestAnimationFrame(() => resetZoom());
     },
     [filteredImages]
   );
+
+  useEffect(() => {
+    setIsZoomedIn(imageScale > 1.05);
+  }, [imageScale]);
 
   const goNext = useCallback(() => {
     if (filteredImages.length <= 1) return;
@@ -675,53 +742,43 @@ export default function GaleriaPage() {
               else goPrev();
             }}
           >
-            <TransformWrapper
-              initialScale={1}
-              minScale={1}
-              maxScale={4}
-              centerOnInit
-              centerZoomedOut
-              limitToBounds
-              onInit={(ref) => {
-                zoomRef.current = ref;
+            <motion.div
+              className="relative w-full h-full flex items-center justify-center"
+              drag={imageScale > 1}
+              dragElastic={0.08}
+              dragMomentum={false}
+              style={{
+                scale: imageScale,
+                x: imageX,
+                y: imageY,
+                touchAction: 'none',
+                cursor: imageScale > 1 ? 'move' : 'default',
               }}
-              onTransformed={(_ref, state) => {
-                const next = state.scale > 1.05;
-                if (zoomedInRef.current === next) return;
-                zoomedInRef.current = next;
-                setIsZoomedIn(next);
+              onTouchStart={handleZoomTouchStart}
+              onTouchMove={handleZoomTouchMove}
+              onTouchEnd={handleZoomTouchEnd}
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                if (imageScale === 1) {
+                  setImageScale(2);
+                } else {
+                  resetZoom();
+                }
               }}
-              onPanningStop={(ref) => {
-                if (ref.state.scale <= 1.001) ref.resetTransform(200);
-              }}
-              onPinchingStop={(ref) => {
-                if (ref.state.scale <= 1.001) ref.resetTransform(200);
-              }}
-              onWheelStop={(ref) => {
-                if (ref.state.scale <= 1.001) ref.resetTransform(200);
-              }}
-              onZoomStop={(ref) => {
-                if (ref.state.scale <= 1.001) ref.resetTransform(200);
-              }}
-              doubleClick={{ disabled: false }}
-              wheel={{ step: 0.1 }}
+              whileTap={{ cursor: imageScale > 1 ? 'grabbing' : 'default' }}
             >
-              <TransformComponent
-                wrapperClass="!w-full !h-full flex items-center justify-center"
-                contentClass="!w-auto !h-auto"
-              >
-                <div className="relative w-full h-full max-w-full max-h-full flex items-center justify-center">
-                  <Image
-                    src={selectedImage.imageUrl}
-                    alt={selectedImage.title}
-                    width={1200}
-                    height={1200}
-                    className="object-contain max-w-full max-h-full"
-                    priority
-                  />
-                </div>
-              </TransformComponent>
-            </TransformWrapper>
+              <div className="relative w-[92vw] h-[78vh]">
+                <Image
+                  src={selectedImage.imageUrl}
+                  alt={selectedImage.title}
+                  fill
+                  sizes="100vw"
+                  className="object-contain select-none"
+                  priority
+                  draggable={false}
+                />
+              </div>
+            </motion.div>
           </div>
 
           {/* Image Info */}
