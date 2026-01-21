@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { MessageCircle, Send, Trash2, Reply, User } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { useI18n } from '@/lib/i18n/i18n-context';
@@ -32,6 +33,8 @@ interface CommentSectionProps {
 export function CommentSection({ postId, initialCommentCount = 0 }: CommentSectionProps) {
   const { data: session } = useSession();
   const { t, language } = useI18n();
+  const pathname = usePathname() || '';
+  const showTimestamps = pathname.startsWith('/dashboard');
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -202,12 +205,14 @@ export function CommentSection({ postId, initialCommentCount = 0 }: CommentSecti
                   </span>
                 )}
               </div>
-              <span className="text-xs text-gray-500">
-                {formatDistanceToNow(new Date(comment.createdAt), { 
-                  addSuffix: true,
-                  locale: dateLocale,
-                })}
-              </span>
+              {!showTimestamps ? null : (
+                <span className="text-xs text-gray-500">
+                  {formatDistanceToNow(new Date(comment.createdAt), {
+                    addSuffix: true,
+                    locale: dateLocale,
+                  })}
+                </span>
+              )}
             </div>
 
             <p className="text-gray-300 text-sm whitespace-pre-wrap">{comment.content}</p>

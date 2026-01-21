@@ -179,16 +179,16 @@ export default async function BarberProfilePage({ params }: Params) {
       >
         <div className="max-w-6xl mx-auto px-4 py-1">
           <div className="flex items-center justify-between gap-4">
-            <Link href="/barberos" aria-label="Back">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Back"
-                className="text-gray-400 hover:text-white hover:bg-gray-800/50"
-              >
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-white hover:bg-gray-800/50"
+            >
+              <Link href="/barberos" aria-label="Back">
                 <ArrowLeft className="w-5 h-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
 
             <div className="flex-1" />
           </div>

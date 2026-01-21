@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { X, Send, Trash2, User } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -33,11 +34,12 @@ interface CommentsModalProps {
 export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
   const { data: session } = useSession();
   const { t, language } = useI18n();
+  const pathname = usePathname() || '';
+  const showTimestamps = pathname.startsWith('/dashboard');
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
-
   const dateLocale = language === 'es' ? es : enUS;
   const commentLabel = comments.length === 1 ? t('feed.commentSingular') : t('feed.commentPlural');
 
@@ -208,12 +210,14 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
                           {t('common.admin')}
                         </span>
                       )}
-                      <span className="text-xs text-zinc-500">
-                        {formatDistanceToNow(new Date(comment.createdAt), {
-                          addSuffix: true,
-                          locale: dateLocale,
-                        })}
-                      </span>
+                      {!showTimestamps ? null : (
+                        <span className="text-xs text-zinc-500">
+                          {formatDistanceToNow(new Date(comment.createdAt), {
+                            addSuffix: true,
+                            locale: dateLocale,
+                          })}
+                        </span>
+                      )}
                     </div>
                     <p className="text-zinc-100 text-sm leading-relaxed break-words">{comment.content}</p>
 

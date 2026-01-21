@@ -58,7 +58,7 @@ export default function TerminosPage() {
               {t('legal.termsConditions')}
             </span>
           </h1>
-          <p className="text-gray-400">{t('legal.terms.lastUpdated')}</p>
+          {/* last updated hidden */}
         </div>
 
         <Card className="bg-gray-900 border-gray-800 rounded-2xl">

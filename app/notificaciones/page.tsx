@@ -262,9 +262,7 @@ export default function NotificacionesPage() {
                         <p className="text-white font-semibold text-sm truncate">{notification.title}</p>
                       </div>
                       <p className="text-gray-400 text-sm mt-1">{notification.message}</p>
-                      <p className="text-gray-500 text-xs mt-2">
-                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                      </p>
+                      {/* timestamp hidden */}
                     </div>
 
                     <Button

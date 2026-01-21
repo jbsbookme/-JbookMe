@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Star, ArrowLeft } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { format } from 'date-fns'
+// Dates/timestamps intentionally hidden in UI.
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { HistoryBackButton } from '@/components/layout/history-back-button'
 
@@ -181,9 +181,7 @@ export default function ResenasPage() {
                       </div>
                       <div className="text-right">
                         {renderStars(review.rating)}
-                        <p className="text-xs text-gray-500 mt-1">
-                          {format(new Date(review.createdAt), 'dd MMM yyyy')}
-                        </p>
+                        {/* date hidden */}
                       </div>
                     </div>
                     <p className="text-gray-300">{review.comment}</p>
@@ -195,11 +193,7 @@ export default function ResenasPage() {
                           {t('reviews.teamResponse')}
                         </p>
                         <p className="text-gray-300 text-sm">{review.adminResponse}</p>
-                        {review.adminRespondedAt && (
-                          <p className="text-xs text-gray-500 mt-2">
-                            {format(new Date(review.adminRespondedAt), 'dd MMM yyyy')}
-                          </p>
-                        )}
+                        {/* admin response date hidden */}
                       </div>
                     )}
                   </div>

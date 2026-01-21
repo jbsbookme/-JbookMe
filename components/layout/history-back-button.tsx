@@ -10,6 +10,12 @@ type HistoryBackButtonProps = Omit<ButtonProps, 'onClick'> & {
 export function HistoryBackButton({ fallbackHref, ...buttonProps }: HistoryBackButtonProps) {
   const router = useRouter();
 
+  const hideOnTouch =
+    typeof window !== 'undefined' &&
+    (window.matchMedia?.('(pointer: coarse)').matches || /Android/i.test(navigator.userAgent));
+
+  if (hideOnTouch) return null;
+
   return (
     <Button
       {...buttonProps}

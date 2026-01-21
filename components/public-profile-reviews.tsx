@@ -35,14 +35,6 @@ type QuickRatingSubmittedDetail = {
   };
 };
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-}
-
 export function PublicProfileReviews({ initialReviews }: Props) {
   const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews);
   const [isOpen, setIsOpen] = useState(false);
@@ -130,7 +122,6 @@ export function PublicProfileReviews({ initialReviews }: Props) {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <h4 className="text-white font-semibold">{review.client?.name || 'Client'}</h4>
-                          <p className="text-gray-500 text-sm">{formatDate(review.createdAt)}</p>
                         </div>
                         <div className="flex items-center">
                           {Array.from({ length: 5 }).map((_, i) => (
@@ -193,7 +184,6 @@ export function PublicProfileReviews({ initialReviews }: Props) {
                               <h4 className="text-white font-semibold">
                                 {review.client?.name || 'Client'}
                               </h4>
-                              <p className="text-gray-500 text-sm">{formatDate(review.createdAt)}</p>
                             </div>
                             <div className="flex items-center">
                               {Array.from({ length: 5 }).map((_, i) => (

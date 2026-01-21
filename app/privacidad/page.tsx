@@ -45,7 +45,7 @@ export default function PrivacidadPage() {
           <h1 className="text-4xl font-bold text-white mb-2">
             {t('privacy.title')}
           </h1>
-          <p className="text-gray-400">{t('privacy.lastUpdated')}</p>
+          {/* last updated hidden */}
         </div>
 
         {/* Content */}

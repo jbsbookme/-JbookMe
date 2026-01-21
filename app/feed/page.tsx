@@ -913,11 +913,6 @@ export default function FeedPage() {
           ? post.barber?.user?.name
           : post.author?.name || 'User';
 
-      const dateLabel = new Date(post.createdAt).toLocaleDateString('en', {
-        month: 'short',
-        day: 'numeric',
-      });
-
       const isVideoPost = isVideoAsset(post.cloud_storage_path);
       const mediaUrl = isVideoPost
         ? `/api/posts/${post.id}/media`
@@ -929,7 +924,6 @@ export default function FeedPage() {
         isVideo: isVideoPost,
         poster: undefined,
         authorName,
-        dateLabel,
       });
     };
 
@@ -1426,12 +1420,6 @@ export default function FeedPage() {
                     <div className="text-[#00f0ff] font-bold text-4xl leading-none">
                       {new Date().getDate()}
                     </div>
-                    <div className="text-[#00f0ff]/70 text-sm mt-1 uppercase">
-                      {new Date().toLocaleDateString(language === 'es' ? 'es' : 'en', { 
-                        month: 'short', 
-                        year: 'numeric' 
-                      })}
-                    </div>
                     <div className="mt-2 text-xs text-gray-300">
                       Choose your preferred barber or stylist
                     </div>
@@ -1577,12 +1565,6 @@ export default function FeedPage() {
                               : post.author?.name || 'User'}
                           </p>
                           <div className="flex items-center gap-2">
-                            <p className="text-xs text-gray-400">
-                              {new Date(post.createdAt).toLocaleDateString('en', {
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </p>
                             {post.postType === 'BARBER_WORK' ? (
                               <motion.div 
                                 className="px-2 py-0.5 bg-cyan-500/20 rounded-full"
@@ -1618,11 +1600,6 @@ export default function FeedPage() {
                               ? post.barber?.user?.name
                               : post.author?.name || 'User';
 
-                          const dateLabel = new Date(post.createdAt).toLocaleDateString('en', {
-                            month: 'short',
-                            day: 'numeric',
-                          });
-
                           const isVideoPost = isVideo(post.cloud_storage_path);
                           const mediaUrl = isVideoPost
                             ? `/api/posts/${post.id}/media`
@@ -1642,7 +1619,6 @@ export default function FeedPage() {
                             isVideo: isVideoPost,
                             poster,
                             authorName,
-                            dateLabel,
                           });
                         }}
                       >
@@ -1678,12 +1654,6 @@ export default function FeedPage() {
                                 {(post.authorType === 'BARBER'
                                   ? post.barber?.user?.name
                                   : post.author?.name || 'User')}
-                                <span className="text-white/70">{' '}•{' '}
-                                  {new Date(post.createdAt).toLocaleDateString('en', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                  })}
-                                </span>
                               </span>
                             </div>
                           </div>
@@ -1975,12 +1945,11 @@ export default function FeedPage() {
           <div className="relative w-full h-full flex items-center justify-center overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {zoomedMedia.isVideo ? (
               <div className="relative max-w-full max-h-full">
-                {zoomedMedia.authorName && zoomedMedia.dateLabel ? (
+                {zoomedMedia.authorName ? (
                   <div className="pointer-events-none absolute left-3 top-3 z-10">
                     <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10">
                       <span className="text-xs font-medium text-white leading-none">
                         {zoomedMedia.authorName}
-                        <span className="text-white/70">{' '}•{' '}{zoomedMedia.dateLabel}</span>
                       </span>
                     </div>
                   </div>

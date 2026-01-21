@@ -10,6 +10,7 @@ import {
 } from './ui/popover';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
@@ -27,6 +28,8 @@ interface Notification {
 export function NotificationsBell() {
   const { data: session } = useSession() || {};
   const { t } = useI18n();
+  const pathname = usePathname() || '';
+  const showTimestamps = pathname.startsWith('/dashboard');
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -492,11 +495,13 @@ export function NotificationsBell() {
                             </button>
                           </div>
                         )}
-                        <p className="text-gray-500 text-xs mt-1">
-                          {formatDistanceToNow(new Date(notification.createdAt), {
-                            addSuffix: true
-                          })}
-                        </p>
+                        {!showTimestamps ? null : (
+                          <p className="text-gray-500 text-xs mt-1">
+                            {formatDistanceToNow(new Date(notification.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </Link>
@@ -512,11 +517,13 @@ export function NotificationsBell() {
                       <p className="text-gray-400 text-xs mt-1">
                         {notification.message}
                       </p>
-                      <p className="text-gray-500 text-xs mt-1">
-                        {formatDistanceToNow(new Date(notification.createdAt), {
-                          addSuffix: true
-                        })}
-                      </p>
+                      {!showTimestamps ? null : (
+                        <p className="text-gray-500 text-xs mt-1">
+                          {formatDistanceToNow(new Date(notification.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      )}
                     </div>
                   </div>
                 )}

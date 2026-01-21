@@ -891,8 +891,7 @@ export default function InboxPage() {
                             <div className="flex-1">
                               {m.content}
                               <div className={`mt-1 text-[11px] ${mine ? 'text-black/70' : 'text-white/60'}`}>
-                                {new Date(m.createdAt).toLocaleString()}
-                                {!mine && !m.isRead ? <span className="ml-2">• New</span> : null}
+                                {!mine && !m.isRead ? <span>New</span> : null}
                               </div>
                             </div>
                             {mine && !selectionMode ? (

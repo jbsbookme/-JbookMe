@@ -11,6 +11,7 @@ import { Footer } from '@/components/layout/footer';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { GlobalHeader } from '@/components/layout/global-header';
 import { PauseVideosOnHide } from '@/components/pause-videos-on-hide';
+import { SwipeBackGesture } from '@/components/swipe-back-gesture';
 import { RegisterServiceWorker } from '@/components/register-service-worker';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { LegalAcceptanceGate } from '@/components/legal/legal-acceptance-gate';
@@ -130,6 +131,7 @@ export default function RootLayout({
                   <PwaInstallBanner />
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />
+                  <SwipeBackGesture />
                   {children}
                   <Footer />
                   <BottomNav />
