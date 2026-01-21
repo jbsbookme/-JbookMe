@@ -68,6 +68,102 @@ function normalizeFileForUpload(file: File, hint: MediaHint): { normalized: File
   }
 }
 
+function isProbablyVideo(file: File): boolean {
+  if ((file.type || '').startsWith('video/')) return true;
+  return /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name || '');
+}
+
+async function uploadToBlobWithFallback(args: {
+  pathname: string;
+  file: File;
+  mimeType: string;
+  onProgress: (pct: number) => void;
+}): Promise<{ url: string; usedFallback: boolean }> {
+  const { pathname, file, mimeType, onProgress } = args;
+
+  const controller = new AbortController();
+  const hardTimeoutMs = 120_000;
+  const hardTimeoutId = setTimeout(() => controller.abort(), hardTimeoutMs);
+
+  let sawProgress = false;
+  const startAt = Date.now();
+  const stalledTimeoutMs = 12_000;
+  const stallInterval = setInterval(() => {
+    if (sawProgress) return;
+    const elapsed = Date.now() - startAt;
+    if (elapsed >= stalledTimeoutMs) {
+      controller.abort();
+    }
+  }, 1_000);
+
+  try {
+    const blob = await upload(pathname, file, {
+      access: 'public',
+      handleUploadUrl: '/api/blob/upload',
+      contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
+      abortSignal: controller.signal,
+      onUploadProgress: (progressEvent: unknown) => {
+        sawProgress = true;
+        if (typeof progressEvent === 'object' && progressEvent !== null) {
+          const maybe = progressEvent as { percentage?: unknown };
+          const pct = Number(maybe.percentage ?? 0) || 0;
+          onProgress(Math.max(0, Math.min(100, pct)));
+          return;
+        }
+        if (typeof progressEvent === 'number') {
+          onProgress(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
+        }
+      },
+    });
+
+    return { url: blob.url, usedFallback: false };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const shouldFallback =
+      message.toLowerCase().includes('client token') ||
+      message.toLowerCase().includes('token') ||
+      message.toLowerCase().includes('timeout') ||
+      (err instanceof Error && err.name === 'AbortError');
+
+    if (!shouldFallback) {
+      throw err;
+    }
+  } finally {
+    clearTimeout(hardTimeoutId);
+    clearInterval(stallInterval);
+  }
+
+  onProgress(5);
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch('/api/posts/upload-blob', {
+    method: 'POST',
+    body: fd,
+  });
+  onProgress(85);
+
+  if (!res.ok) {
+    let payload: unknown = null;
+    try {
+      payload = await res.json();
+    } catch {
+      payload = { error: await res.text() };
+    }
+    const payloadObj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+    const msg = (payloadObj?.error as string) || `Fallback upload failed (${res.status})`;
+    throw new Error(msg);
+  }
+
+  const data = (await res.json()) as { cloud_storage_path?: string; fileUrl?: string };
+  const url = data.cloud_storage_path || data.fileUrl;
+  if (!url) {
+    throw new Error('Fallback upload missing URL');
+  }
+
+  onProgress(100);
+  return { url, usedFallback: true };
+}
+
 export default function BarberUploadPage() {
   const router = useRouter();
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -216,44 +312,25 @@ export default function BarberUploadPage() {
         setUploadProgressPct(0);
 
         // Upload directly to Vercel Blob (avoids serverless upload hangs)
-        const { normalized: uploadFile, mimeType } = normalizeFileForUpload(file, 'auto');
+        const hintForThisFile: MediaHint = isProbablyVideo(file) ? 'video' : 'image';
+        const { normalized: uploadFile, mimeType } = normalizeFileForUpload(file, hintForThisFile);
         const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const pathname = `posts/barber_work/${Date.now()}-${idx}-${sanitizedFileName}`;
-
-        let blob;
+        let cloud_storage_path: string;
         try {
-          blob = await upload(pathname, uploadFile, {
-          access: 'public',
-          handleUploadUrl: '/api/blob/upload',
-          contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
-          onUploadProgress: (progressEvent: unknown) => {
-            if (typeof progressEvent === 'number') {
-              setUploadProgressPct(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
-              return;
-            }
-
-            if (typeof progressEvent === 'object' && progressEvent !== null) {
-              const maybe = progressEvent as {
-                percentage?: unknown;
-                progress?: unknown;
-                percent?: unknown;
-              };
-              const pct = Number(maybe.percentage ?? maybe.progress ?? maybe.percent ?? 0) || 0;
-              setUploadProgressPct(Math.max(0, Math.min(100, pct)));
-              return;
-            }
-
-            setUploadProgressPct(0);
-          },
+          const up = await uploadToBlobWithFallback({
+            pathname,
+            file: uploadFile,
+            mimeType,
+            onProgress: (pct) => setUploadProgressPct(pct),
           });
+          cloud_storage_path = up.url;
         } catch (err) {
           failedCount += 1;
-          const message = err instanceof Error ? err.message : 'Blob upload failed';
+          const message = err instanceof Error ? err.message : 'Upload failed';
           toast.error(`Upload failed: ${uploadFile.name || file.name} — ${message}`);
           continue;
         }
-
-        const cloud_storage_path = blob.url;
 
         // Create post record
         const formData = new FormData();
@@ -296,8 +373,8 @@ export default function BarberUploadPage() {
         }
 
         successCount += 1;
-        lastFileUrl = blob.url;
-        lastFile = file;
+        lastFileUrl = cloud_storage_path;
+        lastFile = uploadFile;
       }
 
       if (successCount === 0) {

@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Solo se permiten imágenes y videos' }, { status: 400 });
     }
 
-    // Validate file size (50MB max)
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El archivo es demasiado grande (máx 50MB)' }, { status: 400 });
+    // Validate file size (60MB max to match client + /api/blob/upload)
+    if (file.size > 60 * 1024 * 1024) {
+      return NextResponse.json({ error: 'El archivo es demasiado grande (máx 60MB)' }, { status: 400 });
     }
 
     // Create organized folder structure
