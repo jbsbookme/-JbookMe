@@ -196,7 +196,7 @@ export default function BarberosPage() {
         <motion.section 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="relative pt-4 sm:pt-20 pb-10 px-4 sm:px-6 lg:px-8 overflow-hidden"
+          className="relative pt-4 sm:pt-16 pb-6 px-4 sm:px-6 lg:px-8 overflow-hidden"
         >
           <div className="max-w-7xl mx-auto">
             <div className="mb-2 sm:mb-6 flex justify-start">
@@ -214,7 +214,7 @@ export default function BarberosPage() {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6 }}
-              className="text-center mb-6 sm:mb-12"
+              className="text-center mb-4 sm:mb-8"
             >
               <motion.div
                 initial={{ scale: 0 }}
@@ -236,7 +236,7 @@ export default function BarberosPage() {
         </motion.section>
 
         {/* Barbers Grid */}
-        <section className="px-4 sm:px-6 lg:px-8 pb-20">
+        <section className="px-4 sm:px-6 lg:px-8 -mt-6 sm:-mt-10 pb-20">
           <div className="max-w-7xl mx-auto">
             {loading ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
