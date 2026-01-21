@@ -15,6 +15,8 @@ import {
   Calendar,
   Clock,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
   User,
   MessageCircle,
   Send,
@@ -280,6 +282,15 @@ export default function FeedPage() {
     dateLabel?: string;
   } | null>(null);
 
+  const [videoViewer, setVideoViewer] = useState<
+    | {
+        items: Array<{ postId: string; url: string; authorName: string; caption?: string | null }>;
+        index: number;
+      }
+    | null
+  >(null);
+  const videoViewerTouchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+
   const captureVideoPoster = useCallback((video: HTMLVideoElement): string | null => {
     try {
       // Need decoded frame; otherwise drawing will be blank.
@@ -302,7 +313,7 @@ export default function FeedPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const modalOpen = !!zoomedMedia || !!commentsModalOpen;
+    const modalOpen = !!zoomedMedia || !!videoViewer || !!commentsModalOpen;
 
     if (modalOpen) {
       if (scrollLockRef.current?.locked) return;
@@ -352,7 +363,7 @@ export default function FeedPage() {
 
     scrollLockRef.current = null;
     window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
-  }, [zoomedMedia, commentsModalOpen]);
+  }, [zoomedMedia, videoViewer, commentsModalOpen]);
 
   const [feedAudioEnabled, setFeedAudioEnabled] = useState(false);
   const feedAudioEnabledRef = useRef(false);
@@ -379,6 +390,41 @@ export default function FeedPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!videoViewer) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        pauseAllVideos();
+        setVideoViewer(null);
+        return;
+      }
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setVideoViewer((prev) => {
+          if (!prev) return prev;
+          const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
+          if (nextIndex === prev.index) return prev;
+          return { ...prev, index: nextIndex };
+        });
+      }
+
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setVideoViewer((prev) => {
+          if (!prev) return prev;
+          const nextIndex = Math.max(0, prev.index - 1);
+          if (nextIndex === prev.index) return prev;
+          return { ...prev, index: nextIndex };
+        });
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [pauseAllVideos, videoViewer]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1601,23 +1647,32 @@ export default function FeedPage() {
                               : post.author?.name || 'User';
 
                           const isVideoPost = isVideo(post.cloud_storage_path);
-                          const mediaUrl = isVideoPost
-                            ? `/api/posts/${post.id}/media`
-                            : post.imageUrl || getMediaUrl(post.cloud_storage_path);
-
-                          let poster: string | undefined;
                           if (isVideoPost) {
-                            const videoEl = (e.currentTarget as HTMLElement).querySelector('video') as
-                              | HTMLVideoElement
-                              | null;
-                            const captured = videoEl ? captureVideoPoster(videoEl) : null;
-                            if (captured) poster = captured;
+                            const items = posts
+                              .filter((p) => isVideo(p.cloud_storage_path))
+                              .map((p) => ({
+                                postId: p.id,
+                                url: `/api/posts/${p.id}/media`,
+                                authorName:
+                                  p.authorType === 'BARBER'
+                                    ? p.barber?.user?.name || 'User'
+                                    : p.author?.name || 'User',
+                                caption: p.caption,
+                              }));
+                            const idx = Math.max(
+                              0,
+                              items.findIndex((it) => it.postId === post.id)
+                            );
+                            setZoomedMedia(null);
+                            setVideoViewer({ items, index: idx });
+                            return;
                           }
 
+                          const mediaUrl = post.imageUrl || getMediaUrl(post.cloud_storage_path);
+                          setVideoViewer(null);
                           setZoomedMedia({
                             url: mediaUrl,
-                            isVideo: isVideoPost,
-                            poster,
+                            isVideo: false,
                             authorName,
                           });
                         }}
@@ -1670,10 +1725,6 @@ export default function FeedPage() {
                               playsInline
                               preload="metadata"
                               className="w-full h-full object-cover bg-black"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleVideoTap(e.currentTarget);
-                              }}
                               onPlay={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: true }))}
                               onPause={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
                               onEnded={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
@@ -1880,6 +1931,149 @@ export default function FeedPage() {
         )}
       </div>
       
+      {/* Video Viewer Modal (Instagram-like, videos only) */}
+      {videoViewer && videoViewer.items[videoViewer.index] ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black"
+          onClick={() => {
+            pauseAllVideos();
+            setVideoViewer(null);
+          }}
+        >
+          <motion.button
+            className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              pauseAllVideos();
+              setVideoViewer(null);
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            aria-label="Close"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </motion.button>
+
+          <div
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur flex items-center justify-center"
+              onClick={() =>
+                setVideoViewer((prev) => {
+                  if (!prev) return prev;
+                  const nextIndex = Math.max(0, prev.index - 1);
+                  if (nextIndex === prev.index) return prev;
+                  return { ...prev, index: nextIndex };
+                })
+              }
+              aria-label="Previous video"
+              disabled={videoViewer.index <= 0}
+            >
+              <ChevronUp className="h-6 w-6 text-white" />
+            </button>
+            <button
+              type="button"
+              className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur flex items-center justify-center"
+              onClick={() =>
+                setVideoViewer((prev) => {
+                  if (!prev) return prev;
+                  const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
+                  if (nextIndex === prev.index) return prev;
+                  return { ...prev, index: nextIndex };
+                })
+              }
+              aria-label="Next video"
+              disabled={videoViewer.index >= videoViewer.items.length - 1}
+            >
+              <ChevronDown className="h-6 w-6 text-white" />
+            </button>
+          </div>
+
+          <div
+            className="w-full h-full"
+            onClick={(e) => e.stopPropagation()}
+            style={{ touchAction: 'none' }}
+            onTouchStart={(e) => {
+              if (e.touches.length !== 1) {
+                videoViewerTouchStartRef.current = null;
+                return;
+              }
+              const t = e.touches[0];
+              videoViewerTouchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+            }}
+            onTouchEnd={(e) => {
+              const start = videoViewerTouchStartRef.current;
+              videoViewerTouchStartRef.current = null;
+              if (!start) return;
+
+              const t = e.changedTouches?.[0];
+              if (!t) return;
+              const dt = Date.now() - start.t;
+              if (dt > 700) return;
+
+              const dx = t.clientX - start.x;
+              const dy = t.clientY - start.y;
+              if (Math.abs(dy) < 90) return;
+              if (Math.abs(dy) < Math.abs(dx) * 1.2) return;
+
+              if (dy < 0) {
+                // swipe up -> next
+                setVideoViewer((prev) => {
+                  if (!prev) return prev;
+                  const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
+                  if (nextIndex === prev.index) return prev;
+                  return { ...prev, index: nextIndex };
+                });
+              } else {
+                // swipe down -> prev
+                setVideoViewer((prev) => {
+                  if (!prev) return prev;
+                  const nextIndex = Math.max(0, prev.index - 1);
+                  if (nextIndex === prev.index) return prev;
+                  return { ...prev, index: nextIndex };
+                });
+              }
+            }}
+          >
+            <div className="absolute left-3 top-3 z-20">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10">
+                <span className="text-xs font-medium text-white leading-none">
+                  {videoViewer.items[videoViewer.index].authorName}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-full h-full flex items-center justify-center">
+              <video
+                key={videoViewer.items[videoViewer.index].postId}
+                src={videoViewer.items[videoViewer.index].url}
+                controls
+                playsInline
+                autoPlay
+                preload="metadata"
+                className="w-full h-full object-contain bg-black"
+              />
+            </div>
+
+            {videoViewer.items[videoViewer.index].caption ? (
+              <div className="pointer-events-none absolute left-0 right-0 bottom-0 p-4 pb-8">
+                <div className="inline-block max-w-[90vw] text-white text-sm bg-black/50 border border-white/10 backdrop-blur rounded-xl px-3 py-2">
+                  {videoViewer.items[videoViewer.index].caption}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </motion.div>
+      ) : null}
+
       {/* Zoom Modal */}
       {zoomedMedia && (
         <motion.div
