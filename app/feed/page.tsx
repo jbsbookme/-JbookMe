@@ -2052,45 +2052,19 @@ export default function FeedPage() {
             closeVideoViewer();
           }}
         >
-          {/* Top Bar (Home · Author · Close) */}
-          <div
-            className="absolute top-3 left-3 right-3 z-50 flex items-center justify-between gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <motion.button
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
-              onClick={() => closeVideoViewer({ goHome: true })}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.94 }}
-              aria-label="Home"
+          {/* Top Bar (Author) */}
+          {videoViewer.items[videoViewer.index].authorName ? (
+            <div
+              className="absolute top-3 left-0 right-0 z-50 flex justify-center px-3"
+              onClick={(e) => e.stopPropagation()}
             >
-              <Home className="w-5 h-5 text-white" />
-            </motion.button>
-
-            {videoViewer.items[videoViewer.index].authorName ? (
-              <div className="flex-1 flex justify-center min-w-0">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10 max-w-[70vw]">
-                  <span className="text-xs font-medium text-white leading-none truncate">
-                    {videoViewer.items[videoViewer.index].authorName}
-                  </span>
-                </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10 max-w-[78vw]">
+                <span className="text-xs font-medium text-white leading-none truncate">
+                  {videoViewer.items[videoViewer.index].authorName}
+                </span>
               </div>
-            ) : (
-              <div className="flex-1" />
-            )}
-
-            <motion.button
-              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
-              onClick={() => closeVideoViewer()}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.94 }}
-              aria-label="Close"
-            >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </motion.button>
-          </div>
+            </div>
+          ) : null}
 
           <div
             className="w-full h-full"
@@ -2196,6 +2170,17 @@ export default function FeedPage() {
                   className="absolute right-3 bottom-24 z-40 flex flex-col items-center gap-4"
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <button
+                    type="button"
+                    className="flex flex-col items-center gap-1"
+                    onClick={() => closeVideoViewer({ goHome: true })}
+                    aria-label="Home"
+                  >
+                    <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
+                      <Home className="h-6 w-6 text-white" />
+                    </div>
+                  </button>
+
                   <button
                     type="button"
                     className="flex flex-col items-center gap-1"
