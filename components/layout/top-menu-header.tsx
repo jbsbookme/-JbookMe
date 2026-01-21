@@ -65,7 +65,7 @@ export function TopMenuHeader() {
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="container mx-auto flex h-12 sm:h-16 items-center justify-between px-4 max-w-7xl">
-        <Link href={dashboardHref} className="flex items-center space-x-2 sm:space-x-3">
+        <Link href="/inicio" className="flex items-center space-x-2 sm:space-x-3" aria-label="Home">
           <div className="relative w-7 h-7 sm:w-10 sm:h-10 rounded-lg overflow-hidden">
             <Image src="/logo.png" alt="JBookMe Logo" fill className="object-contain" priority />
           </div>

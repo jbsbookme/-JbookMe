@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import Link from 'next/link';
 
 export function GlobalHeader() {
   const pathname = usePathname();
@@ -81,7 +82,7 @@ export function GlobalHeader() {
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="container mx-auto flex h-11 sm:h-14 items-center justify-between px-4 max-w-7xl">
-        <div className="flex items-center gap-2 min-w-0">
+        <Link href="/inicio" className="flex items-center gap-2 min-w-0" aria-label="Home">
           <Image
             src="/logo.png"
             alt="JBookMe"
@@ -93,7 +94,7 @@ export function GlobalHeader() {
           <span className="text-white font-semibold text-xs sm:text-sm truncate drop-shadow-[0_0_10px_rgba(255,215,0,0.35)]">
             JBookMe
           </span>
-        </div>
+        </Link>
         <div className="flex items-center gap-1 sm:gap-2">
           {/* Header actions: Menu, Share, Notifications, Avatar, Logout */}
           <div className="hidden sm:block">
