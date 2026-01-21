@@ -318,55 +318,63 @@ export default function FeedPage() {
 
     const modalOpen = !!zoomedMedia || !!videoViewer || !!commentsModalOpen;
 
-    if (modalOpen) {
-      if (scrollLockRef.current?.locked) return;
+    const restore = () => {
+      const lock = scrollLockRef.current;
+      if (!lock?.locked) return;
 
-      const scrollY = window.scrollY || 0;
       const bodyStyle = window.document.body.style;
+      bodyStyle.position = lock.prevBodyPosition;
+      bodyStyle.top = lock.prevBodyTop;
+      bodyStyle.left = lock.prevBodyLeft;
+      bodyStyle.right = lock.prevBodyRight;
+      bodyStyle.width = lock.prevBodyWidth;
+      bodyStyle.overflow = lock.prevBodyOverflow;
+      bodyStyle.paddingRight = lock.prevBodyPaddingRight;
 
-      const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-      const prev = {
-        locked: true,
-        scrollY,
-        prevBodyPosition: bodyStyle.position,
-        prevBodyTop: bodyStyle.top,
-        prevBodyLeft: bodyStyle.left,
-        prevBodyRight: bodyStyle.right,
-        prevBodyWidth: bodyStyle.width,
-        prevBodyOverflow: bodyStyle.overflow,
-        prevBodyPaddingRight: bodyStyle.paddingRight,
-      };
-      scrollLockRef.current = prev;
+      scrollLockRef.current = null;
+      window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
+    };
 
-      bodyStyle.position = 'fixed';
-      bodyStyle.top = `-${scrollY}px`;
-      bodyStyle.left = '0';
-      bodyStyle.right = '0';
-      bodyStyle.width = '100%';
-      bodyStyle.overflow = 'hidden';
-      if (scrollbarWidth > 0) {
-        bodyStyle.paddingRight = `${scrollbarWidth}px`;
-      }
-
+    if (!modalOpen) {
+      // Modal closed → restore.
+      restore();
       return;
     }
 
-    // Modal closed → restore.
-    const lock = scrollLockRef.current;
-    if (!lock?.locked) return;
+    // Modal open → lock, and ensure we ALWAYS restore on close/unmount.
+    if (scrollLockRef.current?.locked) {
+      return () => restore();
+    }
 
+    const scrollY = window.scrollY || 0;
     const bodyStyle = window.document.body.style;
-    bodyStyle.position = lock.prevBodyPosition;
-    bodyStyle.top = lock.prevBodyTop;
-    bodyStyle.left = lock.prevBodyLeft;
-    bodyStyle.right = lock.prevBodyRight;
-    bodyStyle.width = lock.prevBodyWidth;
-    bodyStyle.overflow = lock.prevBodyOverflow;
-    bodyStyle.paddingRight = lock.prevBodyPaddingRight;
 
-    scrollLockRef.current = null;
-    window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
-  }, [zoomedMedia, videoViewer, commentsModalOpen]);
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+    const prev = {
+      locked: true,
+      scrollY,
+      prevBodyPosition: bodyStyle.position,
+      prevBodyTop: bodyStyle.top,
+      prevBodyLeft: bodyStyle.left,
+      prevBodyRight: bodyStyle.right,
+      prevBodyWidth: bodyStyle.width,
+      prevBodyOverflow: bodyStyle.overflow,
+      prevBodyPaddingRight: bodyStyle.paddingRight,
+    };
+    scrollLockRef.current = prev;
+
+    bodyStyle.position = 'fixed';
+    bodyStyle.top = `-${scrollY}px`;
+    bodyStyle.left = '0';
+    bodyStyle.right = '0';
+    bodyStyle.width = '100%';
+    bodyStyle.overflow = 'hidden';
+    if (scrollbarWidth > 0) {
+      bodyStyle.paddingRight = `${scrollbarWidth}px`;
+    }
+
+    return () => restore();
+  }, [!!zoomedMedia, !!videoViewer, !!commentsModalOpen]);
 
   const [feedAudioEnabled, setFeedAudioEnabled] = useState(false);
   const feedAudioEnabledRef = useRef(false);

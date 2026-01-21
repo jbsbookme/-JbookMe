@@ -130,49 +130,58 @@ export default function PerfilPage() {
     if (typeof window === 'undefined') return;
 
     const modalOpen = !!openedPost || !!videoViewer;
-    if (modalOpen) {
-      if (scrollLockRef.current?.locked) return;
 
-      const scrollY = window.scrollY || 0;
+    const restore = () => {
+      const lock = scrollLockRef.current;
+      if (!lock?.locked) return;
+
       const bodyStyle = window.document.body.style;
-      const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+      bodyStyle.position = lock.prevBodyPosition;
+      bodyStyle.top = lock.prevBodyTop;
+      bodyStyle.left = lock.prevBodyLeft;
+      bodyStyle.right = lock.prevBodyRight;
+      bodyStyle.width = lock.prevBodyWidth;
+      bodyStyle.overflow = lock.prevBodyOverflow;
+      bodyStyle.paddingRight = lock.prevBodyPaddingRight;
+      scrollLockRef.current = null;
+      window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
+    };
 
-      scrollLockRef.current = {
-        locked: true,
-        scrollY,
-        prevBodyPosition: bodyStyle.position,
-        prevBodyTop: bodyStyle.top,
-        prevBodyLeft: bodyStyle.left,
-        prevBodyRight: bodyStyle.right,
-        prevBodyWidth: bodyStyle.width,
-        prevBodyOverflow: bodyStyle.overflow,
-        prevBodyPaddingRight: bodyStyle.paddingRight,
-      };
-
-      bodyStyle.position = 'fixed';
-      bodyStyle.top = `-${scrollY}px`;
-      bodyStyle.left = '0';
-      bodyStyle.right = '0';
-      bodyStyle.width = '100%';
-      bodyStyle.overflow = 'hidden';
-      if (scrollbarWidth > 0) bodyStyle.paddingRight = `${scrollbarWidth}px`;
+    if (!modalOpen) {
+      restore();
       return;
     }
 
-    const lock = scrollLockRef.current;
-    if (!lock?.locked) return;
+    if (scrollLockRef.current?.locked) {
+      return () => restore();
+    }
 
+    const scrollY = window.scrollY || 0;
     const bodyStyle = window.document.body.style;
-    bodyStyle.position = lock.prevBodyPosition;
-    bodyStyle.top = lock.prevBodyTop;
-    bodyStyle.left = lock.prevBodyLeft;
-    bodyStyle.right = lock.prevBodyRight;
-    bodyStyle.width = lock.prevBodyWidth;
-    bodyStyle.overflow = lock.prevBodyOverflow;
-    bodyStyle.paddingRight = lock.prevBodyPaddingRight;
-    scrollLockRef.current = null;
-    window.scrollTo({ top: lock.scrollY, left: 0, behavior: 'auto' });
-  }, [openedPost, videoViewer]);
+    const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+
+    scrollLockRef.current = {
+      locked: true,
+      scrollY,
+      prevBodyPosition: bodyStyle.position,
+      prevBodyTop: bodyStyle.top,
+      prevBodyLeft: bodyStyle.left,
+      prevBodyRight: bodyStyle.right,
+      prevBodyWidth: bodyStyle.width,
+      prevBodyOverflow: bodyStyle.overflow,
+      prevBodyPaddingRight: bodyStyle.paddingRight,
+    };
+
+    bodyStyle.position = 'fixed';
+    bodyStyle.top = `-${scrollY}px`;
+    bodyStyle.left = '0';
+    bodyStyle.right = '0';
+    bodyStyle.width = '100%';
+    bodyStyle.overflow = 'hidden';
+    if (scrollbarWidth > 0) bodyStyle.paddingRight = `${scrollbarWidth}px`;
+
+    return () => restore();
+  }, [!!openedPost, !!videoViewer]);
 
   const normalizeStatusForDisplay = (aptStatus: string) => {
     // This product flow does not require manual confirmation.
