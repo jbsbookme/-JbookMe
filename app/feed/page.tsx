@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Home,
+  RotateCcw,
   User,
   MessageCircle,
   Send,
@@ -371,6 +372,9 @@ export default function FeedPage() {
   const videoViewerVideoRef = useRef<HTMLVideoElement | null>(null);
   const videoViewerHistoryPushedRef = useRef(false);
   const videoViewerClosingFromPopRef = useRef(false);
+  const zoomedVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [videoViewerEnded, setVideoViewerEnded] = useState(false);
+  const [zoomedVideoEnded, setZoomedVideoEnded] = useState(false);
 
   useEffect(() => {
     feedAudioEnabledRef.current = feedAudioEnabled;
@@ -379,6 +383,15 @@ export default function FeedPage() {
   useEffect(() => {
     zoomedMediaRef.current = zoomedMedia;
   }, [zoomedMedia]);
+
+  useEffect(() => {
+    // Reset ended state when switching videos.
+    setVideoViewerEnded(false);
+  }, [videoViewer?.index]);
+
+  useEffect(() => {
+    setZoomedVideoEnded(false);
+  }, [zoomedMedia?.url, zoomedMedia?.isVideo]);
 
   useEffect(() => {
     if (!videoViewer) return;
@@ -2115,16 +2128,61 @@ export default function FeedPage() {
                 src={videoViewer.items[videoViewer.index].url}
                 playsInline
                 autoPlay
-                loop
+                loop={false}
                 muted={!feedAudioEnabled}
                 preload="metadata"
                 className="w-full h-full object-contain bg-black"
+                onEnded={() => {
+                  setVideoViewerEnded(true);
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (videoViewerEnded) {
+                    try {
+                      e.currentTarget.currentTime = 0;
+                    } catch {
+                      // ignore
+                    }
+                    setVideoViewerEnded(false);
+                    void e.currentTarget.play().catch(() => {
+                      // ignore
+                    });
+                    return;
+                  }
+
                   handleVideoTap(e.currentTarget);
                 }}
               />
             </div>
+
+            {videoViewerEnded ? (
+              <div
+                className="absolute inset-0 z-30 flex items-center justify-center"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-black/35 backdrop-blur px-5 py-3 text-white"
+                  onClick={() => {
+                    const video = videoViewerVideoRef.current;
+                    if (!video) return;
+                    try {
+                      video.currentTime = 0;
+                    } catch {
+                      // ignore
+                    }
+                    setVideoViewerEnded(false);
+                    void video.play().catch(() => {
+                      // ignore
+                    });
+                  }}
+                  aria-label="Watch again"
+                >
+                  <RotateCcw className="h-5 w-5 text-white" />
+                  <span className="text-sm font-semibold">Watch again</span>
+                </button>
+              </div>
+            ) : null}
 
             {videoViewer.items[videoViewer.index].caption ? (
               <div className="pointer-events-none absolute left-0 right-0 bottom-0 p-4 pb-8">
@@ -2218,15 +2276,59 @@ export default function FeedPage() {
                     poster={zoomedMedia.poster}
                     playsInline
                     autoPlay
-                    loop
+                    loop={false}
                     muted={!feedAudioEnabled}
                     preload="metadata"
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
+                    ref={(el) => {
+                      zoomedVideoRef.current = el;
+                    }}
+                    onEnded={() => setZoomedVideoEnded(true)}
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (zoomedVideoEnded) {
+                        try {
+                          e.currentTarget.currentTime = 0;
+                        } catch {
+                          // ignore
+                        }
+                        setZoomedVideoEnded(false);
+                        void e.currentTarget.play().catch(() => {
+                          // ignore
+                        });
+                        return;
+                      }
+
                       handleVideoTap(e.currentTarget);
                     }}
                   />
+
+                  {zoomedVideoEnded ? (
+                    <div className="absolute inset-0 z-20 flex items-center justify-center">
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-black/35 backdrop-blur px-5 py-3 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const video = zoomedVideoRef.current;
+                          if (!video) return;
+                          try {
+                            video.currentTime = 0;
+                          } catch {
+                            // ignore
+                          }
+                          setZoomedVideoEnded(false);
+                          void video.play().catch(() => {
+                            // ignore
+                          });
+                        }}
+                        aria-label="Watch again"
+                      >
+                        <RotateCcw className="h-5 w-5 text-white" />
+                        <span className="text-sm font-semibold">Watch again</span>
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : (
