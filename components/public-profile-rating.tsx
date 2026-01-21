@@ -39,9 +39,11 @@ export function PublicProfileRating({
         }}
       />
 
-      <span className="text-gray-400 text-sm sm:text-base whitespace-nowrap">
-        ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
-      </span>
+      {reviewCount > 0 ? (
+        <span className="text-gray-400 text-sm sm:text-base whitespace-nowrap">
+          ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
+        </span>
+      ) : null}
 
       {typeof hourlyRate === 'number' ? (
         <span className="text-[#00f0ff] font-semibold w-full sm:w-auto sm:ml-auto text-center sm:text-left">

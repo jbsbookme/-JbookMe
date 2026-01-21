@@ -225,6 +225,9 @@ export default async function BarberProfilePage({ params }: Params) {
                   <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2 leading-tight">
                     {barber.user?.name || 'Barber'}
                   </h1>
+                  {barber.user?.name?.trim().toLowerCase() === 'adolfo torres' ? (
+                    <p className="text-gray-300/80 text-sm sm:text-base -mt-1 mb-3">(Barber License)</p>
+                  ) : null}
                   {barber.specialties ? (
                     <p className="text-[#00f0ff] text-sm sm:text-lg mb-4">{barber.specialties}</p>
                   ) : null}
