@@ -22,6 +22,18 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Android signing keys (never commit)
+*.jks
+*.keystore
+
+# Android / Gradle / Capacitor
+android/.gradle/
+android/.idea/
+android/local.properties
+android/**/build/
+android/app/build/
+android/build/
+
 # TypeScript
 *.tsbuildinfo
 
