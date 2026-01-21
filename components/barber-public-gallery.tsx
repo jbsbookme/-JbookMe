@@ -31,6 +31,11 @@ export function BarberPublicGallery({ images }: Props) {
   const zoomedInRef = useRef(false);
   const [isZoomedIn, setIsZoomedIn] = useState(false);
   const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const tapStateRef = useRef<{ count: number; lastAt: number; timeoutId: number | null }>({
+    count: 0,
+    lastAt: 0,
+    timeoutId: null,
+  });
   const thumbsRef = useRef<HTMLDivElement | null>(null);
 
   const openAtIndex = useCallback(
@@ -55,6 +60,64 @@ export function BarberPublicGallery({ images }: Props) {
     const base = selectedIndex >= 0 ? selectedIndex : 0;
     openAtIndex(base - 1);
   }, [localImages.length, openAtIndex, selectedIndex]);
+
+  const toggleZoomTripleTap = useCallback(() => {
+    const ref = zoomRef.current;
+    if (!ref) return;
+
+    if (zoomedInRef.current) {
+      ref.resetTransform?.(200);
+      return;
+    }
+
+    // Zoom in centered (feels consistent on mobile).
+    ref.centerView?.(3, 200);
+  }, []);
+
+  const scheduleTapNavigate = useCallback(
+    (clientX: number, target: HTMLElement) => {
+      if (localImages.length <= 1) return;
+      if (isZoomedIn) return;
+
+      const rect = target.getBoundingClientRect();
+      const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0.5;
+      // Left third = prev, right third = next, middle = no-op.
+      if (ratio <= 0.33) goPrev();
+      else if (ratio >= 0.67) goNext();
+    },
+    [goNext, goPrev, isZoomedIn, localImages.length]
+  );
+
+  const registerTap = useCallback(
+    (clientX: number, target: HTMLElement) => {
+      const now = Date.now();
+      const state = tapStateRef.current;
+
+      if (state.timeoutId) {
+        window.clearTimeout(state.timeoutId);
+        state.timeoutId = null;
+      }
+
+      state.count = now - state.lastAt < 420 ? state.count + 1 : 1;
+      state.lastAt = now;
+
+      // Triple tap: toggle zoom in/out.
+      if (state.count >= 3) {
+        state.count = 0;
+        toggleZoomTripleTap();
+        return;
+      }
+
+      // Single tap navigation (delay a bit to allow triple-tap without navigating).
+      state.timeoutId = window.setTimeout(() => {
+        tapStateRef.current.timeoutId = null;
+        if (tapStateRef.current.count !== 1) return;
+        tapStateRef.current.count = 0;
+        scheduleTapNavigate(clientX, target);
+      }, 260);
+    },
+    [scheduleTapNavigate, toggleZoomTripleTap]
+  );
 
   useEffect(() => {
     setLocalImages(images);
@@ -282,6 +345,7 @@ export function BarberPublicGallery({ images }: Props) {
           <div
             className="absolute inset-0 flex items-center justify-center p-4 pb-28 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
+            style={{ touchAction: 'none' }}
             onTouchStart={(e) => {
               if (isZoomedIn) {
                 touchStartRef.current = null;
@@ -298,7 +362,6 @@ export function BarberPublicGallery({ images }: Props) {
               const start = touchStartRef.current;
               touchStartRef.current = null;
               if (!start) return;
-              if (isZoomedIn) return;
               const touch = e.changedTouches?.[0];
               if (!touch) return;
               const endX = touch.clientX;
@@ -306,6 +369,15 @@ export function BarberPublicGallery({ images }: Props) {
               const deltaX = start.x - endX;
               const deltaY = start.y - endY;
               const dt = Date.now() - start.t;
+
+              // Treat tiny move as a tap.
+              const isTap = dt < 300 && Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12;
+              if (isTap) {
+                registerTap(endX, e.currentTarget);
+                return;
+              }
+
+              if (isZoomedIn) return;
 
               if (dt > 600) return;
               if (Math.abs(deltaX) < 120) return;
@@ -343,7 +415,7 @@ export function BarberPublicGallery({ images }: Props) {
               onZoomStop={(ref) => {
                 if (ref.state.scale <= 1.001) ref.resetTransform(200);
               }}
-              doubleClick={{ disabled: false }}
+              doubleClick={{ disabled: true }}
               wheel={{ step: 0.1 }}
             >
               <TransformComponent
