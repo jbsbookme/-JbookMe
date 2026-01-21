@@ -430,6 +430,8 @@ export default function FeedPage() {
 
   const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
 
+  const resumeVideoAfterCommentsRef = useRef(false);
+
   const pauseAllVideos = useCallback(() => {
     const videos = Array.from(document.querySelectorAll('video'));
     for (const video of videos) {
@@ -2211,7 +2213,13 @@ export default function FeedPage() {
                     type="button"
                     className="flex flex-col items-center gap-1"
                     onClick={() => {
-                      closeVideoViewer();
+                      const video = videoViewerVideoRef.current;
+                      resumeVideoAfterCommentsRef.current = !!video && !video.paused && !video.ended;
+                      try {
+                        video?.pause();
+                      } catch {
+                        // ignore
+                      }
                       setCommentsModalOpen(activePost.id);
                     }}
                     aria-label="Comments"
@@ -2227,7 +2235,19 @@ export default function FeedPage() {
                   <button
                     type="button"
                     className="flex flex-col items-center gap-1"
-                    onClick={() => sharePost(activePost)}
+                    onClick={() => {
+                      const video = videoViewerVideoRef.current;
+                      const shouldResume = !!video && !video.paused && !video.ended;
+                      void (async () => {
+                        await sharePost(activePost);
+                        if (!shouldResume) return;
+                        try {
+                          await videoViewerVideoRef.current?.play();
+                        } catch {
+                          // ignore
+                        }
+                      })();
+                    }}
                     aria-label="Share"
                   >
                     <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
@@ -2235,14 +2255,19 @@ export default function FeedPage() {
                     </div>
                   </button>
 
-                  <div className="flex flex-col items-center gap-1">
+                  <button
+                    type="button"
+                    className="flex flex-col items-center gap-1"
+                    aria-label="Views"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
                       <Eye className="h-6 w-6 text-white" />
                     </div>
                     <span className="text-xs text-white/95 tabular-nums">
                       {viewCount}
                     </span>
-                  </div>
+                  </button>
                 </div>
               );
             })()}
@@ -2492,6 +2517,16 @@ export default function FeedPage() {
         isOpen={!!commentsModalOpen}
         onClose={() => {
           setCommentsModalOpen(null);
+
+          if (resumeVideoAfterCommentsRef.current && videoViewerVideoRef.current) {
+            try {
+              void videoViewerVideoRef.current.play();
+            } catch {
+              // ignore
+            }
+          }
+          resumeVideoAfterCommentsRef.current = false;
+
           if (sharedPostId) {
             try {
               window.history.replaceState(null, '', '/feed');
