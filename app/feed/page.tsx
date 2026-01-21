@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/i18n-context';
@@ -388,6 +388,12 @@ export default function FeedPage() {
   const [loadedByPostId, setLoadedByPostId] = useState<Record<string, boolean>>({});
   const [videoViewerReady, setVideoViewerReady] = useState(false);
   const [zoomedVideoReady, setZoomedVideoReady] = useState(false);
+  const [videoViewerForceMuted, setVideoViewerForceMuted] = useState(false);
+
+  const isIOS = useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  }, []);
 
   useEffect(() => {
     feedAudioEnabledRef.current = feedAudioEnabled;
@@ -404,6 +410,18 @@ export default function FeedPage() {
   }, [videoViewer?.index]);
 
   useEffect(() => {
+    if (!videoViewer) return;
+
+    // iOS often blocks autoplay-with-audio. If the user wants audio enabled,
+    // start muted to allow autoplay, then unmute once playback begins.
+    if (isIOS && feedAudioEnabled) {
+      setVideoViewerForceMuted(true);
+    } else {
+      setVideoViewerForceMuted(false);
+    }
+  }, [feedAudioEnabled, isIOS, videoViewer?.index, !!videoViewer]);
+
+  useEffect(() => {
     setZoomedVideoEnded(false);
     setZoomedVideoReady(false);
   }, [zoomedMedia?.url, zoomedMedia?.isVideo]);
@@ -411,6 +429,7 @@ export default function FeedPage() {
   useEffect(() => {
     if (!videoViewer) return;
     if (!feedAudioEnabled) return;
+    if (videoViewerForceMuted) return;
     const video = videoViewerVideoRef.current;
     if (!video) return;
 
@@ -426,7 +445,7 @@ export default function FeedPage() {
         // ignore
       });
     }
-  }, [feedAudioEnabled, videoViewer?.index]);
+  }, [feedAudioEnabled, videoViewer?.index, videoViewerForceMuted]);
 
   const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
 
@@ -2134,11 +2153,23 @@ export default function FeedPage() {
                 playsInline
                 autoPlay
                 loop={false}
-                muted={!feedAudioEnabled}
+                muted={videoViewerForceMuted || !feedAudioEnabled}
                 preload="auto"
                 className="w-full h-full object-contain bg-black"
                 onLoadedData={() => setVideoViewerReady(true)}
                 onCanPlay={() => setVideoViewerReady(true)}
+                onPlay={(e) => {
+                  if (!feedAudioEnabled) return;
+                  if (!videoViewerForceMuted) return;
+                  try {
+                    e.currentTarget.muted = false;
+                    e.currentTarget.volume = 1;
+                  } catch {
+                    // ignore
+                  } finally {
+                    setVideoViewerForceMuted(false);
+                  }
+                }}
                 onEnded={() => {
                   setVideoViewerEnded(true);
                 }}
