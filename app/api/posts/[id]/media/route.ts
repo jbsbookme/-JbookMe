@@ -98,9 +98,18 @@ export async function GET(
       if (value) headers.set(header, value);
     }
 
-    // Short cache for public media to reduce repeated downloads.
-    // Private media is still protected by auth and should not be cached publicly.
-    headers.set('cache-control', post.isPublic ? 'public, max-age=300' : 'private, max-age=0, no-store');
+    // Cache public media aggressively at the edge to make video loads snappy after navigation.
+    // Private media is still protected by auth and must not be cached publicly.
+    // Note: include s-maxage so CDNs can cache, and SWR so subsequent loads are instant.
+    headers.set(
+      'cache-control',
+      post.isPublic
+        ? 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800'
+        : 'private, max-age=0, no-store'
+    );
+
+    // Range responses should be cached separately.
+    headers.set('vary', 'range');
 
     return new NextResponse(upstream.body, {
       status: upstream.status,

@@ -7,16 +7,27 @@ import { Share2, Menu } from 'lucide-react';
 import { NotificationsBell } from '@/components/notifications-bell';
 import { LanguageSelector } from '@/components/language-selector';
 import { toast } from 'sonner';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import Link from 'next/link';
+import { useEffect } from 'react';
 
 export function GlobalHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session, status } = useSession() || {};
   const { user } = useUser();
   const { t } = useI18n();
+
+  useEffect(() => {
+    // Prefetch Home route to make header tap feel instant on mobile/PWA.
+    try {
+      router.prefetch('/inicio');
+    } catch {
+      // ignore
+    }
+  }, [router]);
 
   // Keep auth pages clean (no header overlay while logging in).
   if (
@@ -82,7 +93,26 @@ export function GlobalHeader() {
       style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="container mx-auto flex h-11 sm:h-14 items-center justify-between px-4 max-w-7xl">
-        <Link href="/inicio" className="flex items-center gap-2 min-w-0" aria-label="Home">
+        <Link
+          href="/inicio"
+          prefetch
+          className="flex items-center gap-2 min-w-0"
+          aria-label="Home"
+          onPointerEnter={() => {
+            try {
+              router.prefetch('/inicio');
+            } catch {
+              // ignore
+            }
+          }}
+          onTouchStart={() => {
+            try {
+              router.prefetch('/inicio');
+            } catch {
+              // ignore
+            }
+          }}
+        >
           <Image
             src="/logo.png"
             alt="JBookMe"
