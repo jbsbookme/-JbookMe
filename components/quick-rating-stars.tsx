@@ -6,6 +6,16 @@ import { useRouter } from 'next/navigation';
 import { Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 type Props = {
   barberId: string;
@@ -20,6 +30,9 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingRating, setPendingRating] = useState<number | null>(null);
+  const [comment, setComment] = useState('');
 
   const canRate = useMemo(() => {
     if (status !== 'authenticated') return false;
@@ -28,18 +41,18 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
 
   const displayRating = hoverRating ?? selectedRating;
 
-  const submitRating = async (rating: number) => {
-    if (submitting) return;
+  const submitRating = async (rating: number, commentText?: string): Promise<boolean> => {
+    if (submitting) return false;
 
     if (status === 'unauthenticated') {
       toast.error(t('reviews.loginToRate'));
       router.push('/auth');
-      return;
+      return false;
     }
 
     if (!canRate) {
       toast.error(t('reviews.clientsOnlyToRate'));
-      return;
+      return false;
     }
 
     setSubmitting(true);
@@ -47,7 +60,7 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
       const res = await fetch('/api/quick-rating', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barberId, rating }),
+        body: JSON.stringify({ barberId, rating, comment: commentText }),
       });
 
       const data: unknown = await res.json().catch(() => ({}));
@@ -59,6 +72,8 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
           id: string;
           rating: number;
           comment?: string | null;
+          adminResponse?: string | null;
+          adminRespondedAt?: string | Date | null;
           createdAt?: string | Date;
           client?: { name?: string | null; image?: string | null } | null;
         };
@@ -66,7 +81,7 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
 
       if (!res.ok) {
         toast.error(payload.error || t('reviews.ratingSubmitFailed'));
-        return;
+        return false;
       }
 
       setSelectedRating(rating);
@@ -80,21 +95,40 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
           })
         );
       }
+
+      return true;
     } catch (error) {
       console.error('Error submitting rating:', error);
       toast.error(t('reviews.ratingNetworkError'));
+      return false;
     } finally {
       setSubmitting(false);
       setHoverRating(null);
     }
   };
 
+  const handleStarSelect = (ratingValue: number) => {
+    if (submitting) return;
+
+    if (status === 'unauthenticated') {
+      toast.error(t('reviews.loginToRate'));
+      router.push('/auth');
+      return;
+    }
+
+    if (!canRate) {
+      toast.error(t('reviews.clientsOnlyToRate'));
+      return;
+    }
+
+    setPendingRating(ratingValue);
+    setComment('');
+    setDialogOpen(true);
+  };
+
   return (
     <div className="flex items-center gap-2">
-      <div
-        className="flex items-center"
-        onMouseLeave={() => setHoverRating(null)}
-      >
+      <div className="flex items-center" onMouseLeave={() => setHoverRating(null)}>
         {Array.from({ length: 5 }).map((_, index) => {
           const ratingValue = index + 1;
           const active = (displayRating ?? 0) >= ratingValue;
@@ -113,7 +147,7 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
               disabled={submitting}
               onMouseEnter={() => setHoverRating(ratingValue)}
               onFocus={() => setHoverRating(ratingValue)}
-              onClick={() => submitRating(ratingValue)}
+              onClick={() => handleStarSelect(ratingValue)}
             >
               <Star
                 className={
@@ -126,6 +160,95 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
           );
         })}
       </div>
+
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setPendingRating(null);
+            setComment('');
+          }
+        }}
+      >
+        <DialogContent className="bg-[#0b0b0b] border border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              {language === 'es' ? 'Deja tu reseña' : 'Leave a review'}
+            </DialogTitle>
+            <DialogDescription className="text-gray-300">
+              {language === 'es'
+                ? `Tu calificación: ${pendingRating ?? ''} / 5`
+                : `Your rating: ${pendingRating ?? ''} / 5`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-5 h-5 ${
+                    i < (pendingRating ?? 0)
+                      ? 'text-[#ffd700] fill-current'
+                      : 'text-gray-600'
+                  }`}
+                />
+              ))}
+            </div>
+            <Textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              placeholder={
+                language === 'es'
+                  ? 'Escribe tu comentario (opcional)'
+                  : 'Write your comment (optional)'
+              }
+              className="bg-black/40 border-white/10 text-white placeholder:text-gray-400"
+              rows={4}
+            />
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
+              disabled={submitting || !pendingRating}
+              onClick={() => {
+                if (!pendingRating) return;
+                void (async () => {
+                  const ok = await submitRating(pendingRating);
+                  if (ok) setDialogOpen(false);
+                })();
+              }}
+            >
+              {language === 'es' ? 'Enviar sin comentario' : 'Submit without comment'}
+            </Button>
+            <Button
+              type="button"
+              className="bg-[#00f0ff] text-black hover:bg-[#00d9e6]"
+              disabled={submitting || !pendingRating}
+              onClick={() => {
+                if (!pendingRating) return;
+                const cleaned = comment.trim();
+                void (async () => {
+                  const ok = await submitRating(pendingRating, cleaned ? cleaned : undefined);
+                  if (ok) setDialogOpen(false);
+                })();
+              }}
+            >
+              {submitting
+                ? language === 'es'
+                  ? 'Enviando...'
+                  : 'Submitting...'
+                : language === 'es'
+                  ? 'Enviar'
+                  : 'Submit'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {status === 'authenticated' && session?.user?.role !== 'CLIENT' ? (
         <span className="text-xs text-gray-500">{t('reviews.clientsOnlyLabel')}</span>

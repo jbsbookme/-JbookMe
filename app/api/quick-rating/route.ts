@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { barberId, rating } = await req.json();
+    const { barberId, rating, comment } = await req.json();
 
     if (!barberId || !rating || rating < 1 || rating > 5) {
       return NextResponse.json(
@@ -120,7 +120,10 @@ export async function POST(req: NextRequest) {
           clientId: session.user.id,
           appointmentId: quickAppointmentId,
           rating,
-          comment: `⭐ Quick rating: ${rating} star${rating > 1 ? 's' : ''}`,
+          comment:
+            typeof comment === 'string' && comment.trim().length > 0
+              ? comment.trim().slice(0, 1000)
+              : `⭐ Quick rating: ${rating} star${rating > 1 ? 's' : ''}`,
           adminResponse,
           adminRespondedAt,
         },

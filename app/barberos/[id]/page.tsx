@@ -455,6 +455,8 @@ export default async function BarberProfilePage({ params }: Params) {
             id: review.id,
             rating: review.rating,
             comment: review.comment,
+            adminResponse: review.adminResponse,
+            adminRespondedAt: review.adminRespondedAt ? review.adminRespondedAt.toISOString() : null,
             createdAt: review.createdAt.toISOString(),
             client: {
               name: review.client?.name,

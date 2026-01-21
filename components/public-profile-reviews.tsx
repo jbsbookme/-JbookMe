@@ -10,6 +10,8 @@ type ReviewItem = {
   id: string;
   rating: number;
   comment?: string | null;
+  adminResponse?: string | null;
+  adminRespondedAt?: string | null;
   createdAt: string; // ISO
   client?: {
     name?: string | null;
@@ -27,6 +29,8 @@ type QuickRatingSubmittedDetail = {
     id: string;
     rating: number;
     comment?: string | null;
+    adminResponse?: string | null;
+    adminRespondedAt?: string | Date | null;
     createdAt?: string | Date;
     client?: {
       name?: string | null;
@@ -66,6 +70,14 @@ export function PublicProfileReviews({ initialReviews }: Props) {
           id: detail.review!.id,
           rating: detail.review!.rating,
           comment: detail.review!.comment ?? null,
+          adminResponse: detail.review!.adminResponse ?? null,
+          adminRespondedAt: detail.review!.adminRespondedAt
+            ? typeof detail.review!.adminRespondedAt === 'string'
+              ? detail.review!.adminRespondedAt
+              : detail.review!.adminRespondedAt instanceof Date
+                ? detail.review!.adminRespondedAt.toISOString()
+                : null
+            : null,
           createdAt,
           client: detail.review!.client ?? null,
         };
@@ -135,6 +147,12 @@ export function PublicProfileReviews({ initialReviews }: Props) {
                         </div>
                       </div>
                       {review.comment ? <p className="text-gray-400">{review.comment}</p> : null}
+                      {review.adminResponse ? (
+                        <div className="mt-3 rounded-lg border border-[#00f0ff]/15 bg-[#00f0ff]/5 px-3 py-2">
+                          <div className="text-xs text-[#00f0ff] font-semibold mb-1">Respuesta de JBookMe</div>
+                          <div className="text-sm text-gray-200">{review.adminResponse}</div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </CardContent>
@@ -199,6 +217,12 @@ export function PublicProfileReviews({ initialReviews }: Props) {
                             </div>
                           </div>
                           {review.comment ? <p className="text-gray-400">{review.comment}</p> : null}
+                          {review.adminResponse ? (
+                            <div className="mt-3 rounded-lg border border-[#00f0ff]/15 bg-[#00f0ff]/5 px-3 py-2">
+                              <div className="text-xs text-[#00f0ff] font-semibold mb-1">Respuesta de JBookMe</div>
+                              <div className="text-sm text-gray-200">{review.adminResponse}</div>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </CardContent>
