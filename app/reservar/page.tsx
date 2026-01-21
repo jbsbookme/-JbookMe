@@ -1144,18 +1144,18 @@ export default function ReservarPage() {
         <Card className="bg-gray-900 border-gray-800">
           <CardContent className="p-6">
             <h3 className="text-xl font-bold text-[#00f0ff] mb-4">Contact & Social</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
               {selectedBarber.whatsappUrl && (
                 <a
                   href={selectedBarber.whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-[52px] items-center gap-2.5 rounded-md border border-gray-700 bg-gray-800/80 p-3 transition-all hover:border-green-500/60 hover:bg-green-500/10 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-green-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
                 >
-                  <MessageCircle className="w-5 h-5 shrink-0 text-green-500" />
-                  <div>
-                    <p className="text-sm font-semibold leading-none text-white">WhatsApp</p>
-                    <p className="mt-1 text-[11px] leading-none text-gray-400">Chat</p>
+                  <MessageCircle className="h-4 w-4 shrink-0 text-green-500" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold leading-none text-white">WhatsApp</p>
+                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">Chat</p>
                   </div>
                 </a>
               )}
@@ -1165,12 +1165,12 @@ export default function ReservarPage() {
                   href={selectedBarber.instagramUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-[52px] items-center gap-2.5 rounded-md border border-gray-700 bg-gray-800/80 p-3 transition-all hover:border-pink-500/60 hover:bg-pink-500/10 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40"
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-pink-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40"
                 >
-                  <Instagram className="w-5 h-5 shrink-0 text-pink-500" />
-                  <div>
-                    <p className="text-sm font-semibold leading-none text-white">Instagram</p>
-                    <p className="mt-1 text-[11px] leading-none text-gray-400">View profile</p>
+                  <Instagram className="h-4 w-4 shrink-0 text-pink-500" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold leading-none text-white">Instagram</p>
+                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">View profile</p>
                   </div>
                 </a>
               )}
@@ -1180,12 +1180,12 @@ export default function ReservarPage() {
                   href={selectedBarber.facebookUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-[52px] items-center gap-2.5 rounded-md border border-gray-700 bg-gray-800/80 p-3 transition-all hover:border-blue-500/60 hover:bg-blue-500/10 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-blue-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
                 >
-                  <Facebook className="w-5 h-5 shrink-0 text-blue-500" />
-                  <div>
-                    <p className="text-sm font-semibold leading-none text-white">Facebook</p>
-                    <p className="mt-1 text-[11px] leading-none text-gray-400">View page</p>
+                  <Facebook className="h-4 w-4 shrink-0 text-blue-500" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold leading-none text-white">Facebook</p>
+                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">View page</p>
                   </div>
                 </a>
               )}
@@ -1195,14 +1195,14 @@ export default function ReservarPage() {
                   href={selectedBarber.twitterUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex min-h-[52px] items-center gap-2.5 rounded-md border border-gray-700 bg-gray-800/80 p-3 transition-all hover:border-cyan-500/60 hover:bg-cyan-500/10 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-cyan-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
                 >
-                  <svg className="w-5 h-5 shrink-0 text-cyan-500" fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 shrink-0 text-cyan-500" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
                   </svg>
-                  <div>
-                    <p className="text-sm font-semibold leading-none text-white">TikTok/Twitter</p>
-                    <p className="mt-1 text-[11px] leading-none text-gray-400">View</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold leading-none text-white">TikTok/Twitter</p>
+                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">View</p>
                   </div>
                 </a>
               )}
