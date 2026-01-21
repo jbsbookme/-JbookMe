@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Home,
+  Loader2,
   RotateCcw,
   User,
   MessageCircle,
@@ -375,6 +376,9 @@ export default function FeedPage() {
   const zoomedVideoRef = useRef<HTMLVideoElement | null>(null);
   const [videoViewerEnded, setVideoViewerEnded] = useState(false);
   const [zoomedVideoEnded, setZoomedVideoEnded] = useState(false);
+  const [loadedByPostId, setLoadedByPostId] = useState<Record<string, boolean>>({});
+  const [videoViewerReady, setVideoViewerReady] = useState(false);
+  const [zoomedVideoReady, setZoomedVideoReady] = useState(false);
 
   useEffect(() => {
     feedAudioEnabledRef.current = feedAudioEnabled;
@@ -387,10 +391,12 @@ export default function FeedPage() {
   useEffect(() => {
     // Reset ended state when switching videos.
     setVideoViewerEnded(false);
+    setVideoViewerReady(false);
   }, [videoViewer?.index]);
 
   useEffect(() => {
     setZoomedVideoEnded(false);
+    setZoomedVideoReady(false);
   }, [zoomedMedia?.url, zoomedMedia?.isVideo]);
 
   useEffect(() => {
@@ -1825,10 +1831,21 @@ export default function FeedPage() {
                               playsInline
                               preload="metadata"
                               className="w-full h-full object-cover bg-black"
+                              onLoadedData={() =>
+                                setLoadedByPostId((prev) => ({ ...prev, [post.id]: true }))
+                              }
                               onPlay={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: true }))}
                               onPause={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
                               onEnded={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
                             />
+
+                            {!loadedByPostId[post.id] ? (
+                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                                <div className="h-12 w-12 rounded-full border border-white/20 bg-black/35 backdrop-blur flex items-center justify-center">
+                                  <Loader2 className="h-6 w-6 text-white/85 animate-spin" />
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         ) : (
                           <Image
@@ -2034,34 +2051,45 @@ export default function FeedPage() {
             closeVideoViewer();
           }}
         >
-          <motion.button
-            className="absolute top-4 left-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 transition-colors flex items-center gap-2"
-            onClick={(e) => {
-              e.stopPropagation();
-              closeVideoViewer({ goHome: true });
-            }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Home"
+          {/* Top Bar (Home · Author · Close) */}
+          <div
+            className="absolute top-3 left-3 right-3 z-50 flex items-center justify-between gap-2"
+            onClick={(e) => e.stopPropagation()}
           >
-            <Home className="w-5 h-5 text-white" />
-            <span className="text-white text-sm font-medium">Home</span>
-          </motion.button>
+            <motion.button
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+              onClick={() => closeVideoViewer({ goHome: true })}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              aria-label="Home"
+            >
+              <Home className="w-5 h-5 text-white" />
+            </motion.button>
 
-          <motion.button
-            className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              closeVideoViewer();
-            }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            aria-label="Close"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </motion.button>
+            {videoViewer.items[videoViewer.index].authorName ? (
+              <div className="flex-1 flex justify-center min-w-0">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10 max-w-[70vw]">
+                  <span className="text-xs font-medium text-white leading-none truncate">
+                    {videoViewer.items[videoViewer.index].authorName}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+
+            <motion.button
+              className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
+              onClick={() => closeVideoViewer()}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.94 }}
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </motion.button>
+          </div>
 
           <div
             className="w-full h-full"
@@ -2111,14 +2139,6 @@ export default function FeedPage() {
               }
             }}
           >
-            <div className="absolute left-3 top-3 z-20">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10">
-                <span className="text-xs font-medium text-white leading-none">
-                  {videoViewer.items[videoViewer.index].authorName}
-                </span>
-              </div>
-            </div>
-
             <div className="w-full h-full flex items-center justify-center">
               <video
                 key={videoViewer.items[videoViewer.index].postId}
@@ -2130,8 +2150,10 @@ export default function FeedPage() {
                 autoPlay
                 loop={false}
                 muted={!feedAudioEnabled}
-                preload="metadata"
+                preload="auto"
                 className="w-full h-full object-contain bg-black"
+                onLoadedData={() => setVideoViewerReady(true)}
+                onCanPlay={() => setVideoViewerReady(true)}
                 onEnded={() => {
                   setVideoViewerEnded(true);
                 }}
@@ -2154,6 +2176,14 @@ export default function FeedPage() {
                 }}
               />
             </div>
+
+            {!videoViewerReady ? (
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                <div className="h-14 w-14 rounded-full border border-white/20 bg-black/35 backdrop-blur flex items-center justify-center">
+                  <Loader2 className="h-7 w-7 text-white/85 animate-spin" />
+                </div>
+              </div>
+            ) : null}
 
             {videoViewerEnded ? (
               <div
@@ -2278,11 +2308,13 @@ export default function FeedPage() {
                     autoPlay
                     loop={false}
                     muted={!feedAudioEnabled}
-                    preload="metadata"
+                    preload="auto"
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
                     ref={(el) => {
                       zoomedVideoRef.current = el;
                     }}
+                    onLoadedData={() => setZoomedVideoReady(true)}
+                    onCanPlay={() => setZoomedVideoReady(true)}
                     onEnded={() => setZoomedVideoEnded(true)}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -2302,6 +2334,14 @@ export default function FeedPage() {
                       handleVideoTap(e.currentTarget);
                     }}
                   />
+
+                  {!zoomedVideoReady ? (
+                    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                      <div className="h-14 w-14 rounded-full border border-white/20 bg-black/35 backdrop-blur flex items-center justify-center">
+                        <Loader2 className="h-7 w-7 text-white/85 animate-spin" />
+                      </div>
+                    </div>
+                  ) : null}
 
                   {zoomedVideoEnded ? (
                     <div className="absolute inset-0 z-20 flex items-center justify-center">
