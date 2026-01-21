@@ -9,6 +9,69 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
+type MediaHint = "image" | "video" | "auto";
+
+function getExtLower(name: string): string {
+  const trimmed = (name || "").trim();
+  const idx = trimmed.lastIndexOf(".");
+  if (idx <= 0 || idx === trimmed.length - 1) return "";
+  return trimmed.slice(idx + 1).toLowerCase();
+}
+
+function inferMimeType(file: File, hint: MediaHint): string {
+  const t = (file.type || "").trim();
+  if (t) return t;
+
+  const ext = getExtLower(file.name);
+  if (ext === "jpg" || ext === "jpeg") return "image/jpeg";
+  if (ext === "png") return "image/png";
+  if (ext === "gif") return "image/gif";
+  if (ext === "webp") return "image/webp";
+  if (ext === "heic" || ext === "heif") return "image/heic";
+  if (ext === "mp4") return "video/mp4";
+  if (ext === "mov") return "video/quicktime";
+  if (ext === "m4v") return "video/x-m4v";
+  if (ext === "webm") return "video/webm";
+  if (ext === "ogg") return "video/ogg";
+
+  // As a last resort, use the input source hint.
+  if (hint === "image") return "image/jpeg";
+  if (hint === "video") return "video/mp4";
+  return "application/octet-stream";
+}
+
+function ensureFilenameHasExtension(name: string, mimeType: string): string {
+  const safeBase = (name || "").trim() || "upload";
+  const hasExt = /\.[a-z0-9]+$/i.test(safeBase);
+  if (hasExt) return safeBase;
+
+  if (mimeType.startsWith("image/")) return `${safeBase}.jpg`;
+  if (mimeType.startsWith("video/")) return `${safeBase}.mp4`;
+  return `${safeBase}.bin`;
+}
+
+function normalizeFileForUpload(file: File, hint: MediaHint): { normalized: File; mimeType: string } {
+  const mimeType = inferMimeType(file, hint);
+  const fixedName = ensureFilenameHasExtension(file.name, mimeType);
+
+  // If name/type are already good, keep original.
+  const shouldRewrap = fixedName !== file.name || (file.type || "").trim() !== mimeType;
+  if (!shouldRewrap) {
+    return { normalized: file, mimeType };
+  }
+
+  try {
+    const normalized = new File([file], fixedName, {
+      type: mimeType,
+      lastModified: file.lastModified,
+    });
+    return { normalized, mimeType };
+  } catch {
+    // If File constructor fails (rare), fall back to original file.
+    return { normalized: file, mimeType: (file.type || "").trim() || mimeType };
+  }
+}
+
 export default function PublicarPage() {
   const router = useRouter();
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -57,7 +120,10 @@ export default function PublicarPage() {
     (selectedFiles[0].type.startsWith('video/') ||
       /\.(mp4|mov|m4v|webm|ogg)$/i.test(selectedFiles[0].name));
 
-  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    hint: MediaHint = "auto"
+  ) => {
     const files = Array.from(event.target.files || []);
     if (files.length === 0) return;
 
@@ -74,11 +140,13 @@ export default function PublicarPage() {
     const validFiles: File[] = [];
     const nextPreviews: string[] = [];
 
-    for (const file of files) {
+    for (const originalFile of files) {
+      const { normalized: file, mimeType } = normalizeFileForUpload(originalFile, hint);
+
       const isImageFile =
-        file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+        mimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
       const isVideoFile =
-        file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
+        mimeType.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
 
       if (!isImageFile && !isVideoFile) {
         toast.error(`Archivo no soportado: ${file.name}`);
@@ -154,12 +222,16 @@ export default function PublicarPage() {
         setUploadProgressPct(0);
 
         // Step 1: Upload file directly to Vercel Blob (prevents serverless upload hangs)
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+        const { normalized: uploadFile, mimeType } = normalizeFileForUpload(file, "auto");
+        const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
         const pathname = `posts/client_share/${Date.now()}-${idx}-${sanitizedFileName}`;
 
-        const blob = await upload(pathname, file, {
+        let blob;
+        try {
+          blob = await upload(pathname, uploadFile, {
           access: "public",
           handleUploadUrl: "/api/blob/upload",
+          contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
           onUploadProgress: (progressEvent: unknown) => {
             if (typeof progressEvent === "number") {
               setUploadProgressPct(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
@@ -179,7 +251,13 @@ export default function PublicarPage() {
 
             setUploadProgressPct(0);
           },
-        });
+          });
+        } catch (err) {
+          failedCount += 1;
+          const message = err instanceof Error ? err.message : 'Error subiendo a Blob';
+          toast.error(`Error subiendo archivo: ${uploadFile.name || file.name} — ${message}`);
+          continue;
+        }
 
         const cloudPath = blob.url;
 
@@ -213,7 +291,12 @@ export default function PublicarPage() {
             payloadObj && typeof payloadObj.message === 'string' ? payloadObj.message : null;
           const payloadError =
             payloadObj && typeof payloadObj.error === 'string' ? payloadObj.error : null;
-          toast.error(payloadMessage || payloadError || `Error al crear la publicación: ${file.name}`);
+          const statusLabel = `${postResponse.status}`;
+          toast.error(
+            payloadMessage ||
+              payloadError ||
+              `Error al crear la publicación (${statusLabel}): ${uploadFile.name || file.name}`
+          );
           continue;
         }
 
@@ -333,7 +416,7 @@ export default function PublicarPage() {
                   className="hidden"
                   accept="image/*"
                   capture="environment"
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, "image")}
                   disabled={isUploading}
                 />
 
@@ -343,7 +426,7 @@ export default function PublicarPage() {
                   className="hidden"
                   accept="video/*"
                   capture="environment"
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, "video")}
                   disabled={isUploading}
                 />
 
@@ -353,7 +436,7 @@ export default function PublicarPage() {
                   className="hidden"
                   accept="image/*,video/*"
                   multiple
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, "auto")}
                   disabled={isUploading}
                 />
               </div>

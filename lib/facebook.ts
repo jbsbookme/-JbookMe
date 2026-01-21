@@ -62,13 +62,22 @@ export async function publishLinkToFacebookPage(options: {
   body.set('access_token', accessToken);
 
   try {
+    // Never let social publishing block critical user flows (post creation).
+    // Use a short timeout so a slow/hung Graph API call doesn't make publishing feel broken.
+    const controller = new AbortController();
+    const timeoutMs = 5_000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const data = (await res.json()) as { id?: string; error?: unknown };
 
@@ -78,6 +87,10 @@ export async function publishLinkToFacebookPage(options: {
 
     return { ok: true, id: data?.id };
   } catch (error) {
+    // If we timed out or aborted, surface a stable error code.
+    if (error instanceof Error && error.name === 'AbortError') {
+      return { ok: false, error: 'FACEBOOK_TIMEOUT' };
+    }
     return { ok: false, error };
   }
 }

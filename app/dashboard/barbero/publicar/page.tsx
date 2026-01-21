@@ -11,6 +11,63 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { upload } from '@vercel/blob/client';
 
+type MediaHint = 'image' | 'video' | 'auto';
+
+function getExtLower(name: string): string {
+  const trimmed = (name || '').trim();
+  const idx = trimmed.lastIndexOf('.');
+  if (idx <= 0 || idx === trimmed.length - 1) return '';
+  return trimmed.slice(idx + 1).toLowerCase();
+}
+
+function inferMimeType(file: File, hint: MediaHint): string {
+  const t = (file.type || '').trim();
+  if (t) return t;
+
+  const ext = getExtLower(file.name);
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'heic' || ext === 'heif') return 'image/heic';
+  if (ext === 'mp4') return 'video/mp4';
+  if (ext === 'mov') return 'video/quicktime';
+  if (ext === 'm4v') return 'video/x-m4v';
+  if (ext === 'webm') return 'video/webm';
+  if (ext === 'ogg') return 'video/ogg';
+
+  if (hint === 'image') return 'image/jpeg';
+  if (hint === 'video') return 'video/mp4';
+  return 'application/octet-stream';
+}
+
+function ensureFilenameHasExtension(name: string, mimeType: string): string {
+  const safeBase = (name || '').trim() || 'upload';
+  const hasExt = /\.[a-z0-9]+$/i.test(safeBase);
+  if (hasExt) return safeBase;
+
+  if (mimeType.startsWith('image/')) return `${safeBase}.jpg`;
+  if (mimeType.startsWith('video/')) return `${safeBase}.mp4`;
+  return `${safeBase}.bin`;
+}
+
+function normalizeFileForUpload(file: File, hint: MediaHint): { normalized: File; mimeType: string } {
+  const mimeType = inferMimeType(file, hint);
+  const fixedName = ensureFilenameHasExtension(file.name, mimeType);
+  const shouldRewrap = fixedName !== file.name || (file.type || '').trim() !== mimeType;
+  if (!shouldRewrap) return { normalized: file, mimeType };
+
+  try {
+    const normalized = new File([file], fixedName, {
+      type: mimeType,
+      lastModified: file.lastModified,
+    });
+    return { normalized, mimeType };
+  } catch {
+    return { normalized: file, mimeType: (file.type || '').trim() || mimeType };
+  }
+}
+
 export default function BarberUploadPage() {
   const router = useRouter();
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +111,10 @@ export default function BarberUploadPage() {
       }
     });
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    hint: MediaHint = 'auto'
+  ) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
@@ -64,12 +124,13 @@ export default function BarberUploadPage() {
     }
 
     const validFiles: File[] = [];
-    for (const file of files) {
+    for (const originalFile of files) {
+      const { normalized: file, mimeType } = normalizeFileForUpload(originalFile, hint);
       // Validate file type
       const isImageFile =
-        file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
+        mimeType.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(file.name);
       const isVideoFile =
-        file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
+        mimeType.startsWith('video/') || /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name);
 
       if (!isImageFile && !isVideoFile) {
         toast.error(`Unsupported file: ${file.name}`);
@@ -155,12 +216,16 @@ export default function BarberUploadPage() {
         setUploadProgressPct(0);
 
         // Upload directly to Vercel Blob (avoids serverless upload hangs)
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const { normalized: uploadFile, mimeType } = normalizeFileForUpload(file, 'auto');
+        const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const pathname = `posts/barber_work/${Date.now()}-${idx}-${sanitizedFileName}`;
 
-        const blob = await upload(pathname, file, {
+        let blob;
+        try {
+          blob = await upload(pathname, uploadFile, {
           access: 'public',
           handleUploadUrl: '/api/blob/upload',
+          contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
           onUploadProgress: (progressEvent: unknown) => {
             if (typeof progressEvent === 'number') {
               setUploadProgressPct(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
@@ -180,7 +245,13 @@ export default function BarberUploadPage() {
 
             setUploadProgressPct(0);
           },
-        });
+          });
+        } catch (err) {
+          failedCount += 1;
+          const message = err instanceof Error ? err.message : 'Blob upload failed';
+          toast.error(`Upload failed: ${uploadFile.name || file.name} — ${message}`);
+          continue;
+        }
 
         const cloud_storage_path = blob.url;
 
@@ -219,7 +290,7 @@ export default function BarberUploadPage() {
               ? payloadCode
                 ? `${baseMessage} (${payloadCode})`
                 : baseMessage
-              : `Failed to upload post: ${file.name}`
+              : `Failed to create post (${res.status}): ${uploadFile.name || file.name}`
           );
           continue;
         }
@@ -455,7 +526,7 @@ export default function BarberUploadPage() {
                   type="file"
                   accept="image/*,video/*"
                   multiple
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, 'auto')}
                   className="hidden"
                 />
 
@@ -464,7 +535,7 @@ export default function BarberUploadPage() {
                   type="file"
                   accept="image/*"
                   capture="environment"
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, 'image')}
                   className="hidden"
                 />
 
@@ -473,7 +544,7 @@ export default function BarberUploadPage() {
                   type="file"
                   accept="video/*"
                   capture="environment"
-                  onChange={handleFileSelect}
+                  onChange={(e) => handleFileSelect(e, 'video')}
                   className="hidden"
                 />
               </div>
