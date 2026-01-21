@@ -24,8 +24,7 @@ import {
   Instagram,
   Share2,
   Link2,
-  Image as ImageIcon,
-  Play
+  Image as ImageIcon
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -378,7 +377,6 @@ export default function FeedPage() {
   }, [zoomedMedia]);
 
   const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
-  const [isZoomVideoPlaying, setIsZoomVideoPlaying] = useState(false);
 
   const pauseAllVideos = useCallback(() => {
     const videos = Array.from(document.querySelectorAll('video'));
@@ -1729,14 +1727,6 @@ export default function FeedPage() {
                               onPause={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
                               onEnded={() => setPlayingByPostId((prev) => ({ ...prev, [post.id]: false }))}
                             />
-
-                            {!playingByPostId[post.id] ? (
-                              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                <div className="h-16 w-16 rounded-full border border-white/35 bg-black/20 backdrop-blur-sm flex items-center justify-center">
-                                  <Play className="h-8 w-8 text-white/90 drop-shadow translate-x-0.5" />
-                                </div>
-                              </div>
-                            ) : null}
                           </div>
                         ) : (
                           <Image
@@ -2055,11 +2045,16 @@ export default function FeedPage() {
               <video
                 key={videoViewer.items[videoViewer.index].postId}
                 src={videoViewer.items[videoViewer.index].url}
-                controls
                 playsInline
                 autoPlay
+                loop
+                muted={!feedAudioEnabled}
                 preload="metadata"
                 className="w-full h-full object-contain bg-black"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleVideoTap(e.currentTarget);
+                }}
               />
             </div>
 
@@ -2153,22 +2148,17 @@ export default function FeedPage() {
                   <video
                     src={zoomedMedia.url}
                     poster={zoomedMedia.poster}
-                    controls
                     playsInline
+                    autoPlay
+                    loop
+                    muted={!feedAudioEnabled}
                     preload="metadata"
                     className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-black"
-                    onPlay={() => setIsZoomVideoPlaying(true)}
-                    onPause={() => setIsZoomVideoPlaying(false)}
-                    onEnded={() => setIsZoomVideoPlaying(false)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleVideoTap(e.currentTarget);
+                    }}
                   />
-
-                  {!isZoomVideoPlaying ? (
-                    <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                      <div className="h-20 w-20 rounded-full border border-white/35 bg-black/20 backdrop-blur-sm flex items-center justify-center">
-                        <Play className="h-10 w-10 text-white/90 drop-shadow translate-x-0.5" />
-                      </div>
-                    </div>
-                  ) : null}
                 </div>
               </div>
             ) : (
