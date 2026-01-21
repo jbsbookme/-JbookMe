@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  Eye,
   Home,
   Loader2,
   RotateCcw,
@@ -2176,6 +2177,82 @@ export default function FeedPage() {
                 }}
               />
             </div>
+
+            {/* Actions (Like / Comment / Share / Views) */}
+            {(() => {
+              const activePost = posts.find(
+                (p) => p.id === videoViewer.items[videoViewer.index].postId
+              );
+              if (!activePost) return null;
+
+              const likeCount = activePost.likes ?? 0;
+              const commentCount =
+                activePost._count?.comments ?? activePost.comments?.length ?? 0;
+              const viewCount = activePost.viewCount ?? 0;
+              const isLiked = likedPosts.has(activePost.id);
+
+              return (
+                <div
+                  className="absolute right-3 bottom-24 z-40 flex flex-col items-center gap-4"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="flex flex-col items-center gap-1"
+                    onClick={() => handleLike(activePost.id)}
+                    aria-label="Like"
+                  >
+                    <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
+                      <Heart
+                        className={`h-6 w-6 ${
+                          isLiked ? 'fill-red-500 text-red-500' : 'text-white'
+                        }`}
+                      />
+                    </div>
+                    <span className="text-xs text-white/95 tabular-nums">
+                      {likeCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="flex flex-col items-center gap-1"
+                    onClick={() => {
+                      closeVideoViewer();
+                      setCommentsModalOpen(activePost.id);
+                    }}
+                    aria-label="Comments"
+                  >
+                    <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
+                      <MessageCircle className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-xs text-white/95 tabular-nums">
+                      {commentCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="flex flex-col items-center gap-1"
+                    onClick={() => sharePost(activePost)}
+                    aria-label="Share"
+                  >
+                    <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
+                      <Share2 className="h-6 w-6 text-white" />
+                    </div>
+                  </button>
+
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
+                      <Eye className="h-6 w-6 text-white" />
+                    </div>
+                    <span className="text-xs text-white/95 tabular-nums">
+                      {viewCount}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             {!videoViewerReady ? (
               <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
