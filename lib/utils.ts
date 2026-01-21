@@ -55,3 +55,38 @@ export function resolvePublicMediaUrl(path: string | null | undefined): string {
   // If it's something else (e.g., old S3 keys), return as-is.
   return trimmed
 }
+
+export function normalizeExternalUrl(url: string | null | undefined): string | null {
+  const trimmed = url?.trim()
+  if (!trimmed) return null
+
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
+export function normalizeWhatsAppUrl(
+  input: string | null | undefined,
+  fallbackPhone?: string | null
+): string | null {
+  const raw = input?.trim() || fallbackPhone?.trim() || ''
+  if (!raw) return null
+
+  // Already a full URL or a dedicated scheme.
+  if (/^https?:\/\//i.test(raw)) return raw
+  if (/^whatsapp:\/\//i.test(raw)) return raw
+
+  // Common WhatsApp host patterns without scheme.
+  if (/^(wa\.me|api\.whatsapp\.com|chat\.whatsapp\.com)\//i.test(raw)) {
+    return `https://${raw}`
+  }
+
+  // If the value looks like a phone number, build a wa.me link.
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length >= 8) {
+    return `https://wa.me/${digits}`
+  }
+
+  // Otherwise treat as host/path.
+  if (raw.includes('.')) return `https://${raw}`
+  return null
+}

@@ -8,7 +8,7 @@ import { ArrowLeft, Calendar, Clock, MessageCircle, Phone, User, Facebook, Insta
 import { PublicProfileRating } from '@/components/public-profile-rating';
 import { PublicProfileReviews } from '@/components/public-profile-reviews';
 import { BarberPublicGallery } from '@/components/barber-public-gallery';
-import { formatPrice, resolvePublicMediaUrl } from '@/lib/utils';
+import { formatPrice, normalizeExternalUrl, normalizeWhatsAppUrl, resolvePublicMediaUrl } from '@/lib/utils';
 
 type Params = {
   params: Promise<{ id: string }>;
@@ -144,23 +144,18 @@ export default async function BarberProfilePage({ params }: Params) {
   const primaryServices = services.slice(0, 4);
   const moreServices = services.slice(4);
 
-  const normalizeUrl = (url: string | null | undefined) => {
-    const trimmed = url?.trim();
-    if (!trimmed) return null;
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
-  };
-
   const phoneRaw = barber.phone?.trim() || null;
   const phoneForLinks = phoneRaw ? phoneRaw.replace(/[^\d+]/g, '') : null;
   const telHref = phoneForLinks ? `tel:${phoneForLinks}` : null;
-  const chatHref = normalizeUrl(barber.whatsappUrl) || (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
-  const chatTarget = barber.whatsappUrl ? '_blank' : undefined;
-  const chatRel = barber.whatsappUrl ? 'noreferrer noopener' : undefined;
+  const chatHref =
+    normalizeWhatsAppUrl(barber.whatsappUrl, phoneForLinks) ||
+    (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
+  const chatTarget = chatHref?.startsWith('http') ? '_blank' : undefined;
+  const chatRel = chatHref?.startsWith('http') ? 'noreferrer noopener' : undefined;
 
-  const fbHref = normalizeUrl(barber.facebookUrl);
-  const igHref = normalizeUrl(barber.instagramUrl);
-  const ttHref = normalizeUrl(barber.tiktokUrl);
+  const fbHref = normalizeExternalUrl(barber.facebookUrl);
+  const igHref = normalizeExternalUrl(barber.instagramUrl);
+  const ttHref = normalizeExternalUrl(barber.tiktokUrl);
 
   const formatDuration = (minutes: number) => {
     const total = Number(minutes) || 0;

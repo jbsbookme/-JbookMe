@@ -30,7 +30,7 @@ import {
 import toast from 'react-hot-toast';
 import { addDays, format } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
-import { formatPrice } from '@/lib/utils';
+import { formatPrice, normalizeWhatsAppUrl } from '@/lib/utils';
 import { formatTime12h } from '@/lib/time';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
@@ -1145,20 +1145,24 @@ export default function ReservarPage() {
           <CardContent className="p-6">
             <h3 className="text-xl font-bold text-[#00f0ff] mb-4">Contact & Social</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-              {selectedBarber.whatsappUrl && (
-                <a
-                  href={selectedBarber.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-green-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
-                >
-                  <MessageCircle className="h-4 w-4 shrink-0 text-green-500" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold leading-none text-white">WhatsApp</p>
-                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">Chat</p>
-                  </div>
-                </a>
-              )}
+              {(() => {
+                const whatsappHref = normalizeWhatsAppUrl(selectedBarber.whatsappUrl, selectedBarber.phone);
+                if (!whatsappHref) return null;
+                return (
+                  <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-green-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
+                  >
+                    <MessageCircle className="h-4 w-4 shrink-0 text-green-500" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold leading-none text-white">WhatsApp</p>
+                      <p className="mt-0.5 text-[10px] leading-none text-gray-400">Chat</p>
+                    </div>
+                  </a>
+                );
+              })()}
 
               {selectedBarber.instagramUrl && (
                 <a
