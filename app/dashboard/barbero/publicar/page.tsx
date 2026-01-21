@@ -339,10 +339,28 @@ export default function BarberUploadPage() {
         }
         formData.append('cloud_storage_path', cloud_storage_path);
 
-        const res = await fetch('/api/posts', {
-          method: 'POST',
-          body: formData,
-        });
+        const postController = new AbortController();
+        const postTimeout = setTimeout(() => postController.abort(), 25_000);
+
+        let res: Response;
+        try {
+          res = await fetch('/api/posts', {
+            method: 'POST',
+            body: formData,
+            signal: postController.signal,
+          });
+        } catch (err) {
+          failedCount += 1;
+          const isAbort = err instanceof Error && err.name === 'AbortError';
+          toast.error(
+            isAbort
+              ? `Timeout creating post: ${uploadFile.name || file.name}`
+              : `Error creating post: ${uploadFile.name || file.name}`
+          );
+          continue;
+        } finally {
+          clearTimeout(postTimeout);
+        }
 
         if (!res.ok) {
           let payload: unknown = null;

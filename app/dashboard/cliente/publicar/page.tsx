@@ -351,13 +351,28 @@ export default function PublicarPage() {
         }
 
         const postController = new AbortController();
-        const postTimeout = setTimeout(() => postController.abort(), 60_000);
+        // If we already uploaded successfully, don't leave the user stuck at 100%.
+        const postTimeout = setTimeout(() => postController.abort(), 25_000);
 
-        const postResponse = await fetch("/api/posts", {
-          method: "POST",
-          body: postFormData,
-          signal: postController.signal,
-        }).finally(() => clearTimeout(postTimeout));
+        let postResponse: Response;
+        try {
+          postResponse = await fetch("/api/posts", {
+            method: "POST",
+            body: postFormData,
+            signal: postController.signal,
+          });
+        } catch (err) {
+          failedCount += 1;
+          const isAbort = err instanceof Error && err.name === 'AbortError';
+          toast.error(
+            isAbort
+              ? `Tiempo de espera creando la publicación: ${uploadFile.name || file.name}`
+              : `Error creando la publicación: ${uploadFile.name || file.name}`
+          );
+          continue;
+        } finally {
+          clearTimeout(postTimeout);
+        }
 
         if (!postResponse.ok) {
           let payload: unknown = null;
