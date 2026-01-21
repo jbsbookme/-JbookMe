@@ -367,6 +367,7 @@ export default function FeedPage() {
   const [feedAudioEnabled, setFeedAudioEnabled] = useState(false);
   const feedAudioEnabledRef = useRef(false);
   const zoomedMediaRef = useRef<typeof zoomedMedia>(null);
+  const videoViewerVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     feedAudioEnabledRef.current = feedAudioEnabled;
@@ -375,6 +376,26 @@ export default function FeedPage() {
   useEffect(() => {
     zoomedMediaRef.current = zoomedMedia;
   }, [zoomedMedia]);
+
+  useEffect(() => {
+    if (!videoViewer) return;
+    if (!feedAudioEnabled) return;
+    const video = videoViewerVideoRef.current;
+    if (!video) return;
+
+    try {
+      video.muted = false;
+      video.volume = 1;
+    } catch {
+      // ignore
+    }
+
+    if (video.paused) {
+      void video.play().catch(() => {
+        // ignore
+      });
+    }
+  }, [feedAudioEnabled, videoViewer?.index]);
 
   const [playingByPostId, setPlayingByPostId] = useState<Record<string, boolean>>({});
 
@@ -401,6 +422,7 @@ export default function FeedPage() {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
+        setFeedAudioEnabled(true);
         setVideoViewer((prev) => {
           if (!prev) return prev;
           const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
@@ -411,6 +433,7 @@ export default function FeedPage() {
 
       if (e.key === 'ArrowUp') {
         e.preventDefault();
+        setFeedAudioEnabled(true);
         setVideoViewer((prev) => {
           if (!prev) return prev;
           const nextIndex = Math.max(0, prev.index - 1);
@@ -1719,7 +1742,7 @@ export default function FeedPage() {
                               data-feed-video="true"
                               autoPlay={false}
                               loop
-                              muted={!feedAudioEnabled}
+                              muted
                               playsInline
                               preload="metadata"
                               className="w-full h-full object-cover bg-black"
@@ -1950,44 +1973,6 @@ export default function FeedPage() {
           </motion.button>
 
           <div
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur flex items-center justify-center"
-              onClick={() =>
-                setVideoViewer((prev) => {
-                  if (!prev) return prev;
-                  const nextIndex = Math.max(0, prev.index - 1);
-                  if (nextIndex === prev.index) return prev;
-                  return { ...prev, index: nextIndex };
-                })
-              }
-              aria-label="Previous video"
-              disabled={videoViewer.index <= 0}
-            >
-              <ChevronUp className="h-6 w-6 text-white" />
-            </button>
-            <button
-              type="button"
-              className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 backdrop-blur flex items-center justify-center"
-              onClick={() =>
-                setVideoViewer((prev) => {
-                  if (!prev) return prev;
-                  const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
-                  if (nextIndex === prev.index) return prev;
-                  return { ...prev, index: nextIndex };
-                })
-              }
-              aria-label="Next video"
-              disabled={videoViewer.index >= videoViewer.items.length - 1}
-            >
-              <ChevronDown className="h-6 w-6 text-white" />
-            </button>
-          </div>
-
-          <div
             className="w-full h-full"
             onClick={(e) => e.stopPropagation()}
             style={{ touchAction: 'none' }}
@@ -2016,6 +2001,7 @@ export default function FeedPage() {
 
               if (dy < 0) {
                 // swipe up -> next
+                setFeedAudioEnabled(true);
                 setVideoViewer((prev) => {
                   if (!prev) return prev;
                   const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
@@ -2024,6 +2010,7 @@ export default function FeedPage() {
                 });
               } else {
                 // swipe down -> prev
+                setFeedAudioEnabled(true);
                 setVideoViewer((prev) => {
                   if (!prev) return prev;
                   const nextIndex = Math.max(0, prev.index - 1);
@@ -2044,6 +2031,9 @@ export default function FeedPage() {
             <div className="w-full h-full flex items-center justify-center">
               <video
                 key={videoViewer.items[videoViewer.index].postId}
+                ref={(el) => {
+                  videoViewerVideoRef.current = el;
+                }}
                 src={videoViewer.items[videoViewer.index].url}
                 playsInline
                 autoPlay
