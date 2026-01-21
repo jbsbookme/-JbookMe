@@ -17,6 +17,7 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  Home,
   User,
   MessageCircle,
   Send,
@@ -368,6 +369,8 @@ export default function FeedPage() {
   const feedAudioEnabledRef = useRef(false);
   const zoomedMediaRef = useRef<typeof zoomedMedia>(null);
   const videoViewerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const videoViewerHistoryPushedRef = useRef(false);
+  const videoViewerClosingFromPopRef = useRef(false);
 
   useEffect(() => {
     feedAudioEnabledRef.current = feedAudioEnabled;
@@ -410,13 +413,76 @@ export default function FeedPage() {
     }
   }, []);
 
+  const closeVideoViewer = useCallback(
+    (opts?: { goHome?: boolean }) => {
+      pauseAllVideos();
+      setVideoViewer(null);
+
+      if (opts?.goHome) {
+        videoViewerHistoryPushedRef.current = false;
+        videoViewerClosingFromPopRef.current = false;
+        router.push('/inicio');
+        return;
+      }
+
+      if (typeof window !== 'undefined') {
+        // If we pushed a history entry to trap back, remove it on explicit close.
+        if (videoViewerHistoryPushedRef.current && !videoViewerClosingFromPopRef.current) {
+          try {
+            if ((window.history.state as any)?.__jbm_video_viewer) {
+              window.history.back();
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+
+      videoViewerHistoryPushedRef.current = false;
+      videoViewerClosingFromPopRef.current = false;
+    },
+    [pauseAllVideos, router]
+  );
+
+  useEffect(() => {
+    if (!videoViewer) return;
+    if (typeof window === 'undefined') return;
+
+    // Push a dummy history entry so swipe-back/back closes the viewer first.
+    if (!videoViewerHistoryPushedRef.current) {
+      try {
+        window.history.pushState(
+          {
+            ...(window.history.state || {}),
+            __jbm_video_viewer: true,
+          },
+          '',
+          window.location.href
+        );
+        videoViewerHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const onPopState = () => {
+      if (!videoViewer) return;
+      videoViewerClosingFromPopRef.current = true;
+      pauseAllVideos();
+      setVideoViewer(null);
+      videoViewerHistoryPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [pauseAllVideos, videoViewer]);
+
   useEffect(() => {
     if (!videoViewer) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        pauseAllVideos();
-        setVideoViewer(null);
+        closeVideoViewer();
         return;
       }
 
@@ -1952,16 +2018,28 @@ export default function FeedPage() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-black"
           onClick={() => {
-            pauseAllVideos();
-            setVideoViewer(null);
+            closeVideoViewer();
           }}
         >
+          <motion.button
+            className="absolute top-4 left-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 transition-colors flex items-center gap-2"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeVideoViewer({ goHome: true });
+            }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Home"
+          >
+            <Home className="w-5 h-5 text-white" />
+            <span className="text-white text-sm font-medium">Home</span>
+          </motion.button>
+
           <motion.button
             className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              pauseAllVideos();
-              setVideoViewer(null);
+              closeVideoViewer();
             }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
