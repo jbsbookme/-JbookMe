@@ -115,6 +115,15 @@ html {
   color-scheme: dark;
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 17px;
+  }
 }
 
 html, body {
