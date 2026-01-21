@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if user has already rated this barber recently (not tied to appointment)
+    // Check if user has already rated this barber recently (quick-rating)
     const existingQuickRating = await prisma.review.findFirst({
       where: {
         barberId,
@@ -75,11 +75,64 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const nextComment =
+      typeof comment === 'string' && comment.trim().length > 0
+        ? comment.trim().slice(0, 1000)
+        : null;
+
+    // If there's an existing quick rating within the window, update it instead of blocking.
     if (existingQuickRating) {
-      return NextResponse.json(
-        { error: 'Ya calificaste a este barbero recientemente. Intenta de nuevo en una semana.' },
-        { status: 429 }
-      );
+      const { adminResponse, adminRespondedAt } = getAutoAdminResponseForReview(rating);
+
+      const { review, avgRating } = await prisma.$transaction(async (tx) => {
+        const updatedReview = await tx.review.update({
+          where: { id: existingQuickRating.id },
+          data: {
+            rating,
+            comment:
+              nextComment ?? `⭐ Quick rating: ${rating} star${rating > 1 ? 's' : ''}`,
+            adminResponse,
+            adminRespondedAt,
+          },
+          include: {
+            client: {
+              select: {
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
+            barber: {
+              select: {
+                id: true,
+                profileImage: true,
+              },
+            },
+          },
+        });
+
+        const allReviews = await tx.review.findMany({
+          where: { barberId },
+          select: { rating: true },
+        });
+
+        const totalRating = allReviews.reduce((sum, r) => sum + r.rating, 0);
+        const nextAvgRating = allReviews.length > 0 ? totalRating / allReviews.length : 0;
+
+        await tx.barber.update({
+          where: { id: barberId },
+          data: { rating: nextAvgRating },
+        });
+
+        return { review: updatedReview, avgRating: nextAvgRating };
+      });
+
+      return NextResponse.json({
+        success: true,
+        review,
+        avgRating,
+        message: 'Review updated successfully',
+      });
     }
 
     // Create a unique pseudo-appointmentId for quick ratings
@@ -120,10 +173,7 @@ export async function POST(req: NextRequest) {
           clientId: session.user.id,
           appointmentId: quickAppointmentId,
           rating,
-          comment:
-            typeof comment === 'string' && comment.trim().length > 0
-              ? comment.trim().slice(0, 1000)
-              : `⭐ Quick rating: ${rating} star${rating > 1 ? 's' : ''}`,
+          comment: nextComment ?? `⭐ Quick rating: ${rating} star${rating > 1 ? 's' : ''}`,
           adminResponse,
           adminRespondedAt,
         },

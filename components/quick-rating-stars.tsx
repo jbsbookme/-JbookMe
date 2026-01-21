@@ -201,39 +201,37 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
               onChange={(e) => setComment(e.target.value)}
               placeholder={
                 language === 'es'
-                  ? 'Escribe tu comentario (opcional)'
-                  : 'Write your comment (optional)'
+                  ? 'Escribe tu comentario (requerido)'
+                  : 'Write your comment (required)'
               }
               className="bg-black/40 border-white/10 text-white placeholder:text-gray-400"
               rows={4}
             />
+            <div className="text-xs text-gray-400">
+              {language === 'es'
+                ? 'El comentario es obligatorio.'
+                : 'A comment is required.'}
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
             <Button
               type="button"
-              variant="outline"
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10"
-              disabled={submitting || !pendingRating}
-              onClick={() => {
-                if (!pendingRating) return;
-                void (async () => {
-                  const ok = await submitRating(pendingRating);
-                  if (ok) setDialogOpen(false);
-                })();
-              }}
-            >
-              {language === 'es' ? 'Enviar sin comentario' : 'Submit without comment'}
-            </Button>
-            <Button
-              type="button"
               className="bg-[#00f0ff] text-black hover:bg-[#00d9e6]"
-              disabled={submitting || !pendingRating}
+              disabled={submitting || !pendingRating || comment.trim().length === 0}
               onClick={() => {
                 if (!pendingRating) return;
                 const cleaned = comment.trim();
                 void (async () => {
-                  const ok = await submitRating(pendingRating, cleaned ? cleaned : undefined);
+                  if (!cleaned) {
+                    toast.error(
+                      language === 'es'
+                        ? 'Escribe un comentario para enviar tu reseña.'
+                        : 'Please write a comment to submit your review.'
+                    );
+                    return;
+                  }
+                  const ok = await submitRating(pendingRating, cleaned);
                   if (ok) setDialogOpen(false);
                 })();
               }}
