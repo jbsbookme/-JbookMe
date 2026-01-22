@@ -81,19 +81,22 @@ async function uploadToBlobWithFallback(args: {
   pathname: string;
   file: File;
   mimeType: string;
+  isVideo?: boolean;
   onProgress: (pct: number) => void;
 }): Promise<{ url: string; usedFallback: boolean }>
 {
-  const { pathname, file, mimeType, onProgress } = args;
+  const { pathname, file, mimeType, onProgress, isVideo } = args;
 
   // Try direct client upload first (fast path)
   const controller = new AbortController();
-  const hardTimeoutMs = 120_000;
+  // Videos can take much longer on mobile networks. Avoid aborting too early.
+  const hardTimeoutMs = isVideo ? 10 * 60_000 : 120_000;
   const hardTimeoutId = setTimeout(() => controller.abort(), hardTimeoutMs);
 
   let sawProgress = false;
   const startAt = Date.now();
-  const stalledTimeoutMs = 12_000;
+  // Token generation (and even initial upload negotiation) can be slow on mobile.
+  const stalledTimeoutMs = isVideo ? 25_000 : 15_000;
   const stallInterval = setInterval(() => {
     if (sawProgress) return;
     const elapsed = Date.now() - startAt;
@@ -333,6 +336,7 @@ export default function PublicarPage() {
             pathname,
             file: uploadFile,
             mimeType,
+            isVideo: isProbablyVideo(uploadFile),
             onProgress: (pct) => setUploadProgressPct(pct),
           });
           cloudPath = up.url;
