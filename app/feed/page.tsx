@@ -18,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  Home,
+  X,
   Loader2,
   RotateCcw,
   User,
@@ -138,6 +138,43 @@ export default function FeedPage() {
   const searchParams = useSearchParams();
   const sharedPostId = searchParams.get('post');
 
+  const copyToClipboard = useCallback(
+    async (text: string): Promise<boolean> => {
+      const value = String(text || '');
+      if (!value) return false;
+
+      // Prefer the modern Clipboard API.
+      try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(value);
+          return true;
+        }
+      } catch {
+        // fall through
+      }
+
+      // Fallback for Safari / older WebViews.
+      try {
+        if (typeof document === 'undefined') return false;
+        const el = document.createElement('textarea');
+        el.value = value;
+        el.setAttribute('readonly', '');
+        el.style.position = 'fixed';
+        el.style.top = '-1000px';
+        el.style.left = '-1000px';
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(el);
+        return ok;
+      } catch {
+        return false;
+      }
+    },
+    []
+  );
+
   const FEED_CACHE_KEY = 'jbookme_feed_cache_v1';
   const POSTS_PAGE_SIZE = 24;
 
@@ -177,48 +214,29 @@ export default function FeedPage() {
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
 
     try {
-      if (!navigator.share) {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success(t('common.linkCopied'));
+      if (navigator.share) {
+        await navigator.share({ title, text, url: shareUrl });
         return;
       }
 
-      // Try to share the actual media file when supported.
-      // Fallback: share a link (this may show as a generic card on some apps).
-      const canShareFiles = typeof navigator.canShare === 'function';
-
-      if (canShareFiles) {
-        try {
-          const mediaRes = await fetch(`/api/posts/${post.id}/media`);
-          if (mediaRes.ok) {
-            const blob = await mediaRes.blob();
-            const blobType = blob.type || (isVideo(post.cloud_storage_path) ? 'video/mp4' : 'image/jpeg');
-            const ext = blobType.includes('video') ? 'mp4' : 'jpg';
-            const file = new File([blob], `jbsbarbershop-${post.id}.${ext}`, { type: blobType });
-
-            // Prefer sharing file + public link when the platform supports it.
-            const fileAndLinkData = { title, text, url: shareUrl, files: [file] } as any;
-            if (navigator.canShare(fileAndLinkData)) {
-              await navigator.share(fileAndLinkData);
-              return;
-            }
-
-            // Fallback: share file only.
-            if (navigator.canShare({ files: [file] })) {
-              await navigator.share({ title, text, files: [file] } as any);
-              return;
-            }
-          }
-        } catch {
-          // Ignore and fall back to link sharing.
-        }
+      const ok = await copyToClipboard(shareUrl);
+      if (ok) {
+        toast.success(t('common.linkCopied'));
+      } else {
+        toast.error(t('common.error'));
       }
-
-      await navigator.share({ title, text, url: shareUrl });
-    } catch {
+    } catch (err: any) {
       // User cancelled share or platform failed.
+      if (String(err?.name || '') === 'AbortError') return;
+
+      const ok = await copyToClipboard(shareUrl);
+      if (ok) {
+        toast.success(t('common.linkCopied'));
+      } else {
+        toast.error(t('common.error'));
+      }
     }
-  }, [t]);
+  }, [copyToClipboard, t]);
 
   const sharePostLinkOnly = useCallback(async (post: Post) => {
     const shareUrl = `${window.location.origin}/p/${post.id}`;
@@ -230,13 +248,14 @@ export default function FeedPage() {
       if (navigator.share) {
         await navigator.share({ title, text, url: shareUrl });
       } else {
-        await navigator.clipboard.writeText(shareUrl);
-        toast.success(t('common.linkCopied'));
+        const ok = await copyToClipboard(shareUrl);
+        if (ok) toast.success(t('common.linkCopied'));
+        else toast.error(t('common.error'));
       }
     } catch {
       // user cancelled
     }
-  }, [t]);
+  }, [copyToClipboard, t]);
 
   const shareToFacebook = useCallback((post: Post) => {
     const shareUrl = `${window.location.origin}/p/${post.id}`;
@@ -269,12 +288,13 @@ export default function FeedPage() {
     }
 
     try {
-      await navigator.clipboard.writeText(shareUrl);
-      toast.success(t('common.linkCopied'));
+      const ok = await copyToClipboard(shareUrl);
+      if (ok) toast.success(t('common.linkCopied'));
+      else toast.error(t('common.error'));
     } catch {
       // ignore
     }
-  }, [t]);
+  }, [copyToClipboard, t]);
   const bookingCtaRef = useRef<HTMLDivElement | null>(null);
   const [isBookingCtaInView, setIsBookingCtaInView] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState<{
@@ -1602,6 +1622,14 @@ export default function FeedPage() {
     }
   }, [viewedPosts]);
 
+  // Ensure view counts increment in the video viewer modal (IntersectionObserver won't help there).
+  useEffect(() => {
+    if (!videoViewer) return;
+    const active = videoViewer.items[videoViewer.index];
+    if (!active?.postId) return;
+    incrementViewCount(active.postId);
+  }, [videoViewer, incrementViewCount]);
+
   // IntersectionObserver to track post views
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -2463,11 +2491,11 @@ export default function FeedPage() {
                   <button
                     type="button"
                     className="flex flex-col items-center gap-1"
-                    onClick={() => closeVideoViewer({ goHome: true })}
-                    aria-label="Home"
+                    onClick={() => closeVideoViewer()}
+                    aria-label={t('common.close')}
                   >
                     <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
-                      <Home className="h-6 w-6 text-white" />
+                      <X className="h-6 w-6 text-white" />
                     </div>
                   </button>
 
@@ -2539,7 +2567,10 @@ export default function FeedPage() {
                     type="button"
                     className="flex flex-col items-center gap-1"
                     aria-label="Views"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toast.success(`${viewCount} views`);
+                    }}
                   >
                     <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
                       <Eye className="h-6 w-6 text-white" />
@@ -2548,6 +2579,45 @@ export default function FeedPage() {
                       {viewCount}
                     </span>
                   </button>
+                </div>
+              );
+            })()}
+
+            {/* Floating hearts burst in viewer */}
+            {(() => {
+              const activePost = posts.find(
+                (p) => p.id === videoViewer.items[videoViewer.index].postId
+              );
+              if (!activePost) return null;
+              const particles = heartBursts[activePost.id];
+              if (!particles?.length) return null;
+
+              return (
+                <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+                  {particles.map((p) => (
+                    <motion.div
+                      key={p.id}
+                      className="absolute"
+                      style={{ left: `${p.leftPct}%`, bottom: '22%' }}
+                      initial={{ opacity: 0, y: 10, scale: 0.7, rotate: p.rotate }}
+                      animate={{
+                        opacity: [0, 1, 1, 0],
+                        y: -180,
+                        scale: [0.7, 1.05, 0.95],
+                        rotate: p.rotate + (Math.random() > 0.5 ? 10 : -10),
+                      }}
+                      transition={{
+                        duration: p.durationMs / 1000,
+                        delay: p.delayMs / 1000,
+                        ease: 'easeOut',
+                      }}
+                    >
+                      <Heart
+                        className="fill-red-500 text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.35)]"
+                        style={{ width: p.size, height: p.size }}
+                      />
+                    </motion.div>
+                  ))}
                 </div>
               );
             })()}

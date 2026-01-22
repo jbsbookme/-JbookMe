@@ -53,9 +53,9 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
     try {
       setLoadingComments(true);
       const res = await fetch(`/api/posts/${postId}/comments`);
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.success) {
+      if (res.ok && data?.success) {
         setComments(data.data.comments);
       }
     } catch (error) {
@@ -83,14 +83,19 @@ export function CommentsModal({ postId, isOpen, onClose }: CommentsModalProps) {
         body: JSON.stringify({ content: newComment }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.success) {
-        setComments([data.data, ...comments]);
+      if (!res.ok) {
+        toast.error(data?.error || t('feed.commentError'));
+        return;
+      }
+
+      if (data?.success) {
+        setComments((prev) => [data.data, ...prev]);
         setNewComment('');
         toast.success(t('feed.commentPosted'));
       } else {
-        toast.error(data.error || t('feed.commentError'));
+        toast.error(data?.error || t('feed.commentError'));
       }
     } catch (error) {
       console.error('Error adding comment:', error);
