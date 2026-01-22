@@ -586,14 +586,29 @@ export default function FeedPage() {
       intersectionObserver.observe(el);
     };
 
-    const ensureSrc = (video: HTMLVideoElement) => {
+    const shouldPreloadNextVideo = (): boolean => {
+      try {
+        const conn = (navigator as any).connection as
+          | { saveData?: boolean; effectiveType?: string }
+          | undefined;
+        if (conn?.saveData) return false;
+        const t = String(conn?.effectiveType || '').toLowerCase();
+        if (t.includes('2g')) return false;
+      } catch {
+        // ignore
+      }
+      return true;
+    };
+
+    const ensureSrc = (video: HTMLVideoElement, preloadHint?: 'metadata' | 'auto') => {
       try {
         const hasSrc = !!video.getAttribute('src');
         const dataSrc = (video as any).dataset?.src as string | undefined;
         if (!hasSrc && dataSrc) {
           video.setAttribute('src', dataSrc);
+          const hint = preloadHint || (video.preload as any) || 'metadata';
           try {
-            video.preload = 'metadata';
+            video.preload = hint;
           } catch {
             // ignore
           }
@@ -606,6 +621,22 @@ export default function FeedPage() {
       } catch {
         // ignore
       }
+    };
+
+    const getFeedIndex = (video: HTMLVideoElement): number | null => {
+      const raw = (video as any).dataset?.feedIndex as string | undefined;
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const getNextFeedVideo = (primary: HTMLVideoElement): HTMLVideoElement | null => {
+      if (!shouldPreloadNextVideo()) return null;
+      const idx = getFeedIndex(primary);
+      if (idx === null) return null;
+      const next = document.querySelector(
+        `video[data-feed-video="true"][data-feed-index="${idx + 1}"]`
+      ) as HTMLVideoElement | null;
+      return next;
     };
 
     const unloadSrc = (video: HTMLVideoElement) => {
@@ -660,14 +691,16 @@ export default function FeedPage() {
           }
         }
 
+        const warmNextVideo = bestVideo ? getNextFeedVideo(bestVideo) : null;
+
         // Load/unload sources to avoid many videos buffering/decoding at once (prevents freezes).
         for (const v of videos) {
           const ratio = ratios.get(v) ?? 0;
-          const shouldLoadNow = v === bestVideo || ratio >= 0.2;
+          const shouldLoadNow = v === bestVideo || v === warmNextVideo || ratio >= 0.2;
           const shouldUnloadNow = ratio <= 0.01;
 
           if (shouldLoadNow) {
-            ensureSrc(v);
+            ensureSrc(v, v === warmNextVideo ? 'auto' : undefined);
           } else if (shouldUnloadNow) {
             unloadSrc(v);
           }
@@ -2005,6 +2038,8 @@ export default function FeedPage() {
                             <video
                               data-src={`/api/posts/${post.id}/media`}
                               data-feed-video="true"
+                              data-feed-index={index}
+                              data-post-id={post.id}
                               autoPlay={false}
                               loop
                               muted
@@ -2341,6 +2376,30 @@ export default function FeedPage() {
                   handleVideoTap(e.currentTarget);
                 }}
               />
+
+              {/* Preload next/previous so swipe feels faster */}
+              {videoViewer.items[videoViewer.index + 1] ? (
+                <video
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  muted
+                  playsInline
+                  preload="auto"
+                  src={videoViewer.items[videoViewer.index + 1].url}
+                  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                />
+              ) : null}
+              {videoViewer.items[videoViewer.index - 1] ? (
+                <video
+                  aria-hidden="true"
+                  tabIndex={-1}
+                  muted
+                  playsInline
+                  preload="auto"
+                  src={videoViewer.items[videoViewer.index - 1].url}
+                  style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                />
+              ) : null}
             </div>
 
             {/* Actions (Like / Comment / Share / Views) */}
