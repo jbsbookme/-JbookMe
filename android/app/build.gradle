@@ -3,11 +3,11 @@ apply plugin: 'com.android.application'
 def versionCodeEnv = System.getenv('ANDROID_VERSION_CODE')
 def versionNameEnv = System.getenv('ANDROID_VERSION_NAME')
 
-def keystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
-def keystorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
-def keyAlias = System.getenv('ANDROID_KEY_ALIAS')
-def keyPassword = System.getenv('ANDROID_KEY_PASSWORD')
-def hasReleaseSigning = keystorePath && keystorePassword && keyAlias && keyPassword
+def keystorePathEnv = System.getenv('ANDROID_KEYSTORE_PATH')
+def keystorePasswordEnv = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def keyAliasEnv = System.getenv('ANDROID_KEY_ALIAS')
+def keyPasswordEnv = System.getenv('ANDROID_KEY_PASSWORD')
+def hasReleaseSigning = keystorePathEnv && keystorePasswordEnv && keyAliasEnv && keyPasswordEnv
 
 android {
     namespace "com.jbs.jbookme"
@@ -16,10 +16,10 @@ android {
     if (hasReleaseSigning) {
         signingConfigs {
             release {
-                storeFile file(keystorePath)
-                storePassword keystorePassword
-                keyAlias keyAlias
-                keyPassword keyPassword
+                storeFile = file(keystorePathEnv)
+                storePassword = keystorePasswordEnv
+                keyAlias = keyAliasEnv
+                keyPassword = keyPasswordEnv
             }
         }
     }
