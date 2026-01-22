@@ -82,6 +82,8 @@ async function uploadToBlobWithFallback(args: {
 }): Promise<{ url: string; usedFallback: boolean }> {
   const { pathname, file, mimeType, onProgress, isVideo } = args;
 
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
   const controller = new AbortController();
   const hardTimeoutMs = isVideo ? 10 * 60_000 : 120_000;
   const hardTimeoutId = setTimeout(() => controller.abort(), hardTimeoutMs);
@@ -98,26 +100,43 @@ async function uploadToBlobWithFallback(args: {
   }, 1_000);
 
   try {
-    const blob = await upload(pathname, file, {
-      access: 'public',
-      handleUploadUrl: '/api/blob/upload',
-      contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
-      abortSignal: controller.signal,
-      onUploadProgress: (progressEvent: unknown) => {
-        sawProgress = true;
-        if (typeof progressEvent === 'object' && progressEvent !== null) {
-          const maybe = progressEvent as { percentage?: unknown };
-          const pct = Number(maybe.percentage ?? 0) || 0;
-          onProgress(Math.max(0, Math.min(100, pct)));
-          return;
-        }
-        if (typeof progressEvent === 'number') {
-          onProgress(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
-        }
-      },
-    });
+    let lastErr: unknown = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const blob = await upload(pathname, file, {
+          access: 'public',
+          handleUploadUrl: '/api/blob/upload',
+          contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
+          abortSignal: controller.signal,
+          onUploadProgress: (progressEvent: unknown) => {
+            sawProgress = true;
+            if (typeof progressEvent === 'object' && progressEvent !== null) {
+              const maybe = progressEvent as { percentage?: unknown };
+              const pct = Number(maybe.percentage ?? 0) || 0;
+              onProgress(Math.max(0, Math.min(100, pct)));
+              return;
+            }
+            if (typeof progressEvent === 'number') {
+              onProgress(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
+            }
+          },
+        });
 
-    return { url: blob.url, usedFallback: false };
+        return { url: blob.url, usedFallback: false };
+      } catch (err) {
+        lastErr = err;
+        const message = err instanceof Error ? err.message : String(err);
+        const isAbort = err instanceof Error && err.name === 'AbortError';
+        const tokenish = message.toLowerCase().includes('client token') || message.toLowerCase().includes('token');
+        const timeoutish = message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out');
+        if (attempt < 2 && (tokenish || timeoutish) && !isAbort) {
+          await sleep(500);
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const shouldFallback =
@@ -129,6 +148,14 @@ async function uploadToBlobWithFallback(args: {
     if (!shouldFallback) {
       throw err;
     }
+
+    const canFallback = !isVideo || file.size <= 15 * 1024 * 1024;
+    if (!canFallback) {
+      throw new Error(
+        `No se pudo subir el video directamente. Detalle: ${message}. ` +
+          'Intenta con WiFi o reduce el tamaño/duración del video.'
+      );
+    }
   } finally {
     clearTimeout(hardTimeoutId);
     clearInterval(stallInterval);
@@ -137,10 +164,21 @@ async function uploadToBlobWithFallback(args: {
   onProgress(5);
   const fd = new FormData();
   fd.append('file', file);
-  const res = await fetch('/api/posts/upload-blob', {
-    method: 'POST',
-    body: fd,
-  });
+  const fallbackController = new AbortController();
+  const fallbackTimeout = setTimeout(() => fallbackController.abort(), 90_000);
+  let res: Response;
+  try {
+    res = await fetch('/api/posts/upload-blob', {
+      method: 'POST',
+      body: fd,
+      signal: fallbackController.signal,
+    });
+  } catch (err) {
+    const isAbort = err instanceof Error && err.name === 'AbortError';
+    throw new Error(isAbort ? 'Timeout subiendo archivo (fallback)' : 'Error subiendo archivo (fallback)');
+  } finally {
+    clearTimeout(fallbackTimeout);
+  }
   onProgress(85);
 
   if (!res.ok) {
@@ -179,6 +217,7 @@ export default function BarberUploadPage() {
   const [uploadingFileLabel, setUploadingFileLabel] = useState('');
   const [uploadingFileIndex, setUploadingFileIndex] = useState(0);
   const [uploadTotalFiles, setUploadTotalFiles] = useState(0);
+  const [uploadErrorDetails, setUploadErrorDetails] = useState<string | null>(null);
 
   const MAX_FILES = 10;
 
@@ -298,6 +337,7 @@ export default function BarberUploadPage() {
     setUploadingFileIndex(0);
     setUploadTotalFiles(selectedFiles.length);
     setUploadingFileLabel('');
+    setUploadErrorDetails(null);
 
     try {
       const isBatch = selectedFiles.length > 1;
@@ -330,6 +370,7 @@ export default function BarberUploadPage() {
         } catch (err) {
           failedCount += 1;
           const message = err instanceof Error ? err.message : 'Upload failed';
+          setUploadErrorDetails(`Upload error: ${uploadFile.name || file.name} — ${message}`);
           toast.error(`Upload failed: ${uploadFile.name || file.name} — ${message}`);
           continue;
         }
@@ -354,6 +395,11 @@ export default function BarberUploadPage() {
         } catch (err) {
           failedCount += 1;
           const isAbort = err instanceof Error && err.name === 'AbortError';
+          setUploadErrorDetails(
+            isAbort
+              ? `Timeout creando post: ${uploadFile.name || file.name}`
+              : `Error creando post: ${uploadFile.name || file.name}`
+          );
           toast.error(
             isAbort
               ? `Tiempo de espera creando la publicación: ${uploadFile.name || file.name}`
@@ -678,6 +724,12 @@ export default function BarberUploadPage() {
                       style={{ width: `${uploadProgressPct}%` }}
                     />
                   </div>
+                </div>
+              ) : null}
+
+              {uploadErrorDetails ? (
+                <div className="rounded-md border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-200">
+                  {uploadErrorDetails}
                 </div>
               ) : null}
 
