@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await withTimeout(
       getServerSession(authOptions),
-      8_000,
+      20_000,
       'AUTH_TIMEOUT'
     );
 
@@ -76,8 +76,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const status = message === 'AUTH_TIMEOUT' ? 503 : 500;
+    // Help debug client-token retrieval failures.
+    console.error('[blob/upload] token generation failed:', message);
     return NextResponse.json(
-      { error: message === 'AUTH_TIMEOUT' ? 'Auth timeout' : 'Upload token generation failed' },
+      {
+        error: message === 'AUTH_TIMEOUT' ? 'Auth timeout' : 'Upload token generation failed',
+        code: message,
+      },
       { status }
     );
   }
