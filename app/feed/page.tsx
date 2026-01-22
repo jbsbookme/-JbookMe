@@ -18,7 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  X,
+  Home,
   Loader2,
   RotateCcw,
   User,
@@ -2491,11 +2491,11 @@ export default function FeedPage() {
                   <button
                     type="button"
                     className="flex flex-col items-center gap-1"
-                    onClick={() => closeVideoViewer()}
-                    aria-label={t('common.close')}
+                    onClick={() => closeVideoViewer({ goHome: true })}
+                    aria-label="Home"
                   >
                     <div className="h-11 w-11 rounded-full bg-black/40 border border-white/15 backdrop-blur flex items-center justify-center">
-                      <X className="h-6 w-6 text-white" />
+                      <Home className="h-6 w-6 text-white" />
                     </div>
                   </button>
 
