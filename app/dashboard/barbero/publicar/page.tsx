@@ -182,14 +182,20 @@ async function uploadToBlobWithFallback(args: {
   onProgress(85);
 
   if (!res.ok) {
-    let payload: unknown = null;
+    const raw = await res.text();
+    let payloadObj: Record<string, unknown> | null = null;
     try {
-      payload = await res.json();
+      const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+      payloadObj = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
     } catch {
-      payload = { error: await res.text() };
+      payloadObj = null;
     }
-    const payloadObj = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
-    const msg = (payloadObj?.error as string) || `Fallback upload failed (${res.status})`;
+
+    const msg =
+      (payloadObj?.error as string) ||
+      (payloadObj?.message as string) ||
+      raw ||
+      `Fallback upload failed (${res.status})`;
     throw new Error(msg);
   }
 
@@ -411,11 +417,12 @@ export default function BarberUploadPage() {
         }
 
         if (!res.ok) {
+          const raw = await res.text();
           let payload: unknown = null;
           try {
-            payload = await res.json();
+            payload = raw ? (JSON.parse(raw) as unknown) : null;
           } catch {
-            payload = { error: await res.text() };
+            payload = { error: raw };
           }
           failedCount += 1;
 
