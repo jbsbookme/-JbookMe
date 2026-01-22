@@ -111,6 +111,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
         <link rel="apple-touch-icon" sizes="256x256" href="/icon-256.png" />
         <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png" />
+
+        {/* Speed up Cloudinary media loads */}
+        <link rel="dns-prefetch" href="//res.cloudinary.com" />
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.cloudinary.com" crossOrigin="anonymous" />
         
         {/* iOS Splash Screens */}
         <link rel="apple-touch-startup-image" href="/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />

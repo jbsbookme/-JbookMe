@@ -623,20 +623,14 @@ export default function FeedPage() {
       }
     };
 
-    const getFeedIndex = (video: HTMLVideoElement): number | null => {
-      const raw = (video as any).dataset?.feedIndex as string | undefined;
-      const n = raw ? Number(raw) : NaN;
-      return Number.isFinite(n) ? n : null;
-    };
-
     const getNextFeedVideo = (primary: HTMLVideoElement): HTMLVideoElement | null => {
       if (!shouldPreloadNextVideo()) return null;
-      const idx = getFeedIndex(primary);
-      if (idx === null) return null;
-      const next = document.querySelector(
-        `video[data-feed-video="true"][data-feed-index="${idx + 1}"]`
-      ) as HTMLVideoElement | null;
-      return next;
+      const videos = Array.from(
+        document.querySelectorAll('video[data-feed-video="true"]')
+      ) as HTMLVideoElement[];
+      const idx = videos.indexOf(primary);
+      if (idx < 0) return null;
+      return videos[idx + 1] || null;
     };
 
     const unloadSrc = (video: HTMLVideoElement) => {
@@ -700,7 +694,9 @@ export default function FeedPage() {
           const shouldUnloadNow = ratio <= 0.01;
 
           if (shouldLoadNow) {
-            ensureSrc(v, v === warmNextVideo ? 'auto' : undefined);
+            const hint: 'metadata' | 'auto' | undefined =
+              v === bestVideo || v === warmNextVideo ? 'auto' : undefined;
+            ensureSrc(v, hint);
           } else if (shouldUnloadNow) {
             unloadSrc(v);
           }
@@ -1513,6 +1509,50 @@ export default function FeedPage() {
     return resolvePublicMediaUrl(cloud_storage_path);
   };
 
+  const isCloudinaryUrl = (url: string): boolean => {
+    const u = String(url || '').trim();
+    if (!u) return false;
+    if (!/^https?:\/\//i.test(u)) return false;
+    if (!/(^|\.)cloudinary\.com$/i.test(new URL(u).hostname)) return false;
+    return u.includes('/upload/');
+  };
+
+  const injectCloudinaryTransform = (url: string, transform: string): string => {
+    try {
+      const raw = String(url || '').trim();
+      if (!raw) return '';
+
+      const marker = '/upload/';
+      const idx = raw.indexOf(marker);
+      if (idx < 0) return raw;
+
+      const rest = raw.slice(idx + marker.length);
+      const firstSeg = rest.split('/')[0] || '';
+      // If the URL already has typical transforms, don't stack more.
+      if (firstSeg.includes('f_auto') || firstSeg.includes('q_auto') || firstSeg.includes('w_')) {
+        return raw;
+      }
+
+      return `${raw.slice(0, idx + marker.length)}${transform}/${rest}`;
+    } catch {
+      return url;
+    }
+  };
+
+  const getOptimizedVideoPlaybackUrl = (post: Post): string => {
+    const raw = getMediaUrl(post.cloud_storage_path);
+    if (!raw) return `/api/posts/${post.id}/media`;
+
+    // Prefer direct Cloudinary delivery for speed (avoids an extra hop through /api/posts/:id/media)
+    // and apply lightweight transforms for faster start.
+    if (isCloudinaryUrl(raw)) {
+      return injectCloudinaryTransform(raw, 'f_auto,q_auto,vc_auto,w_720,c_limit');
+    }
+
+    // Fallback for legacy/unknown URLs.
+    return `/api/posts/${post.id}/media`;
+  };
+
   const isVideo = (path: string): boolean => {
     // Check file extension
     if (/\.(mp4|webm|ogg|mov|avi|mkv|flv)$/i.test(path)) {
@@ -1971,7 +2011,7 @@ export default function FeedPage() {
                               .filter((p) => isVideo(p.cloud_storage_path))
                               .map((p) => ({
                                 postId: p.id,
-                                url: `/api/posts/${p.id}/media`,
+                                url: getOptimizedVideoPlaybackUrl(p),
                                 authorName:
                                   p.authorType === 'BARBER'
                                     ? p.barber?.user?.name || 'User'
@@ -2036,7 +2076,7 @@ export default function FeedPage() {
                         {isVideo(post.cloud_storage_path) ? (
                           <div className="relative w-full h-full">
                             <video
-                              data-src={`/api/posts/${post.id}/media`}
+                              data-src={getOptimizedVideoPlaybackUrl(post)}
                               data-feed-video="true"
                               data-feed-index={index}
                               data-post-id={post.id}
