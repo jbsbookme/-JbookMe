@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
-import { put } from '@vercel/blob';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+export async function GET() {
+  return NextResponse.json(
+    {
+      error: 'Esta ruta fue deshabilitada. Las subidas de posts ahora van solo por Cloudinary.',
+      hint:
+        'Sube el archivo directamente a Cloudinary (unsigned upload preset) y luego crea el post con /api/posts usando JSON: { mediaUrl, caption }.',
+      code: 'POSTS_UPLOAD_DISABLED',
+    },
+    { status: 410 }
+  );
+}
 
 // Using Node runtime for NextAuth compatibility
 export async function POST(request: NextRequest) {
@@ -15,46 +26,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-
-    if (!file) {
-      return NextResponse.json({ error: 'No se proporcionó un archivo' }, { status: 400 });
-    }
-
-    // Validate file type
-    if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
-      return NextResponse.json({ error: 'Solo se permiten imágenes y videos' }, { status: 400 });
-    }
-
-    // Validate file size (60MB max to match client + /api/blob/upload)
-    if (file.size > 60 * 1024 * 1024) {
-      return NextResponse.json({ error: 'El archivo es demasiado grande (máx 60MB)' }, { status: 400 });
-    }
-
-    // Create organized folder structure
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const roleFolder = session.user.role === 'BARBER' ? 'barber_work' : 'client_share';
-
-    // Prepare file name
-    const timestamp = Date.now();
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `posts/${year}/${month}/${roleFolder}/${timestamp}-${sanitizedFileName}`;
-
-    // Upload to Vercel Blob
-    const blob = await put(fileName, file, {
-      access: 'public',
-      addRandomSuffix: false,
-      contentType: file.type || undefined,
-    });
-
-    return NextResponse.json({
-      cloud_storage_path: blob.url, // Use full URL for Vercel Blob
-      fileUrl: blob.url,
-      message: 'Archivo subido exitosamente',
-    });
+    return NextResponse.json(
+      {
+        error: 'Esta ruta fue deshabilitada. Las subidas de posts ahora van solo por Cloudinary.',
+        hint:
+          'Sube el archivo directamente a Cloudinary (unsigned upload preset) y luego crea el post con /api/posts usando JSON: { mediaUrl, caption }.',
+        code: 'POSTS_UPLOAD_DISABLED',
+      },
+      { status: 410 }
+    );
   } catch (error) {
     console.error('Error uploading file:', error);
     return NextResponse.json(

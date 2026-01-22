@@ -379,9 +379,14 @@ export default function FeedPage() {
   const [feedAudioEnabled, setFeedAudioEnabled] = useState(false);
   const feedAudioEnabledRef = useRef(false);
   const zoomedMediaRef = useRef<typeof zoomedMedia>(null);
+  const commentsModalOpenRef = useRef<string | null>(null);
   const videoViewerVideoRef = useRef<HTMLVideoElement | null>(null);
   const videoViewerHistoryPushedRef = useRef(false);
   const videoViewerClosingFromPopRef = useRef(false);
+  const zoomModalHistoryPushedRef = useRef(false);
+  const zoomModalClosingFromPopRef = useRef(false);
+  const commentsModalHistoryPushedRef = useRef(false);
+  const commentsModalClosingFromPopRef = useRef(false);
   const zoomedVideoRef = useRef<HTMLVideoElement | null>(null);
   const [videoViewerEnded, setVideoViewerEnded] = useState(false);
   const [zoomedVideoEnded, setZoomedVideoEnded] = useState(false);
@@ -402,6 +407,10 @@ export default function FeedPage() {
   useEffect(() => {
     zoomedMediaRef.current = zoomedMedia;
   }, [zoomedMedia]);
+
+  useEffect(() => {
+    commentsModalOpenRef.current = commentsModalOpen;
+  }, [commentsModalOpen]);
 
   useEffect(() => {
     // Reset ended state when switching videos.
@@ -516,6 +525,9 @@ export default function FeedPage() {
 
     const onPopState = () => {
       if (!videoViewer) return;
+      // If a top modal is open, let that modal handle back first.
+      if (zoomedMediaRef.current || commentsModalOpenRef.current) return;
+
       videoViewerClosingFromPopRef.current = true;
       pauseAllVideos();
       setVideoViewer(null);
@@ -822,14 +834,152 @@ export default function FeedPage() {
   const panStartRef = useRef<{ x: number; y: number } | null>(null);
   const panOriginRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const resetZoom = () => {
+  const resetZoom = useCallback(() => {
     setImageScale(1);
     imageX.set(0);
     imageY.set(0);
     pinchStartDistanceRef.current = null;
     panStartRef.current = null;
     panOriginRef.current = { x: 0, y: 0 };
-  };
+  }, [imageX, imageY]);
+
+  const closeZoomModal = useCallback(() => {
+    pauseAllVideos();
+    setZoomedMedia(null);
+    resetZoom();
+
+    if (sharedPostId) {
+      try {
+        window.history.replaceState(null, '', '/feed');
+      } catch {
+        // ignore
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      if (zoomModalHistoryPushedRef.current && !zoomModalClosingFromPopRef.current) {
+        try {
+          if ((window.history.state as any)?.__jbm_feed_zoom) {
+            window.history.back();
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    zoomModalHistoryPushedRef.current = false;
+    zoomModalClosingFromPopRef.current = false;
+  }, [pauseAllVideos, resetZoom, sharedPostId]);
+
+  const closeCommentsModal = useCallback(() => {
+    setCommentsModalOpen(null);
+
+    if (resumeVideoAfterCommentsRef.current && videoViewerVideoRef.current) {
+      try {
+        void videoViewerVideoRef.current.play();
+      } catch {
+        // ignore
+      }
+    }
+    resumeVideoAfterCommentsRef.current = false;
+
+    if (sharedPostId) {
+      try {
+        window.history.replaceState(null, '', '/feed');
+      } catch {
+        // ignore
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      if (commentsModalHistoryPushedRef.current && !commentsModalClosingFromPopRef.current) {
+        try {
+          if ((window.history.state as any)?.__jbm_feed_comments) {
+            window.history.back();
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    commentsModalHistoryPushedRef.current = false;
+    commentsModalClosingFromPopRef.current = false;
+  }, [sharedPostId]);
+
+  useEffect(() => {
+    if (!zoomedMedia) return;
+    if (typeof window === 'undefined') return;
+
+    if (!zoomModalHistoryPushedRef.current) {
+      try {
+        window.history.pushState(
+          {
+            ...(window.history.state || {}),
+            __jbm_feed_zoom: true,
+          },
+          '',
+          window.location.href
+        );
+        zoomModalHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const onPopState = () => {
+      if (!zoomedMediaRef.current) return;
+      zoomModalClosingFromPopRef.current = true;
+      pauseAllVideos();
+      setZoomedMedia(null);
+      resetZoom();
+
+      if (sharedPostId) {
+        try {
+          window.history.replaceState(null, '', '/feed');
+        } catch {
+          // ignore
+        }
+      }
+
+      zoomModalHistoryPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [pauseAllVideos, resetZoom, sharedPostId, zoomedMedia]);
+
+  useEffect(() => {
+    if (!commentsModalOpen) return;
+    if (typeof window === 'undefined') return;
+
+    if (!commentsModalHistoryPushedRef.current) {
+      try {
+        window.history.pushState(
+          {
+            ...(window.history.state || {}),
+            __jbm_feed_comments: true,
+          },
+          '',
+          window.location.href
+        );
+        commentsModalHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const onPopState = () => {
+      if (!commentsModalOpenRef.current) return;
+      commentsModalClosingFromPopRef.current = true;
+      closeCommentsModal();
+      commentsModalHistoryPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [closeCommentsModal, commentsModalOpen]);
 
   const triggerHeartBurst = (postId: string) => {
     // Clear any existing scheduled cleanup for this post
@@ -2359,31 +2509,13 @@ export default function FeedPage() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
           onClick={() => {
-            pauseAllVideos();
-            setZoomedMedia(null);
-            resetZoom();
-            if (sharedPostId) {
-              try {
-                window.history.replaceState(null, '', '/feed');
-              } catch {
-                // ignore
-              }
-            }
+            closeZoomModal();
           }}
         >
           <motion.button
             className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
             onClick={() => {
-              pauseAllVideos();
-              setZoomedMedia(null);
-              resetZoom();
-              if (sharedPostId) {
-                try {
-                  window.history.replaceState(null, '', '/feed');
-                } catch {
-                  // ignore
-                }
-              }
+              closeZoomModal();
             }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -2546,26 +2678,7 @@ export default function FeedPage() {
       <CommentsModal 
         postId={commentsModalOpen || ''}
         isOpen={!!commentsModalOpen}
-        onClose={() => {
-          setCommentsModalOpen(null);
-
-          if (resumeVideoAfterCommentsRef.current && videoViewerVideoRef.current) {
-            try {
-              void videoViewerVideoRef.current.play();
-            } catch {
-              // ignore
-            }
-          }
-          resumeVideoAfterCommentsRef.current = false;
-
-          if (sharedPostId) {
-            try {
-              window.history.replaceState(null, '', '/feed');
-            } catch {
-              // ignore
-            }
-          }
-        }}
+        onClose={closeCommentsModal}
       />
 
     </div>

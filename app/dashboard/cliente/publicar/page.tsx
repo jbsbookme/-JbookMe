@@ -2,12 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { upload } from "@vercel/blob/client";
 import { ArrowUpCircle, Camera, Images, Image as ImageIcon, Loader2, Video, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { uploadToCloudinary } from "@/lib/cloudinary-upload";
 
 type MediaHint = "image" | "video" | "auto";
 
@@ -77,151 +77,15 @@ function isProbablyVideo(file: File): boolean {
   return /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name || '');
 }
 
-async function uploadToBlobWithFallback(args: {
-  pathname: string;
+async function uploadToCloudinaryWithProgress(args: {
   file: File;
-  mimeType: string;
-  isVideo?: boolean;
   onProgress: (pct: number) => void;
-}): Promise<{ url: string; usedFallback: boolean }>
-{
-  const { pathname, file, mimeType, onProgress, isVideo } = args;
-
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  // Try direct client upload first (fast path)
-  const controller = new AbortController();
-  // Videos can take much longer on mobile networks. Avoid aborting too early.
-  const hardTimeoutMs = isVideo ? 10 * 60_000 : 120_000;
-  const hardTimeoutId = setTimeout(() => controller.abort(), hardTimeoutMs);
-
-  let sawProgress = false;
-  const startAt = Date.now();
-  // Token generation (and even initial upload negotiation) can be slow on mobile.
-  const stalledTimeoutMs = isVideo ? 25_000 : 15_000;
-  const stallInterval = setInterval(() => {
-    if (sawProgress) return;
-    const elapsed = Date.now() - startAt;
-    // If token generation hangs, abort and fallback.
-    if (elapsed >= stalledTimeoutMs) {
-      controller.abort();
-    }
-  }, 1_000);
-
-  try {
-    let lastErr: unknown = null;
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const blob = await upload(pathname, file, {
-          access: 'public',
-          handleUploadUrl: '/api/blob/upload',
-          contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
-          abortSignal: controller.signal,
-          onUploadProgress: (progressEvent: unknown) => {
-            sawProgress = true;
-            if (typeof progressEvent === 'object' && progressEvent !== null) {
-              const maybe = progressEvent as { percentage?: unknown };
-              const pct = Number(maybe.percentage ?? 0) || 0;
-              onProgress(Math.max(0, Math.min(100, pct)));
-              return;
-            }
-            if (typeof progressEvent === 'number') {
-              onProgress(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
-            }
-          },
-        });
-
-        return { url: blob.url, usedFallback: false };
-      } catch (err) {
-        lastErr = err;
-        const message = err instanceof Error ? err.message : String(err);
-        const isAbort = err instanceof Error && err.name === 'AbortError';
-        const tokenish = message.toLowerCase().includes('client token') || message.toLowerCase().includes('token');
-        const timeoutish = message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out');
-
-        // Retry once for transient token/timeout errors.
-        if (attempt < 2 && (tokenish || timeoutish) && !isAbort) {
-          await sleep(500);
-          continue;
-        }
-        throw err;
-      }
-    }
-
-    throw lastErr;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Fall back for common failure/hang cases.
-    const shouldFallback =
-      message.toLowerCase().includes('client token') ||
-      message.toLowerCase().includes('token') ||
-      message.toLowerCase().includes('timeout') ||
-      (err instanceof Error && err.name === 'AbortError');
-
-    if (!shouldFallback) {
-      throw err;
-    }
-
-    // Server-side multipart upload is often unreliable for big videos in serverless.
-    const canFallback = !isVideo || file.size <= 15 * 1024 * 1024;
-    if (!canFallback) {
-      throw new Error(
-        `No se pudo subir el video directamente. Detalle: ${message}. ` +
-          'Intenta con WiFi o reduce el tamaño/duración del video.'
-      );
-    }
-  } finally {
-    clearTimeout(hardTimeoutId);
-    clearInterval(stallInterval);
-  }
-
-  // Fallback: server-side upload (slower but more reliable on iOS)
+}): Promise<{ url: string }> {
+  const { file, onProgress } = args;
   onProgress(5);
-  const fd = new FormData();
-  fd.append('file', file);
-  const fallbackController = new AbortController();
-  const fallbackTimeout = setTimeout(() => fallbackController.abort(), 90_000);
-  let res: Response;
-  try {
-    res = await fetch('/api/posts/upload-blob', {
-      method: 'POST',
-      body: fd,
-      signal: fallbackController.signal,
-    });
-  } catch (err) {
-    const isAbort = err instanceof Error && err.name === 'AbortError';
-    throw new Error(isAbort ? 'Timeout subiendo archivo (fallback)' : 'Error subiendo archivo (fallback)');
-  } finally {
-    clearTimeout(fallbackTimeout);
-  }
-  onProgress(85);
-
-  if (!res.ok) {
-    const raw = await res.text();
-    let payloadObj: Record<string, unknown> | null = null;
-    try {
-      const parsed = raw ? (JSON.parse(raw) as unknown) : null;
-      payloadObj = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
-    } catch {
-      payloadObj = null;
-    }
-
-    const msg =
-      (payloadObj?.error as string) ||
-      (payloadObj?.message as string) ||
-      raw ||
-      `Fallback upload failed (${res.status})`;
-    throw new Error(msg);
-  }
-
-  const data = (await res.json()) as { cloud_storage_path?: string; fileUrl?: string };
-  const url = data.cloud_storage_path || data.fileUrl;
-  if (!url) {
-    throw new Error('Fallback upload missing URL');
-  }
-
+  const up = await uploadToCloudinary(file);
   onProgress(100);
-  return { url, usedFallback: true };
+  return { url: up.secureUrl };
 }
 
 export default function PublicarPage() {
@@ -242,7 +106,7 @@ export default function PublicarPage() {
 
   const MAX_FILES = 10;
 
-  // Keep uploads light and fast (also enforced server-side by /api/blob/upload)
+  // Keep uploads light and fast
   const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15MB
   const MAX_VIDEO_BYTES = 60 * 1024 * 1024; // 60MB
   const MAX_VIDEO_SECONDS = 60; // 1 minute
@@ -306,7 +170,7 @@ export default function PublicarPage() {
         continue;
       }
 
-      // Keep uploads light (also enforced by /api/blob/upload)
+      // Keep uploads light
       if (isVideoFile) {
         if (file.size > MAX_VIDEO_BYTES) {
           toast.error(
@@ -375,18 +239,13 @@ export default function PublicarPage() {
         setUploadingFileLabel(file.name);
         setUploadProgressPct(0);
 
-        // Step 1: Upload file directly to Vercel Blob (prevents serverless upload hangs)
+        // Step 1: Upload file directly to Cloudinary
         const hintForThisFile: MediaHint = isProbablyVideo(file) ? 'video' : 'image';
-        const { normalized: uploadFile, mimeType } = normalizeFileForUpload(file, hintForThisFile);
-        const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const pathname = `posts/client_share/${Date.now()}-${idx}-${sanitizedFileName}`;
+        const { normalized: uploadFile } = normalizeFileForUpload(file, hintForThisFile);
         let cloudPath: string;
         try {
-          const up = await uploadToBlobWithFallback({
-            pathname,
+          const up = await uploadToCloudinaryWithProgress({
             file: uploadFile,
-            mimeType,
-            isVideo: isProbablyVideo(uploadFile),
             onProgress: (pct) => setUploadProgressPct(pct),
           });
           cloudPath = up.url;
@@ -398,12 +257,11 @@ export default function PublicarPage() {
           continue;
         }
 
-        // Step 2: Create post record with Vercel Blob URL
-        const postFormData = new FormData();
-        postFormData.append("cloud_storage_path", cloudPath);
-        if (caption.trim()) {
-          postFormData.append("caption", caption.trim());
-        }
+        // Step 2: Create post record with Cloudinary URL
+        const payload: Record<string, unknown> = {
+          mediaUrl: cloudPath,
+        };
+        if (caption.trim()) payload.caption = caption.trim();
 
         const postController = new AbortController();
         // If we already uploaded successfully, don't leave the user stuck at 100%.
@@ -413,7 +271,8 @@ export default function PublicarPage() {
         try {
           postResponse = await fetch("/api/posts", {
             method: "POST",
-            body: postFormData,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
             signal: postController.signal,
           });
         } catch (err) {

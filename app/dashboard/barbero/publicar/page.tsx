@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowUpCircle, Camera, Images, Video, X, Loader2, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { upload } from '@vercel/blob/client';
+import { uploadToCloudinary } from '@/lib/cloudinary-upload';
 
 type MediaHint = 'image' | 'video' | 'auto';
 
@@ -73,140 +73,15 @@ function isProbablyVideo(file: File): boolean {
   return /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name || '');
 }
 
-async function uploadToBlobWithFallback(args: {
-  pathname: string;
+async function uploadToCloudinaryWithProgress(args: {
   file: File;
-  mimeType: string;
-  isVideo?: boolean;
   onProgress: (pct: number) => void;
-}): Promise<{ url: string; usedFallback: boolean }> {
-  const { pathname, file, mimeType, onProgress, isVideo } = args;
-
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-  const controller = new AbortController();
-  const hardTimeoutMs = isVideo ? 10 * 60_000 : 120_000;
-  const hardTimeoutId = setTimeout(() => controller.abort(), hardTimeoutMs);
-
-  let sawProgress = false;
-  const startAt = Date.now();
-  const stalledTimeoutMs = isVideo ? 25_000 : 15_000;
-  const stallInterval = setInterval(() => {
-    if (sawProgress) return;
-    const elapsed = Date.now() - startAt;
-    if (elapsed >= stalledTimeoutMs) {
-      controller.abort();
-    }
-  }, 1_000);
-
-  try {
-    let lastErr: unknown = null;
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const blob = await upload(pathname, file, {
-          access: 'public',
-          handleUploadUrl: '/api/blob/upload',
-          contentType: mimeType && mimeType !== 'application/octet-stream' ? mimeType : undefined,
-          abortSignal: controller.signal,
-          onUploadProgress: (progressEvent: unknown) => {
-            sawProgress = true;
-            if (typeof progressEvent === 'object' && progressEvent !== null) {
-              const maybe = progressEvent as { percentage?: unknown };
-              const pct = Number(maybe.percentage ?? 0) || 0;
-              onProgress(Math.max(0, Math.min(100, pct)));
-              return;
-            }
-            if (typeof progressEvent === 'number') {
-              onProgress(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
-            }
-          },
-        });
-
-        return { url: blob.url, usedFallback: false };
-      } catch (err) {
-        lastErr = err;
-        const message = err instanceof Error ? err.message : String(err);
-        const isAbort = err instanceof Error && err.name === 'AbortError';
-        const tokenish = message.toLowerCase().includes('client token') || message.toLowerCase().includes('token');
-        const timeoutish = message.toLowerCase().includes('timeout') || message.toLowerCase().includes('timed out');
-        if (attempt < 2 && (tokenish || timeoutish) && !isAbort) {
-          await sleep(500);
-          continue;
-        }
-        throw err;
-      }
-    }
-    throw lastErr;
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const shouldFallback =
-      message.toLowerCase().includes('client token') ||
-      message.toLowerCase().includes('token') ||
-      message.toLowerCase().includes('timeout') ||
-      (err instanceof Error && err.name === 'AbortError');
-
-    if (!shouldFallback) {
-      throw err;
-    }
-
-    const canFallback = !isVideo || file.size <= 15 * 1024 * 1024;
-    if (!canFallback) {
-      throw new Error(
-        `No se pudo subir el video directamente. Detalle: ${message}. ` +
-          'Intenta con WiFi o reduce el tamaño/duración del video.'
-      );
-    }
-  } finally {
-    clearTimeout(hardTimeoutId);
-    clearInterval(stallInterval);
-  }
-
+}): Promise<{ url: string }> {
+  const { file, onProgress } = args;
   onProgress(5);
-  const fd = new FormData();
-  fd.append('file', file);
-  const fallbackController = new AbortController();
-  const fallbackTimeout = setTimeout(() => fallbackController.abort(), 90_000);
-  let res: Response;
-  try {
-    res = await fetch('/api/posts/upload-blob', {
-      method: 'POST',
-      body: fd,
-      signal: fallbackController.signal,
-    });
-  } catch (err) {
-    const isAbort = err instanceof Error && err.name === 'AbortError';
-    throw new Error(isAbort ? 'Timeout subiendo archivo (fallback)' : 'Error subiendo archivo (fallback)');
-  } finally {
-    clearTimeout(fallbackTimeout);
-  }
-  onProgress(85);
-
-  if (!res.ok) {
-    const raw = await res.text();
-    let payloadObj: Record<string, unknown> | null = null;
-    try {
-      const parsed = raw ? (JSON.parse(raw) as unknown) : null;
-      payloadObj = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
-    } catch {
-      payloadObj = null;
-    }
-
-    const msg =
-      (payloadObj?.error as string) ||
-      (payloadObj?.message as string) ||
-      raw ||
-      `Fallback upload failed (${res.status})`;
-    throw new Error(msg);
-  }
-
-  const data = (await res.json()) as { cloud_storage_path?: string; fileUrl?: string };
-  const url = data.cloud_storage_path || data.fileUrl;
-  if (!url) {
-    throw new Error('Fallback upload missing URL');
-  }
-
+  const up = await uploadToCloudinary(file);
   onProgress(100);
-  return { url, usedFallback: true };
+  return { url: up.secureUrl };
 }
 
 export default function BarberUploadPage() {
@@ -227,7 +102,7 @@ export default function BarberUploadPage() {
 
   const MAX_FILES = 10;
 
-  // Keep uploads light and fast (also enforced server-side by /api/blob/upload)
+  // Keep uploads light and fast
   const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15MB
   const MAX_VIDEO_BYTES = 60 * 1024 * 1024; // 60MB
   const MAX_VIDEO_SECONDS = 60; // 1 minute
@@ -358,18 +233,13 @@ export default function BarberUploadPage() {
         setUploadingFileLabel(file.name);
         setUploadProgressPct(0);
 
-        // Upload directly to Vercel Blob (avoids serverless upload hangs)
+        // Upload directly to Cloudinary
         const hintForThisFile: MediaHint = isProbablyVideo(file) ? 'video' : 'image';
-        const { normalized: uploadFile, mimeType } = normalizeFileForUpload(file, hintForThisFile);
-        const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const pathname = `posts/barber_work/${Date.now()}-${idx}-${sanitizedFileName}`;
+        const { normalized: uploadFile } = normalizeFileForUpload(file, hintForThisFile);
         let cloud_storage_path: string;
         try {
-          const up = await uploadToBlobWithFallback({
-            pathname,
+          const up = await uploadToCloudinaryWithProgress({
             file: uploadFile,
-            mimeType,
-            isVideo: isProbablyVideo(uploadFile),
             onProgress: (pct) => setUploadProgressPct(pct),
           });
           cloud_storage_path = up.url;
@@ -382,11 +252,10 @@ export default function BarberUploadPage() {
         }
 
         // Create post record
-        const formData = new FormData();
-        if (caption.trim()) {
-          formData.append('caption', caption.trim());
-        }
-        formData.append('cloud_storage_path', cloud_storage_path);
+        const payload: Record<string, unknown> = {
+          mediaUrl: cloud_storage_path,
+        };
+        if (caption.trim()) payload.caption = caption.trim();
 
         const postController = new AbortController();
         const postTimeout = setTimeout(() => postController.abort(), 25_000);
@@ -395,7 +264,8 @@ export default function BarberUploadPage() {
         try {
           res = await fetch('/api/posts', {
             method: 'POST',
-            body: formData,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
             signal: postController.signal,
           });
         } catch (err) {

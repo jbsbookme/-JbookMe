@@ -43,6 +43,8 @@ export default function GaleriaPage() {
   const [showGenderSelection, setShowGenderSelection] = useState(true);
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const imageModalHistoryPushedRef = useRef(false);
+  const imageModalClosingFromPopRef = useRef(false);
   const [isZoomedIn, setIsZoomedIn] = useState(false);
   const [imageScale, setImageScale] = useState(1);
   const imageX = useMotionValue(0);
@@ -56,14 +58,34 @@ export default function GaleriaPage() {
   const [galleryMaleCircleImage, setGalleryMaleCircleImage] = useState<string | null>(null);
   const [galleryFemaleCircleImage, setGalleryFemaleCircleImage] = useState<string | null>(null);
 
-  const resetZoom = () => {
+  const resetZoom = useCallback(() => {
     setImageScale(1);
     imageX.set(0);
     imageY.set(0);
     pinchStartDistanceRef.current = null;
     panStartRef.current = null;
     panOriginRef.current = { x: 0, y: 0 };
-  };
+  }, [imageX, imageY]);
+
+  const closeImageModal = useCallback(() => {
+    setSelectedImage(null);
+    resetZoom();
+
+    if (typeof window !== 'undefined') {
+      if (imageModalHistoryPushedRef.current && !imageModalClosingFromPopRef.current) {
+        try {
+          if ((window.history.state as any)?.__jbm_galeria_image_modal) {
+            window.history.back();
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    imageModalHistoryPushedRef.current = false;
+    imageModalClosingFromPopRef.current = false;
+  }, [resetZoom]);
 
   const handleZoomTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
@@ -178,7 +200,7 @@ export default function GaleriaPage() {
     if (!selectedImage) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setSelectedImage(null);
+        closeImageModal();
         return;
       }
       if (e.key === 'ArrowRight') {
@@ -192,7 +214,39 @@ export default function GaleriaPage() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [goNext, goPrev, selectedImage]);
+  }, [closeImageModal, goNext, goPrev, selectedImage]);
+
+  useEffect(() => {
+    if (!selectedImage) return;
+    if (typeof window === 'undefined') return;
+
+    if (!imageModalHistoryPushedRef.current) {
+      try {
+        window.history.pushState(
+          {
+            ...(window.history.state || {}),
+            __jbm_galeria_image_modal: true,
+          },
+          '',
+          window.location.href
+        );
+        imageModalHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const onPopState = () => {
+      if (!selectedImage) return;
+      imageModalClosingFromPopRef.current = true;
+      setSelectedImage(null);
+      resetZoom();
+      imageModalHistoryPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [resetZoom, selectedImage]);
 
   useEffect(() => {
     // Protect this route - requires authentication
@@ -668,7 +722,7 @@ export default function GaleriaPage() {
       {selectedImage && (
         <div
           className="fixed inset-0 z-50 bg-black/95"
-          onClick={() => setSelectedImage(null)}
+          onClick={closeImageModal}
         >
           {filteredImages.length > 1 && (
             <>
@@ -698,7 +752,7 @@ export default function GaleriaPage() {
           )}
 
           <button
-            onClick={() => setSelectedImage(null)}
+            onClick={closeImageModal}
             className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
             aria-label={t('common.close')}
           >

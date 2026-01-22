@@ -23,7 +23,7 @@ import Image from 'next/image';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { resolvePublicMediaUrl } from '@/lib/utils';
-import { upload } from '@vercel/blob/client';
+import { uploadToCloudinary } from '@/lib/cloudinary-upload';
 
 interface Post {
   id: string;
@@ -45,7 +45,7 @@ export default function BarberPostsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-    // Keep uploads light and fast (also enforced server-side by /api/blob/upload)
+    // Keep uploads light and fast
     const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15MB
     const MAX_VIDEO_BYTES = 60 * 1024 * 1024; // 60MB
     const MAX_VIDEO_SECONDS = 60; // 1 minute
@@ -161,31 +161,46 @@ export default function BarberPostsPage() {
       return;
     }
 
+    if (!caption?.trim()) {
+      toast.error('Please add a description');
+      return;
+    }
+
     try {
       setUploading(true);
 
-      const sanitizedFileName = uploadFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const pathname = `posts/barber_work/${Date.now()}-${sanitizedFileName}`;
-
-      const blob = await upload(pathname, uploadFile, {
-        access: 'public',
-        handleUploadUrl: '/api/blob/upload',
-      });
-
-      // Create post
-      const postFormData = new FormData();
-      postFormData.append('cloud_storage_path', blob.url);
-      if (caption?.trim()) {
-        postFormData.append('caption', caption.trim());
+      let cloudinary;
+      try {
+        cloudinary = await uploadToCloudinary(uploadFile);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Upload failed';
+        toast.error(msg);
+        return;
       }
+
+      // Create post (JSON only; no binary uploads to our backend)
+      const payload = {
+        mediaUrl: cloudinary.secureUrl,
+        caption: caption.trim(),
+      };
 
       const postRes = await fetch('/api/posts', {
         method: 'POST',
-        body: postFormData,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
       });
 
       if (!postRes.ok) {
-        throw new Error('Failed to create post');
+        const text = await postRes.text().catch(() => '');
+        let reason = text;
+        try {
+          const parsed = text ? JSON.parse(text) : null;
+          const msg = parsed?.error || parsed?.message;
+          if (typeof msg === 'string' && msg.trim()) reason = msg.trim();
+        } catch {
+          // ignore
+        }
+        throw new Error(reason || 'Failed to create post');
       }
 
       toast.success('Post created successfully!');
@@ -202,7 +217,7 @@ export default function BarberPostsPage() {
       fetchPosts();
     } catch (error) {
       console.error('Error creating post:', error);
-      toast.error('Error creating post');
+      toast.error(error instanceof Error ? error.message : 'Error creating post');
     } finally {
       setUploading(false);
     }

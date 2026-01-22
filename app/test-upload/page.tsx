@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { uploadToCloudinary } from '@/lib/cloudinary-upload';
 
 export default function TestUploadPage() {
   const { data: session } = useSession();
@@ -43,37 +44,23 @@ export default function TestUploadPage() {
       return;
     }
 
-    setStatus('Uploading to Vercel Blob...');
+    setStatus('Uploading to Cloudinary...');
     setError('');
 
     try {
-      // Upload using Vercel Blob
-      const formData = new FormData();
-      formData.append('file', selectedFile);
-
-      const uploadRes = await fetch('/api/posts/upload-blob', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        const errorData = await uploadRes.json();
-        setError(`Upload failed: ${JSON.stringify(errorData, null, 2)}`);
-        return;
-      }
-
-      const { cloud_storage_path, fileUrl } = await uploadRes.json();
-      setStatus(`Step 2: Creating post record...\nFile URL: ${fileUrl}`);
+      const up = await uploadToCloudinary(selectedFile);
+      const mediaUrl = up.secureUrl;
+      setStatus(`Step 2: Creating post record...\nMedia URL: ${mediaUrl}`);
 
       // Step 3: Create post
-      const postFormData = new FormData();
-      postFormData.append('caption', 'Test upload');
-      postFormData.append('cloud_storage_path', cloud_storage_path);
-      postFormData.append('hashtags', JSON.stringify(['test']));
-
       const postRes = await fetch('/api/posts', {
         method: 'POST',
-        body: postFormData,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          caption: 'Test upload',
+          hashtags: ['test'],
+          mediaUrl,
+        }),
       });
 
       if (!postRes.ok) {
@@ -83,7 +70,7 @@ export default function TestUploadPage() {
       }
 
       const postData = await postRes.json();
-      setStatus(`✅ SUCCESS!\n\nPost created: ${postData.post?.id}\nFile URL: ${fileUrl}`);
+      setStatus(`✅ SUCCESS!\n\nPost created: ${postData.post?.id}\nMedia URL: ${mediaUrl}`);
 
     } catch (err: any) {
       setError(`Error: ${err.message}\n${err.stack || ''}`);

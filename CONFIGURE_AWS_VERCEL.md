@@ -1,47 +1,31 @@
-# Configurar Vercel Blob en Vercel para Upload de Imágenes
+# Deploy en Vercel (Cloudinary-only para Posts)
 
-## 🚨 Problema Actual
+## ✅ Estado actual
 
-El upload de imágenes no funciona en producción si no está configurado **Vercel Blob**.
+- Para **Posts** (fotos/videos): el sistema es **Cloudinary-only**.
+- El endpoint de token de Vercel Blob está **deshabilitado intencionalmente** y devuelve **410**:
+	- `GET/POST /api/blob/upload` → `code: VERCEL_BLOB_DISABLED`
 
-## ✅ Solución: Configurar Vercel Blob
+Esto evita que clientes viejos intenten subir a Blob por error.
 
-### Paso 1: Crear/Conectar un Blob Store
+## 🔧 Variables de entorno mínimas (Vercel)
 
-1. Ve a tu proyecto en Vercel
-2. Abre **Storage** → **Blob**
-3. Crea un **Blob Store** (o conecta uno existente)
+En tu proyecto en Vercel → **Settings → Environment Variables**:
 
-### Paso 2: Configurar Variables de Entorno
+- `DATABASE_URL`
+- `NEXTAUTH_URL` (ej: `https://www.jbsbookme.com`)
+- `NEXTAUTH_SECRET`
+- `NEXT_PUBLIC_APP_URL` (recomendado: `https://www.jbsbookme.com`)
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
 
-1. Ve a tu proyecto en Vercel: https://vercel.com/jbsbookmes-projects/jbook-me-sg94
-2. Click en "Settings"
-3. Click en "Environment Variables" en el menú lateral
-4. Agrega esta variable:
+## 🧪 Verificación post-deploy (rápida)
 
-```
-BLOB_READ_WRITE_TOKEN = tu_token_de_vercel_blob
-```
+- `GET /api/version` debe mostrar `buildTime` actualizado.
+- `GET /api/blob/upload` debe devolver 410 (confirmación de backend nuevo).
 
-Notas:
-- En Vercel normalmente puedes crear el token desde el mismo panel de Blob.
-- No expongas este token en el cliente; solo en server/runtime.
+## Cloudinary (requisito para que funcione el upload)
 
-### Paso 3: Re-deploy
+En Cloudinary crea/valida el preset `jbookme_posts`:
 
-Después de agregar las variables:
-1. Ve a "Deployments" en Vercel
-2. Click en el último deployment
-3. Click en los tres puntos "..."
-4. Click en "Redeploy"
-
-## 🧪 Probar el Upload
-
-Después del redeploy, prueba:
-- https://jbook-me-sg94.vercel.app/test-upload
-- https://jbook-me-sg94.vercel.app/dashboard/barbero/publicar-simple
-
-## 📝 Notas
-
-- El proyecto está configurado para usar **Vercel Blob** únicamente.
-- El token `BLOB_READ_WRITE_TOKEN` debe existir en Vercel para que los endpoints de upload funcionen.
+- Debe ser **UNSIGNED**
+- Debe permitir **video** y formatos `mp4/mov/webm`

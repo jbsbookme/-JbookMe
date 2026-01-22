@@ -10,7 +10,69 @@ import { ArrowUpCircle, Camera, Images, Video, X, Loader2, ArrowLeft } from 'luc
 import { toast } from 'sonner';
 import Link from 'next/link';
 import Image from 'next/image';
-import { upload } from '@vercel/blob/client';
+import { uploadToCloudinary } from '@/lib/cloudinary-upload';
+
+type MediaHint = 'image' | 'video' | 'auto';
+
+function getExtLower(name: string): string {
+  const trimmed = (name || '').trim();
+  const idx = trimmed.lastIndexOf('.');
+  if (idx <= 0 || idx === trimmed.length - 1) return '';
+  return trimmed.slice(idx + 1).toLowerCase();
+}
+
+function inferMimeType(file: File, hint: MediaHint): string {
+  const t = (file.type || '').trim();
+  if (t) return t;
+
+  const ext = getExtLower(file.name);
+  if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+  if (ext === 'png') return 'image/png';
+  if (ext === 'gif') return 'image/gif';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'heic' || ext === 'heif') return 'image/heic';
+  if (ext === 'mp4') return 'video/mp4';
+  if (ext === 'mov') return 'video/quicktime';
+  if (ext === 'm4v') return 'video/x-m4v';
+  if (ext === 'webm') return 'video/webm';
+  if (ext === 'ogg') return 'video/ogg';
+
+  if (hint === 'image') return 'image/jpeg';
+  if (hint === 'video') return 'video/mp4';
+  return 'application/octet-stream';
+}
+
+function ensureFilenameHasExtension(name: string, mimeType: string): string {
+  const safeBase = (name || '').trim() || 'upload';
+  const hasExt = /\.[a-z0-9]+$/i.test(safeBase);
+  if (hasExt) return safeBase;
+
+  if (mimeType.startsWith('image/')) return `${safeBase}.jpg`;
+  if (mimeType.startsWith('video/')) return `${safeBase}.mp4`;
+  return `${safeBase}.bin`;
+}
+
+function normalizeFileForUpload(file: File, hint: MediaHint): { normalized: File; mimeType: string } {
+  const mimeType = inferMimeType(file, hint);
+  const fixedName = ensureFilenameHasExtension(file.name, mimeType);
+  const shouldRewrap = fixedName !== file.name || (file.type || '').trim() !== mimeType;
+  if (!shouldRewrap) return { normalized: file, mimeType };
+
+  try {
+    const normalized = new File([file], fixedName, {
+      type: mimeType,
+      lastModified: file.lastModified,
+    });
+    return { normalized, mimeType };
+  } catch {
+    return { normalized: file, mimeType: (file.type || '').trim() || mimeType };
+  }
+}
+
+function isProbablyVideo(file: File): boolean {
+  if ((file.type || '').startsWith('video/')) return true;
+  return /\.(mp4|mov|m4v|webm|ogg)$/i.test(file.name || '');
+}
 
 export default function SimpleUploadPage() {
   const router = useRouter();
@@ -30,7 +92,7 @@ export default function SimpleUploadPage() {
 
   const MAX_FILES = 10;
 
-  // Keep uploads light and fast (also enforced server-side by /api/blob/upload)
+  // Keep uploads light and fast
   const MAX_IMAGE_BYTES = 15 * 1024 * 1024; // 15MB
   const MAX_VIDEO_BYTES = 60 * 1024 * 1024; // 60MB
   const MAX_VIDEO_SECONDS = 60; // 1 minute
@@ -166,52 +228,58 @@ export default function SimpleUploadPage() {
         setUploadingFileLabel(file.name);
         setUploadProgressPct(0);
 
-        // Step 1: Upload file directly to Vercel Blob
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const pathname = `posts/barber_work/${Date.now()}-${idx}-${sanitizedFileName}`;
-
-        const blob = await upload(pathname, file, {
-          access: 'public',
-          handleUploadUrl: '/api/blob/upload',
-          onUploadProgress: (progressEvent: unknown) => {
-            if (typeof progressEvent === 'number') {
-              setUploadProgressPct(Math.max(0, Math.min(100, Number(progressEvent) || 0)));
-              return;
-            }
-
-            if (typeof progressEvent === 'object' && progressEvent !== null) {
-              const maybe = progressEvent as {
-                percentage?: unknown;
-                progress?: unknown;
-                percent?: unknown;
-              };
-              const pct = Number(maybe.percentage ?? maybe.progress ?? maybe.percent ?? 0) || 0;
-              setUploadProgressPct(Math.max(0, Math.min(100, pct)));
-              return;
-            }
-
-            setUploadProgressPct(0);
-          },
-        });
-
-        const cloud_storage_path = blob.url;
+        // Step 1: Upload file directly to Cloudinary
+        const hintForThisFile: MediaHint = isProbablyVideo(file) ? 'video' : 'image';
+        const { normalized: uploadFile } = normalizeFileForUpload(file, hintForThisFile);
+        setUploadProgressPct(5);
+        let cloud_storage_path: string;
+        try {
+          const up = await uploadToCloudinary(uploadFile);
+          cloud_storage_path = up.secureUrl;
+        } catch (err) {
+          failedCount += 1;
+          const message = err instanceof Error ? err.message : 'Upload failed';
+          toast.error(`Upload failed: ${uploadFile.name || file.name} — ${message}`);
+          continue;
+        } finally {
+          setUploadProgressPct(100);
+        }
 
         // Step 2: Create post
-        const postFormData = new FormData();
-        if (caption.trim()) {
-          postFormData.append('caption', caption.trim());
-        }
-        postFormData.append('cloud_storage_path', cloud_storage_path);
+        const payload: Record<string, unknown> = { mediaUrl: cloud_storage_path };
+        if (caption.trim()) payload.caption = caption.trim();
 
         const postRes = await fetch('/api/posts', {
           method: 'POST',
-          body: postFormData,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
         });
 
         if (!postRes.ok) {
-          const errorData = await postRes.json().catch(() => ({}));
+          const raw = await postRes.text();
+          let payload: unknown = null;
+          try {
+            payload = raw ? (JSON.parse(raw) as unknown) : null;
+          } catch {
+            payload = { error: raw };
+          }
+
+          const payloadObj =
+            payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : null;
+          const payloadCode = payloadObj && typeof payloadObj.code === 'string' ? payloadObj.code : null;
+          const payloadError = payloadObj && typeof payloadObj.error === 'string' ? payloadObj.error : null;
+          const payloadMessage =
+            payloadObj && typeof payloadObj.message === 'string' ? payloadObj.message : null;
+          const baseMessage = payloadMessage ?? payloadError;
+
           failedCount += 1;
-          toast.error(errorData.error || `Failed to create post: ${file.name}`);
+          toast.error(
+            baseMessage
+              ? payloadCode
+                ? `${baseMessage} (${payloadCode})`
+                : baseMessage
+              : `Failed to create post (${postRes.status}): ${file.name}`
+          );
           continue;
         }
 

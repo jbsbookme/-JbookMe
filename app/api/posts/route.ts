@@ -2,11 +2,45 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
-import { put } from '@vercel/blob';
 import { PostStatus, PostType, Role } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
 import { publishLinkToFacebookPage } from '@/lib/facebook';
+import { uploadToCloudinary } from '@/lib/cloudinary-upload';
+
+function getExtLower(name: string): string {
+  const trimmed = (name || '').trim();
+  const idx = trimmed.lastIndexOf('.');
+  if (idx <= 0 || idx === trimmed.length - 1) return '';
+  return trimmed.slice(idx + 1).toLowerCase();
+}
+
+function isCloudinaryUrl(url: string): boolean {
+  const u = (url || '').trim();
+  if (!u) return false;
+  if (!/^https?:\/\//i.test(u)) return false;
+  return /(^https?:\/\/res\.cloudinary\.com\/)|(^https?:\/\/.*\.cloudinary\.com\/)/i.test(u);
+}
+
+function isAllowedImage(file: File): boolean {
+  const type = String((file as any)?.type || '').toLowerCase();
+  if (type.startsWith('image/')) return true;
+  const ext = getExtLower(String((file as any)?.name || ''));
+  return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext);
+}
+
+function isAllowedVideo(file: File): boolean {
+  const type = String((file as any)?.type || '').toLowerCase();
+  if (type === 'video/mp4' || type === 'video/webm' || type === 'video/quicktime') return true;
+  const ext = getExtLower(String((file as any)?.name || ''));
+  return ['mp4', 'mov', 'webm'].includes(ext);
+}
+
+function inferMediaKind(file: File): 'image' | 'video' | null {
+  if (isAllowedImage(file)) return 'image';
+  if (isAllowedVideo(file)) return 'video';
+  return null;
+}
 
 // GET - Fetch posts (all approved for public, or user's own posts)
 export async function GET(request: NextRequest) {
@@ -114,12 +148,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const caption = formData.get('caption') as string;
-    const hashtagsRaw = formData.get('hashtags') as string;
-    const barberId = formData.get('barberId') as string;
-    const providedCloudPath = formData.get('cloud_storage_path') as string;
+    const contentType = request.headers.get('content-type') || '';
+
+    let file: File | null = null;
+    let caption: string | undefined;
+    let hashtagsRaw: string | undefined;
+    let hashtagsJson: unknown;
+    let barberId: string | undefined;
+    let providedCloudPath: string | undefined;
+
+    if (contentType.includes('application/json')) {
+      const body = (await request.json().catch(() => null)) as any;
+      caption = typeof body?.caption === 'string' ? body.caption : undefined;
+      hashtagsRaw = typeof body?.hashtags === 'string' ? body.hashtags : undefined;
+      hashtagsJson = body?.hashtags;
+      barberId = typeof body?.barberId === 'string' ? body.barberId : undefined;
+      const urlCandidate =
+        (typeof body?.mediaUrl === 'string' ? body.mediaUrl : undefined) ||
+        (typeof body?.media_url === 'string' ? body.media_url : undefined) ||
+        (typeof body?.cloud_storage_path === 'string' ? body.cloud_storage_path : undefined);
+      providedCloudPath = typeof urlCandidate === 'string' ? urlCandidate : undefined;
+      file = null;
+    } else {
+      const formData = await request.formData();
+      file = (formData.get('file') as File) || null;
+      caption = (formData.get('caption') as string) || undefined;
+      hashtagsRaw = (formData.get('hashtags') as string) || undefined;
+      barberId = (formData.get('barberId') as string) || undefined;
+      const urlCandidate =
+        (formData.get('mediaUrl') as string) ||
+        (formData.get('media_url') as string) ||
+        (formData.get('cloud_storage_path') as string) ||
+        undefined;
+      providedCloudPath = urlCandidate;
+    }
 
     console.log('[POST /api/posts] Received request:', {
       fileName: file?.name,
@@ -143,75 +205,100 @@ export async function POST(request: NextRequest) {
     // Caption is optional.
 
     if (file) {
-      if (!file.type?.startsWith('image/') && !file.type?.startsWith('video/')) {
-        return NextResponse.json(
-          { error: 'Only images and videos are allowed' },
-          { status: 400 }
-        );
-      }
-
-      // 50MB max (keeps parity with /api/posts/upload)
-      if (file.size > 50 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: 'File is too large (max 50MB)' },
-          { status: 400 }
-        );
-      }
-    } else {
-      const cloudPath = providedCloudPath.trim();
-
-      const isHttpUrl = /^https?:\/\//i.test(cloudPath);
-      const isSameOriginPath = cloudPath.startsWith('/');
-
-      if (!isHttpUrl && !isSameOriginPath) {
+      const kind = inferMediaKind(file);
+      if (!kind) {
         return NextResponse.json(
           {
-            error: 'Unsupported cloud_storage_path. Expected a Blob URL or a same-origin public path.',
-            code: 'UNSUPPORTED_CLOUD_PATH',
+            error: 'Unsupported media. Allowed: images (jpg/png/webp/heic) and videos (mp4/mov/webm).',
+            code: 'UNSUPPORTED_MEDIA',
           },
-          { status: 410 }
+          { status: 400 }
+        );
+      }
+
+      const maxImageBytes = 20 * 1024 * 1024; // 20MB
+      const maxVideoBytes = 100 * 1024 * 1024; // 100MB
+      const maxBytes = kind === 'video' ? maxVideoBytes : maxImageBytes;
+
+      if (file.size > maxBytes) {
+        return NextResponse.json(
+          {
+            error: `File is too large (max ${kind === 'video' ? '100MB' : '20MB'})`,
+            code: 'FILE_TOO_LARGE',
+          },
+          { status: 400 }
         );
       }
     }
 
-    // Parse hashtags - could be JSON array or comma-separated string
+    if (!file && hasProvidedCloudPath) {
+      const cloudPath = String(providedCloudPath || '').trim();
+      if (!isCloudinaryUrl(cloudPath)) {
+        return NextResponse.json(
+          {
+            error: 'Unsupported mediaUrl. Cloudinary URL is required.',
+            code: 'UNSUPPORTED_MEDIA_URL',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Parse hashtags - could be JSON array (from JSON body) or a string (JSON array or comma-separated)
     let hashtagsArray: string[] = [];
-    if (hashtagsRaw) {
+    if (Array.isArray(hashtagsJson)) {
+      hashtagsArray = (hashtagsJson as unknown[])
+        .map((t) => (typeof t === 'string' ? t.trim() : ''))
+        .filter(Boolean);
+    } else if (hashtagsRaw) {
       try {
         hashtagsArray = JSON.parse(hashtagsRaw);
       } catch {
-        hashtagsArray = hashtagsRaw.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+        hashtagsArray = hashtagsRaw
+          .split(',')
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0);
       }
     }
 
     console.log('[POST /api/posts] Parsed hashtags:', hashtagsArray);
 
-    // Determine post type first (needed for folder structure)
+    // Determine post type
     const postType: PostType = isBarberOrAdmin(session.user.role) ? 'BARBER_WORK' : 'CLIENT_SHARE';
 
-    // Create organized folder structure: posts/YYYY/MM/TYPE/
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const typeFolder = postType.toLowerCase(); // barber_work or client_share
-
-    // If media is already uploaded (Blob flow), use providedCloudPath.
-    // Otherwise upload here.
+    // Cloudinary-only media storage:
+    // - if mediaUrl is provided, use it (validated as Cloudinary)
+    // - if file is provided, upload to Cloudinary here (for FormData legacy clients)
     let cloud_storage_path: string;
     if (hasProvidedCloudPath && !file) {
-      cloud_storage_path = providedCloudPath.trim();
+      cloud_storage_path = String(providedCloudPath || '').trim();
     } else {
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const key = `posts/${year}/${month}/${typeFolder}/${Date.now()}-${sanitizedFileName}`;
-      console.log('[POST /api/posts] Uploading to Vercel Blob with key:', key);
+      if (!file) {
+        return NextResponse.json(
+          { error: 'Media (photo or video) is required' },
+          { status: 400 }
+        );
+      }
 
-      const blob = await put(key, file, {
-        access: 'public',
-        addRandomSuffix: false,
+      console.log('[POST /api/posts] Uploading media to Cloudinary (server-side)...', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
       });
 
-      cloud_storage_path = blob.url;
-      console.log('[POST /api/posts] Blob upload successful:', cloud_storage_path);
+      try {
+        const up = await uploadToCloudinary(file);
+        cloud_storage_path = up.secureUrl;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return NextResponse.json(
+          {
+            error: `Cloudinary upload failed. ${message}`,
+            code: 'CLOUDINARY_UPLOAD_FAILED',
+          },
+          { status: 502 }
+        );
+      }
     }
 
     // Get barberId if user is a barber

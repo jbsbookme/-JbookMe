@@ -92,6 +92,13 @@ export default function PerfilPage() {
     caption?: string | null;
   } | null>(null);
 
+  const openedPostRef = useRef<typeof openedPost>(null);
+  const videoViewerRef = useRef<typeof videoViewer>(null);
+  const openedPostHistoryPushedRef = useRef(false);
+  const openedPostClosingFromPopRef = useRef(false);
+  const videoViewerHistoryPushedRef = useRef(false);
+  const videoViewerClosingFromPopRef = useRef(false);
+
   const [videoViewer, setVideoViewer] = useState<
     | {
         items: Array<{ postId: string; url: string; caption?: string | null }>;
@@ -124,6 +131,116 @@ export default function PerfilPage() {
   };
 
   const isActiveAppointment = (aptStatus: string) => aptStatus === 'PENDING' || aptStatus === 'CONFIRMED';
+
+  useEffect(() => {
+    openedPostRef.current = openedPost;
+  }, [openedPost]);
+
+  useEffect(() => {
+    videoViewerRef.current = videoViewer;
+  }, [videoViewer]);
+
+  const closeOpenedPost = useCallback(() => {
+    setOpenedPost(null);
+
+    if (typeof window !== 'undefined') {
+      if (openedPostHistoryPushedRef.current && !openedPostClosingFromPopRef.current) {
+        try {
+          if ((window.history.state as any)?.__jbm_profile_opened_post) {
+            window.history.back();
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    openedPostHistoryPushedRef.current = false;
+    openedPostClosingFromPopRef.current = false;
+  }, []);
+
+  const closeVideoViewer = useCallback(() => {
+    setVideoViewer(null);
+
+    if (typeof window !== 'undefined') {
+      if (videoViewerHistoryPushedRef.current && !videoViewerClosingFromPopRef.current) {
+        try {
+          if ((window.history.state as any)?.__jbm_profile_video_viewer) {
+            window.history.back();
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    videoViewerHistoryPushedRef.current = false;
+    videoViewerClosingFromPopRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (!openedPost) return;
+    if (typeof window === 'undefined') return;
+
+    if (!openedPostHistoryPushedRef.current) {
+      try {
+        window.history.pushState(
+          {
+            ...(window.history.state || {}),
+            __jbm_profile_opened_post: true,
+          },
+          '',
+          window.location.href
+        );
+        openedPostHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const onPopState = () => {
+      if (!openedPostRef.current) return;
+      openedPostClosingFromPopRef.current = true;
+      setOpenedPost(null);
+      openedPostHistoryPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [openedPost]);
+
+  useEffect(() => {
+    if (!videoViewer) return;
+    if (typeof window === 'undefined') return;
+
+    if (!videoViewerHistoryPushedRef.current) {
+      try {
+        window.history.pushState(
+          {
+            ...(window.history.state || {}),
+            __jbm_profile_video_viewer: true,
+          },
+          '',
+          window.location.href
+        );
+        videoViewerHistoryPushedRef.current = true;
+      } catch {
+        // ignore
+      }
+    }
+
+    const onPopState = () => {
+      // If another modal is open on top, let it handle back first.
+      if (openedPostRef.current) return;
+      if (!videoViewerRef.current) return;
+      videoViewerClosingFromPopRef.current = true;
+      setVideoViewer(null);
+      videoViewerHistoryPushedRef.current = false;
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [videoViewer]);
 
   // Lock background scroll when modals are open (better iOS/PWA UX).
   useEffect(() => {
@@ -751,7 +868,7 @@ export default function PerfilPage() {
           {openedPost && (
             <div
               className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-              onClick={() => setOpenedPost(null)}
+              onClick={closeOpenedPost}
               role="dialog"
               aria-modal="true"
             >
@@ -762,7 +879,7 @@ export default function PerfilPage() {
                 <button
                   type="button"
                   className="absolute -top-12 right-0 text-white/80 hover:text-white"
-                  onClick={() => setOpenedPost(null)}
+                  onClick={closeOpenedPost}
                   aria-label="Close"
                 >
                   ✕
@@ -814,14 +931,14 @@ export default function PerfilPage() {
               className="fixed inset-0 z-50 bg-black"
               role="dialog"
               aria-modal="true"
-              onClick={() => setVideoViewer(null)}
+              onClick={closeVideoViewer}
             >
               <button
                 type="button"
                 className="absolute top-4 right-4 z-50 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full p-3 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setVideoViewer(null);
+                  closeVideoViewer();
                 }}
                 aria-label="Close"
               >
@@ -835,7 +952,7 @@ export default function PerfilPage() {
                   e.stopPropagation();
                   const current = videoViewer.items[videoViewer.index];
                   if (!current) return;
-                  setVideoViewer(null);
+                  closeVideoViewer();
                   void handleDeleteMyPost(current.postId);
                 }}
                 aria-label={t('feed.deletePostAria')}

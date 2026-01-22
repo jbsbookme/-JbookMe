@@ -154,6 +154,119 @@ export default function ReservarPage() {
   const [maleGenderImage, setMaleGenderImage] = useState<string | null>(null);
   const [femaleGenderImage, setFemaleGenderImage] = useState<string | null>(null);
 
+  // Mobile UX: make swipe-back navigate within steps (not jump out of /reservar).
+  const isHandlingPopRef = useRef(false);
+  const lastPushedStepRef = useRef<Step | null>(null);
+
+  const applyStepFromHistory = useCallback(
+    (step: Step) => {
+      // When moving backwards, clear any selections that belong to later steps.
+      // This mirrors the intent of handleBack() without routing away.
+      if (step === 'gender') {
+        setSelectedGender('');
+        setSelectedService(null);
+        setSelectedBarber(null);
+        setSelectedDate(undefined);
+        setSelectedTime('');
+        setPaymentMethod('');
+        setPaymentReference('');
+        setNotes('');
+        setAcceptCancellationPolicy(false);
+      }
+
+      if (step === 'services') {
+        setSelectedService(null);
+        setSelectedBarber(null);
+        setSelectedDate(undefined);
+        setSelectedTime('');
+        setPaymentMethod('');
+        setPaymentReference('');
+        setNotes('');
+        setAcceptCancellationPolicy(false);
+      }
+
+      if (step === 'barbers') {
+        setSelectedBarber(null);
+        setSelectedDate(undefined);
+        setSelectedTime('');
+        setPaymentMethod('');
+        setPaymentReference('');
+        setNotes('');
+        setAcceptCancellationPolicy(false);
+      }
+
+      if (step === 'barber-profile') {
+        setSelectedDate(undefined);
+        setSelectedTime('');
+        setPaymentMethod('');
+        setPaymentReference('');
+        setNotes('');
+        setAcceptCancellationPolicy(false);
+      }
+
+      if (step === 'datetime') {
+        setPaymentMethod('');
+        setPaymentReference('');
+        setAcceptCancellationPolicy(false);
+      }
+
+      setCurrentStep(step);
+    },
+    [
+      setAcceptCancellationPolicy,
+      setNotes,
+      setPaymentMethod,
+      setPaymentReference,
+      setSelectedBarber,
+      setSelectedDate,
+      setSelectedGender,
+      setSelectedService,
+      setSelectedTime,
+    ]
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const onPopState = (event: PopStateEvent) => {
+      const maybeStep = (event.state as any)?.__jbm_reservar_step as Step | undefined;
+      if (!maybeStep) return;
+
+      isHandlingPopRef.current = true;
+      applyStepFromHistory(maybeStep);
+      // Allow the render to complete before we re-enable pushState.
+      window.setTimeout(() => {
+        isHandlingPopRef.current = false;
+      }, 0);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [applyStepFromHistory]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isHandlingPopRef.current) {
+      lastPushedStepRef.current = currentStep;
+      return;
+    }
+
+    if (lastPushedStepRef.current === currentStep) return;
+    const nextState = {
+      ...(window.history.state || {}),
+      __jbm_reservar_step: currentStep,
+    };
+
+    // On first mount, replaceState so we don't add an extra entry.
+    if (lastPushedStepRef.current == null) {
+      window.history.replaceState(nextState, '', window.location.href);
+    } else {
+      window.history.pushState(nextState, '', window.location.href);
+    }
+
+    lastPushedStepRef.current = currentStep;
+  }, [currentStep]);
+
   const selectedBarberId = selectedBarber?.id;
   const selectedBarberGender = selectedBarber?.gender;
 
@@ -771,7 +884,13 @@ export default function ReservarPage() {
         setSelectedGender('');
       }
     } else if (currentStep === 'gender') {
-      // Go back to home or dashboard
+      // First step: respect browser history when possible (mobile swipe-back).
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        router.back();
+        return;
+      }
+
+      // Fallback
       if (status === 'authenticated') {
         router.push('/dashboard');
       } else {

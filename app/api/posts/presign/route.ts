@@ -5,8 +5,8 @@ export const dynamic = 'force-dynamic';
 export async function POST() {
   return NextResponse.json(
     {
-      error: 'S3 presigned uploads are no longer supported. This app uses Vercel Blob only.',
-      hint: 'Use /api/posts/upload-blob (recommended) or /api/posts/upload which returns a Blob URL.',
+      error: 'Presigned uploads are not supported. Posts media uploads are Cloudinary-only.',
+      hint: 'Upload directly to Cloudinary (unsigned preset) and then create the post via /api/posts using JSON: { mediaUrl, caption }.',
     },
     { status: 410 }
   );
