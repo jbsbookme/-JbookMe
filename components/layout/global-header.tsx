@@ -57,7 +57,7 @@ export function GlobalHeader() {
 
   const isAuthenticated = status === 'authenticated' && !!session?.user;
   const displayName = user?.name || session?.user?.name || '';
-  const avatarUrl = session?.user?.image || user?.image || '';
+  const avatarUrl = user?.image || session?.user?.image || '';
   const role = (session?.user as any)?.role || (user as any)?.role || '';
   const isAdmin = String(role).toUpperCase() === 'ADMIN';
   const isBarber = ['BARBER', 'STYLIST'].includes(String(role).toUpperCase());
@@ -207,11 +207,36 @@ export function GlobalHeader() {
                 <PopoverTrigger asChild>
                   <button
                     type="button"
-                    aria-label={language === 'es' ? 'Cuenta' : 'Account'}
-                    className="border-transparent bg-white/5 text-white hover:bg-white/10 hover:text-white h-7 w-7 sm:h-8 sm:w-8 p-0 inline-flex items-center justify-center rounded-md touch-manipulation select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f0ff]/50"
+                    aria-label={displayName ? `${displayName} menu` : language === 'es' ? 'Cuenta' : 'Account'}
+                    className="rounded-full cursor-pointer touch-manipulation select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f0ff]/50"
                     onPointerDown={() => setUserMenuOpen(true)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setUserMenuOpen(true);
+                    }}
                   >
-                    <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    {avatarUrl ? (
+                      <div
+                        className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-white/10"
+                        style={{ WebkitTouchCallout: 'none' } as any}
+                      >
+                        <Image
+                          src={avatarUrl}
+                          alt={displayName ? `${displayName} avatar` : 'User avatar'}
+                          fill
+                          sizes="36px"
+                          className="object-cover select-none pointer-events-none"
+                          draggable={false}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        aria-label={displayName ? `${displayName} initials` : 'User initials'}
+                        className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 text-white flex items-center justify-center text-xs sm:text-sm font-bold"
+                      >
+                        {getInitials(displayName)}
+                      </div>
+                    )}
                   </button>
                 </PopoverTrigger>
 
@@ -272,32 +297,6 @@ export function GlobalHeader() {
                   </button>
                 </PopoverContent>
               </Popover>
-
-              {/* Decorative avatar (not clickable) */}
-              <div className="ml-2 rounded-full select-none pointer-events-none">
-                {avatarUrl ? (
-                  <div
-                    className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-white/10"
-                    style={{ WebkitTouchCallout: 'none' } as any}
-                  >
-                    <Image
-                      src={avatarUrl}
-                      alt={displayName ? `${displayName} avatar` : 'User avatar'}
-                      fill
-                      sizes="36px"
-                      className="object-cover select-none"
-                      draggable={false}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    aria-label={displayName ? `${displayName} initials` : 'User initials'}
-                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 text-white flex items-center justify-center text-xs sm:text-sm font-bold"
-                  >
-                    {getInitials(displayName)}
-                  </div>
-                )}
-              </div>
             </div>
           ) : null}
 
