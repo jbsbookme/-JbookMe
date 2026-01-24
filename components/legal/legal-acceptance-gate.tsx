@@ -149,7 +149,13 @@ export function LegalAcceptanceGate() {
 
             <Button
               variant="outline"
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={async () => {
+                try {
+                  await signOut({ redirect: false });
+                } finally {
+                  window.location.assign('/');
+                }
+              }}
               className="w-full border-gray-700 text-white hover:bg-white/10"
             >
               {language === 'es' ? 'Cerrar sesión' : 'Sign out'}

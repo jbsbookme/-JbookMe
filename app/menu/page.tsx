@@ -120,8 +120,11 @@ export default function MenuPage() {
   };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/' });
-    toast.success(t('auth.logoutSuccess'));
+    try {
+      await signOut({ redirect: false });
+    } finally {
+      window.location.assign('/');
+    }
   };
 
   const handleShare = async () => {

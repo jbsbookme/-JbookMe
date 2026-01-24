@@ -37,6 +37,16 @@ export function GlobalHeader() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
+  const handleLogout = async () => {
+    try {
+      setUserMenuOpen(false);
+      await signOut({ redirect: false });
+    } finally {
+      // Hard navigation ensures all client state (session + cached UI) resets.
+      window.location.assign('/');
+    }
+  };
+
   useEffect(() => {
     // Prefetch Home route to make header tap feel instant on mobile/PWA.
     try {
@@ -295,7 +305,7 @@ export function GlobalHeader() {
                     className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-red-300 hover:bg-white/5"
                     onClick={() => {
                       setUserMenuOpen(false);
-                      void signOut({ callbackUrl: '/inicio' });
+                      void handleLogout();
                     }}
                   >
                     <LogOut className="h-4 w-4" />
