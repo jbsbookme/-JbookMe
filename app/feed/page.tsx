@@ -569,7 +569,6 @@ export default function FeedPage() {
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setFeedAudioEnabled(true);
         setVideoViewer((prev) => {
           if (!prev) return prev;
           const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
@@ -580,7 +579,6 @@ export default function FeedPage() {
 
       if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setFeedAudioEnabled(true);
         setVideoViewer((prev) => {
           if (!prev) return prev;
           const nextIndex = Math.max(0, prev.index - 1);
@@ -1949,81 +1947,115 @@ export default function FeedPage() {
                     <CardContent className="p-0 relative z-10">
                       {/* Author Header */}
                       <div className="flex items-center gap-3 p-4">
-                        <motion.div 
-                          className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${
-                            (post.authorType === 'BARBER' && post.barber?.profileImage) ||
-                            (post.authorType === 'BARBER' && post.barber?.user?.image) ||
-                            post.author?.image
-                              ? 'bg-transparent'
-                              : 'bg-gradient-to-br from-cyan-500 to-purple-500'
-                          }`}
-                          whileHover={{ scale: 1.1, rotate: 180 }}
-                          transition={{ duration: 0.3 }}
-                        >
-                          {(post.authorType === 'BARBER' && post.barber?.profileImage) ? (
-                            <Image
-                              src={post.barber.profileImage}
-                              alt={post.barber.user.name || 'Barber'}
-                              width={40}
-                              height={40}
-                              className="block rounded-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (post.authorType === 'BARBER' && post.barber?.user?.image) ? (
-                            <Image
-                              src={post.barber.user.image}
-                              alt={post.barber.user.name || 'Barber'}
-                              width={40}
-                              height={40}
-                              className="block rounded-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : post.author?.image ? (
-                            <Image
-                              src={post.author.image}
-                              alt={post.author.name || 'User'}
-                              width={40}
-                              height={40}
-                              className="block rounded-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <User className="w-5 h-5 text-white" />
-                          )}
-                        </motion.div>
-                        <div className="flex-1">
-                          <p className="text-white font-semibold text-sm">
-                            {post.authorType === 'BARBER' 
-                              ? post.barber?.user?.name 
-                              : post.author?.name || 'User'}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            {post.postType === 'BARBER_WORK' ? (
-                              <motion.div 
-                                className="px-2 py-0.5 bg-cyan-500/20 rounded-full"
-                                whileHover={{ scale: 1.1 }}
-                              >
-                                <Scissors className="w-3 h-3 text-cyan-400" />
-                              </motion.div>
-                            ) : (
-                              <motion.div 
-                                className="px-2 py-0.5 bg-pink-500/20 rounded-full"
-                                whileHover={{ scale: 1.1 }}
-                              >
-                                <User className="w-3 h-3 text-pink-400" />
-                              </motion.div>
-                            )}
-                          </div>
-                        </div>
+                        {(() => {
+                          const isBarberPost = post.authorType === 'BARBER';
+                          const barberHref = isBarberPost && post.barber?.id ? `/barberos/${post.barber.id}` : null;
+                          const selfHref =
+                            !isBarberPost && post.author?.id && post.author.id === session?.user?.id
+                              ? '/perfil'
+                              : null;
+                          const href = barberHref || selfHref;
+
+                          const Avatar = (
+                            <motion.div
+                              className={`w-10 h-10 rounded-full flex items-center justify-center overflow-hidden ${
+                                (isBarberPost && post.barber?.profileImage) ||
+                                (isBarberPost && post.barber?.user?.image) ||
+                                post.author?.image
+                                  ? 'bg-transparent'
+                                  : 'bg-gradient-to-br from-cyan-500 to-purple-500'
+                              }`}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {(isBarberPost && post.barber?.profileImage) ? (
+                                <Image
+                                  src={post.barber.profileImage}
+                                  alt={post.barber.user.name || 'Barber'}
+                                  width={40}
+                                  height={40}
+                                  className="block rounded-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (isBarberPost && post.barber?.user?.image) ? (
+                                <Image
+                                  src={post.barber.user.image}
+                                  alt={post.barber.user.name || 'Barber'}
+                                  width={40}
+                                  height={40}
+                                  className="block rounded-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : post.author?.image ? (
+                                <Image
+                                  src={post.author.image}
+                                  alt={post.author.name || 'User'}
+                                  width={40}
+                                  height={40}
+                                  className="block rounded-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <User className="w-5 h-5 text-white" />
+                              )}
+                            </motion.div>
+                          );
+
+                          const NameBlock = (
+                            <div className="flex-1 min-w-0">
+                              <p className="text-white font-semibold text-sm truncate">
+                                {isBarberPost ? post.barber?.user?.name : post.author?.name || 'User'}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                {post.postType === 'BARBER_WORK' ? (
+                                  <motion.div
+                                    className="px-2 py-0.5 bg-cyan-500/20 rounded-full"
+                                    whileHover={{ scale: 1.1 }}
+                                  >
+                                    <Scissors className="w-3 h-3 text-cyan-400" />
+                                  </motion.div>
+                                ) : (
+                                  <motion.div
+                                    className="px-2 py-0.5 bg-pink-500/20 rounded-full"
+                                    whileHover={{ scale: 1.1 }}
+                                  >
+                                    <User className="w-3 h-3 text-pink-400" />
+                                  </motion.div>
+                                )}
+                              </div>
+                            </div>
+                          );
+
+                          if (!href) {
+                            return (
+                              <>
+                                {Avatar}
+                                {NameBlock}
+                              </>
+                            );
+                          }
+
+                          return (
+                            <Link
+                              href={href}
+                              className="flex items-center gap-3 min-w-0 touch-manipulation"
+                              aria-label={
+                                isBarberPost ? `View ${post.barber?.user?.name || 'barber'} profile` : 'View profile'
+                              }
+                            >
+                              {Avatar}
+                              {NameBlock}
+                            </Link>
+                          );
+                        })()}
                       </div>
 
                       {/* Media */}
                       <div 
                         className={`relative w-full ${
-                          isVideo(post.cloud_storage_path)
+                          isVideo(getMediaUrl(post.cloud_storage_path) || post.cloud_storage_path)
                             ? 'h-[78vh] md:h-[70vh] lg:h-[620px]'
                             : 'aspect-square'
-                        } ${isVideo(post.cloud_storage_path) ? 'bg-black' : 'bg-zinc-800'} cursor-pointer`}
+                        } ${isVideo(getMediaUrl(post.cloud_storage_path) || post.cloud_storage_path) ? 'bg-black' : 'bg-zinc-800'} cursor-pointer`}
                         onClick={(e) => {
                           // Prevent background audio/video from continuing when opening modal.
                           pauseAllVideos();
@@ -2033,10 +2065,10 @@ export default function FeedPage() {
                               ? post.barber?.user?.name
                               : post.author?.name || 'User';
 
-                          const isVideoPost = isVideo(post.cloud_storage_path);
+                          const isVideoPost = isVideo(getMediaUrl(post.cloud_storage_path) || post.cloud_storage_path);
                           if (isVideoPost) {
                             const items = posts
-                              .filter((p) => isVideo(p.cloud_storage_path))
+                              .filter((p) => isVideo(getMediaUrl(p.cloud_storage_path) || p.cloud_storage_path))
                               .map((p) => ({
                                 postId: p.id,
                                 url: getOptimizedVideoPlaybackUrl(p),
@@ -2089,7 +2121,7 @@ export default function FeedPage() {
                           </div>
                         ) : null}
 
-                        {isVideo(post.cloud_storage_path) ? (
+                        {isVideo(getMediaUrl(post.cloud_storage_path) || post.cloud_storage_path) ? (
                           <div className="pointer-events-none absolute left-3 top-3 z-20">
                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur border border-white/10">
                               <span className="text-xs font-medium text-white leading-none">
@@ -2101,7 +2133,7 @@ export default function FeedPage() {
                           </div>
                         ) : null}
 
-                        {isVideo(post.cloud_storage_path) ? (
+                        {isVideo(getMediaUrl(post.cloud_storage_path) || post.cloud_storage_path) ? (
                           <div className="relative w-full h-full">
                             <video
                               data-src={getOptimizedVideoPlaybackUrl(post)}
@@ -2377,7 +2409,6 @@ export default function FeedPage() {
 
               if (dy < 0) {
                 // swipe up -> next
-                setFeedAudioEnabled(true);
                 setVideoViewer((prev) => {
                   if (!prev) return prev;
                   const nextIndex = Math.min(prev.items.length - 1, prev.index + 1);
@@ -2386,7 +2417,6 @@ export default function FeedPage() {
                 });
               } else {
                 // swipe down -> prev
-                setFeedAudioEnabled(true);
                 setVideoViewer((prev) => {
                   if (!prev) return prev;
                   const nextIndex = Math.max(0, prev.index - 1);
@@ -2485,7 +2515,7 @@ export default function FeedPage() {
 
               return (
                 <div
-                  className="absolute right-3 bottom-24 z-40 flex flex-col items-center gap-4"
+                  className="absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+6rem)] z-40 flex flex-col items-center gap-4"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button

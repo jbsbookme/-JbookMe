@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useUser } from '@/contexts/user-context';
 import { LanguageSelector } from '@/components/language-selector';
+import { normalizeExternalUrl, normalizeWhatsAppUrl } from '@/lib/utils';
 
 interface Settings {
   // Core business settings
@@ -163,6 +164,16 @@ export default function MenuPage() {
   const businessTiktok = settings?.tiktokUrl || settings?.tiktok;
   const businessYoutube = settings?.youtubeUrl || settings?.youtube;
   const businessWhatsapp = settings?.whatsappUrl || settings?.whatsapp;
+
+  const facebookHref = normalizeExternalUrl(businessFacebook) || '';
+  const instagramHref = normalizeExternalUrl(businessInstagram) || '';
+  const twitterHref = normalizeExternalUrl(businessTwitter) || '';
+  const tiktokHref = normalizeExternalUrl(businessTiktok) || '';
+  const youtubeHref = normalizeExternalUrl(businessYoutube) || '';
+  const whatsappHref = normalizeWhatsAppUrl(businessWhatsapp, settings?.phone || undefined) || '';
+
+  const telHref = settings?.phone ? `tel:${settings.phone.trim().replace(/[^\d+]/g, '')}` : '';
+  const mailHref = settings?.email ? `mailto:${settings.email.trim()}` : '';
 
   const isAdmin = session?.user?.role === 'ADMIN';
   const isBarber = session?.user?.role === 'BARBER' || session?.user?.role === 'STYLIST';
@@ -408,7 +419,6 @@ export default function MenuPage() {
                       {settings.address ? (
                         <a
                           href={directionsHrefFor(settings.address)}
-                          target="_blank"
                           rel="noopener noreferrer"
                           className="text-white hover:text-[#00f0ff]"
                         >
@@ -426,7 +436,7 @@ export default function MenuPage() {
                       <p className="text-gray-400 text-sm">{t('common.phone')}</p>
                       {settings.phone ? (
                         <a
-                          href={`tel:${settings.phone}`}
+                          href={telHref}
                           className="text-white hover:text-[#00f0ff]"
                         >
                           {settings.phone}
@@ -443,7 +453,7 @@ export default function MenuPage() {
                       <p className="text-gray-400 text-sm">{t('common.email')}</p>
                       {settings.email ? (
                         <a
-                          href={`mailto:${settings.email}`}
+                          href={mailHref}
                           className="text-white hover:text-[#00f0ff]"
                         >
                           {settings.email}
@@ -506,8 +516,7 @@ export default function MenuPage() {
                 <div className="flex justify-center gap-6 flex-wrap">
                   {businessFacebook && (
                     <a
-                      href={businessFacebook}
-                      target="_blank"
+                      href={facebookHref}
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
@@ -519,8 +528,7 @@ export default function MenuPage() {
                   )}
                   {businessInstagram && (
                     <a
-                      href={businessInstagram}
-                      target="_blank"
+                      href={instagramHref}
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
@@ -532,8 +540,7 @@ export default function MenuPage() {
                   )}
                   {businessTwitter && (
                     <a
-                      href={businessTwitter}
-                      target="_blank"
+                      href={twitterHref}
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
@@ -545,8 +552,7 @@ export default function MenuPage() {
                   )}
                   {businessTiktok && (
                     <a
-                      href={businessTiktok}
-                      target="_blank"
+                      href={tiktokHref}
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
@@ -558,8 +564,7 @@ export default function MenuPage() {
                   )}
                   {businessYoutube && (
                     <a
-                      href={businessYoutube}
-                      target="_blank"
+                      href={youtubeHref}
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >
@@ -571,8 +576,7 @@ export default function MenuPage() {
                   )}
                   {businessWhatsapp && (
                     <a
-                      href={businessWhatsapp}
-                      target="_blank"
+                      href={whatsappHref}
                       rel="noopener noreferrer"
                       className="flex flex-col items-center gap-2 group"
                     >

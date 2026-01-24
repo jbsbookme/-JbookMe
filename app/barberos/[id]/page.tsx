@@ -150,8 +150,6 @@ export default async function BarberProfilePage({ params }: Params) {
   const chatHref =
     normalizeWhatsAppUrl(barber.whatsappUrl, phoneForLinks) ||
     (phoneForLinks ? `sms:${phoneForLinks.replace(/\D/g, '')}` : null);
-  const chatTarget = chatHref?.startsWith('http') ? '_blank' : undefined;
-  const chatRel = chatHref?.startsWith('http') ? 'noreferrer noopener' : undefined;
 
   const fbHref = normalizeExternalUrl(barber.facebookUrl);
   const igHref = normalizeExternalUrl(barber.instagramUrl);
@@ -263,7 +261,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             size="icon"
                             className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
                           >
-                            <a href={chatHref} aria-label="Chat" target={chatTarget} rel={chatRel}>
+                            <a href={chatHref} aria-label="Chat" rel="noreferrer noopener">
                               <MessageCircle className="h-4 w-4" />
                             </a>
                           </Button>
@@ -276,7 +274,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             size="icon"
                             className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
                           >
-                            <a href={fbHref} aria-label="Facebook" target="_blank" rel="noreferrer noopener">
+                            <a href={fbHref} aria-label="Facebook" rel="noreferrer noopener">
                               <Facebook className="h-4 w-4" />
                             </a>
                           </Button>
@@ -289,7 +287,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             size="icon"
                             className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
                           >
-                            <a href={igHref} aria-label="Instagram" target="_blank" rel="noreferrer noopener">
+                            <a href={igHref} aria-label="Instagram" rel="noreferrer noopener">
                               <Instagram className="h-4 w-4" />
                             </a>
                           </Button>
@@ -302,7 +300,7 @@ export default async function BarberProfilePage({ params }: Params) {
                             size="icon"
                             className="border-gray-700 bg-black/20 text-white hover:bg-gray-900 hover:text-[#00f0ff]"
                           >
-                            <a href={ttHref} aria-label="TikTok" target="_blank" rel="noreferrer noopener">
+                            <a href={ttHref} aria-label="TikTok" rel="noreferrer noopener">
                               <Music2 className="h-4 w-4" />
                             </a>
                           </Button>

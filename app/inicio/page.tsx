@@ -381,7 +381,7 @@ export default function InicioPage() {
             {navigationCards.map((card, index) => {
               const Icon = card.icon;
               return (
-                <Link key={card.href} href={card.href}>
+                <Link key={card.href} href={card.href} className="block h-full touch-manipulation">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -390,22 +390,26 @@ export default function InicioPage() {
                     whileTap={{ scale: 0.98 }}
                     className="h-full"
                   >
-                    <Card className={`bg-gray-900 border-gray-800 hover:border-[#00f0ff] transition-all duration-300 h-full group overflow-hidden relative`}>
-                      <div className={`absolute inset-0 ${card.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+                    <Card
+                      className={`bg-gray-900 border-gray-800 transition-all duration-300 h-full group overflow-hidden relative cursor-pointer touch-manipulation [@media(hover:hover)]:hover:border-[#00f0ff]`}
+                    >
+                      <div
+                        className={`absolute inset-0 ${card.gradient} opacity-0 transition-opacity duration-300 pointer-events-none [@media(hover:hover)]:group-hover:opacity-100`}
+                      ></div>
                       
                       <CardContent className="p-8 relative z-10">
                         <div className={`p-4 bg-gradient-to-br ${card.color} rounded-xl inline-block mb-4 shadow-lg`}>
                           <Icon className="w-8 h-8 text-white" />
                         </div>
                         
-                        <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-[#00f0ff] transition-colors">
+                        <h3 className="text-2xl font-bold text-white mb-3 transition-colors [@media(hover:hover)]:group-hover:text-[#00f0ff]">
                           {card.title}
                         </h3>
                         <p className="text-gray-400 leading-relaxed">
                           {card.description}
                         </p>
                         
-                        <div className="mt-4 flex items-center text-[#00f0ff] opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="mt-4 flex items-center text-[#00f0ff] opacity-0 transition-opacity [@media(hover:hover)]:group-hover:opacity-100">
                           <span className="text-sm font-semibold mr-2">{t('common.go')}</span>
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -493,15 +497,16 @@ export default function InicioPage() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="text-center mt-16"
           >
-            <Link href="/reservar">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold text-lg px-12 py-6 hover:shadow-[0_0_40px_rgba(0,240,255,0.6)] transition-all duration-300 group"
-              >
+            <Button
+              asChild
+              size="lg"
+              className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold text-lg px-12 py-6 hover:shadow-[0_0_40px_rgba(0,240,255,0.6)] transition-all duration-300 group"
+            >
+              <Link href="/reservar">
                 <Scissors className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform" />
                 {t('common.bookNow')}
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </motion.div>
         </div>
       </div>

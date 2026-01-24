@@ -30,7 +30,7 @@ import {
 import toast from 'react-hot-toast';
 import { addDays, format } from 'date-fns';
 import { enUS, es } from 'date-fns/locale';
-import { formatPrice, normalizeWhatsAppUrl } from '@/lib/utils';
+import { formatPrice, normalizeExternalUrl, normalizeWhatsAppUrl } from '@/lib/utils';
 import { formatTime12h } from '@/lib/time';
 import { useI18n } from '@/lib/i18n/i18n-context';
 
@@ -1284,50 +1284,65 @@ export default function ReservarPage() {
               })()}
 
               {selectedBarber.instagramUrl && (
-                <a
-                  href={selectedBarber.instagramUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-pink-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40"
-                >
-                  <Instagram className="h-4 w-4 shrink-0 text-pink-500" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold leading-none text-white">Instagram</p>
-                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">View profile</p>
-                  </div>
-                </a>
+                (() => {
+                  const igHref = normalizeExternalUrl(selectedBarber.instagramUrl);
+                  if (!igHref) return null;
+                  return (
+                    <a
+                      href={igHref}
+                      rel="noopener noreferrer"
+                      className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-pink-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-500/40"
+                    >
+                      <Instagram className="h-4 w-4 shrink-0 text-pink-500" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold leading-none text-white">Instagram</p>
+                        <p className="mt-0.5 text-[10px] leading-none text-gray-400">View profile</p>
+                      </div>
+                    </a>
+                  );
+                })()
               )}
 
               {selectedBarber.facebookUrl && (
-                <a
-                  href={selectedBarber.facebookUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-blue-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-                >
-                  <Facebook className="h-4 w-4 shrink-0 text-blue-500" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold leading-none text-white">Facebook</p>
-                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">View page</p>
-                  </div>
-                </a>
+                (() => {
+                  const fbHref = normalizeExternalUrl(selectedBarber.facebookUrl);
+                  if (!fbHref) return null;
+                  return (
+                    <a
+                      href={fbHref}
+                      rel="noopener noreferrer"
+                      className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-blue-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+                    >
+                      <Facebook className="h-4 w-4 shrink-0 text-blue-500" />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold leading-none text-white">Facebook</p>
+                        <p className="mt-0.5 text-[10px] leading-none text-gray-400">View page</p>
+                      </div>
+                    </a>
+                  );
+                })()
               )}
 
               {selectedBarber.twitterUrl && (
-                <a
-                  href={selectedBarber.twitterUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-cyan-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
-                >
-                  <svg className="h-4 w-4 shrink-0 text-cyan-500" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
-                  </svg>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold leading-none text-white">TikTok/Twitter</p>
-                    <p className="mt-0.5 text-[10px] leading-none text-gray-400">View</p>
-                  </div>
-                </a>
+                (() => {
+                  const twHref = normalizeExternalUrl(selectedBarber.twitterUrl);
+                  if (!twHref) return null;
+                  return (
+                    <a
+                      href={twHref}
+                      rel="noopener noreferrer"
+                      className="flex min-h-[44px] items-center gap-2 rounded-xl border border-gray-800 bg-black/30 px-3 py-2.5 transition-all hover:border-cyan-500/50 hover:bg-black/40 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40"
+                    >
+                      <svg className="h-4 w-4 shrink-0 text-cyan-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z" />
+                      </svg>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold leading-none text-white">Twitter / X</p>
+                        <p className="mt-0.5 text-[10px] leading-none text-gray-400">View</p>
+                      </div>
+                    </a>
+                  );
+                })()
               )}
             </div>
           </CardContent>

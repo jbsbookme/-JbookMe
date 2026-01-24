@@ -27,6 +27,8 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
   const router = useRouter();
   const { language, t } = useI18n();
 
+  const [ignoreNextClick, setIgnoreNextClick] = useState(false);
+
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,7 +38,8 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
 
   const canRate = useMemo(() => {
     if (status !== 'authenticated') return false;
-    return session?.user?.role === 'CLIENT';
+    const role = String(session?.user?.role || '').toUpperCase();
+    return role === 'CLIENT' || role === 'ADMIN';
   }, [session?.user?.role, status]);
 
   const displayRating = hoverRating ?? selectedRating;
@@ -144,10 +147,29 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
                   : `Rate ${ratingValue} star${ratingValue > 1 ? 's' : ''}`
               }
               aria-disabled={!canRate || submitting}
-              disabled={submitting}
+              disabled={!canRate || submitting}
               onMouseEnter={() => setHoverRating(ratingValue)}
               onFocus={() => setHoverRating(ratingValue)}
-              onClick={() => handleStarSelect(ratingValue)}
+              onPointerDown={(e) => {
+                // iOS/WKWebView sometimes delays or drops click events on fast taps.
+                // Using pointer down makes this feel instant and reliable.
+                e.preventDefault();
+                setIgnoreNextClick(true);
+                handleStarSelect(ratingValue);
+              }}
+              onTouchStart={(e) => {
+                // Extra fallback for environments where pointer events are flaky.
+                e.preventDefault();
+                setIgnoreNextClick(true);
+                handleStarSelect(ratingValue);
+              }}
+              onClick={() => {
+                if (ignoreNextClick) {
+                  setIgnoreNextClick(false);
+                  return;
+                }
+                handleStarSelect(ratingValue);
+              }}
             >
               <Star
                 className={
@@ -248,7 +270,7 @@ export function QuickRatingStars({ barberId, onSubmitted }: Props) {
         </DialogContent>
       </Dialog>
 
-      {status === 'authenticated' && session?.user?.role !== 'CLIENT' ? (
+      {status === 'authenticated' && !canRate ? (
         <span className="text-xs text-gray-500">{t('reviews.clientsOnlyLabel')}</span>
       ) : null}
     </div>

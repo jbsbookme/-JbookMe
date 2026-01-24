@@ -41,7 +41,7 @@ export default function HomePage() {
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
       {/* Background video */}
-      <div className="absolute inset-0 w-full h-full">
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
         <video
           autoPlay
           loop
@@ -85,26 +85,24 @@ export default function HomePage() {
             transition={{ duration: 0.8, delay: 1 }}
             className="flex flex-col items-center gap-3 justify-center"
           >
-            <Link href={authHrefFor('/reservar')}>
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold text-lg px-12 py-6 hover:shadow-[0_0_40px_rgba(0,240,255,0.8)] transition-all duration-300 group"
-              >
-                Book Now
-              </Button>
-            </Link>
+            <Button
+              asChild
+              size="lg"
+              className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold text-lg px-12 py-6 hover:shadow-[0_0_40px_rgba(0,240,255,0.8)] transition-all duration-300 group"
+            >
+              <Link href={authHrefFor('/reservar')}>Book Now</Link>
+            </Button>
 
             <p className="text-sm text-gray-300">Choose your barber • Pick your time • No waiting</p>
 
-            <Link href={authHrefFor('/barberos')} className="mt-1">
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-gray-500/50 text-white hover:bg-white/10 px-12 py-6"
-              >
-                Find Your Barber
-              </Button>
-            </Link>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-gray-500/50 text-white hover:bg-white/10 px-12 py-6 mt-1"
+            >
+              <Link href={authHrefFor('/barberos')}>Find Your Barber</Link>
+            </Button>
           </motion.div>
 
           {/* Scroll indicator */}

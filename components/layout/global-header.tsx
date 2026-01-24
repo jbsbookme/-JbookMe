@@ -3,22 +3,39 @@
 import { useSession } from 'next-auth/react';
 import { useUser } from '@/contexts/user-context';
 import { Button } from '@/components/ui/button';
-import { Share2, Menu } from 'lucide-react';
+import { Share2, Menu, User as UserIcon, MessageCircle, LayoutDashboard, LogOut } from 'lucide-react';
 import { NotificationsBell } from '@/components/notifications-bell';
 import { LanguageSelector } from '@/components/language-selector';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { signOut } from 'next-auth/react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 export function GlobalHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession() || {};
   const { user } = useUser();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   useEffect(() => {
     // Prefetch Home route to make header tap feel instant on mobile/PWA.
@@ -41,6 +58,10 @@ export function GlobalHeader() {
   const isAuthenticated = status === 'authenticated' && !!session?.user;
   const displayName = user?.name || session?.user?.name || '';
   const avatarUrl = session?.user?.image || user?.image || '';
+  const role = (session?.user as any)?.role || (user as any)?.role || '';
+  const isAdmin = String(role).toUpperCase() === 'ADMIN';
+  const isBarber = ['BARBER', 'STYLIST'].includes(String(role).toUpperCase());
+  const dashboardHref = isAdmin ? '/dashboard/admin' : isBarber ? '/dashboard/barbero' : '/perfil';
 
   const getInitials = (name: string) => {
     const cleaned = name.trim().replace(/\s+/g, ' ');
@@ -56,10 +77,11 @@ export function GlobalHeader() {
 
   const handleShare = async () => {
     try {
-      const url = window.location.origin;
-         const shareData = {
-           url,
-         };
+      const url = window.location.href;
+      const shareData = {
+        title: typeof document !== 'undefined' ? document.title : 'JBookMe',
+        url,
+      };
 
       if (navigator.share) {
         await navigator.share(shareData);
@@ -67,8 +89,36 @@ export function GlobalHeader() {
         return;
       }
 
-         await navigator.clipboard.writeText(url);
-      toast.success(t('common.linkCopied'));
+      // Desktop Safari often lacks Web Share. Show a visible fallback dialog.
+      setShareDialogOpen(true);
+      return;
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success(t('common.linkCopied'));
+        return;
+      }
+
+      // Legacy copy fallback for Safari edge cases.
+      try {
+        const el = document.createElement('textarea');
+        el.value = url;
+        el.setAttribute('readonly', '');
+        el.style.position = 'fixed';
+        el.style.top = '0';
+        el.style.left = '0';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        toast.success(t('common.linkCopied'));
+        return;
+      } catch {
+        // ignore
+      }
+
+      setShareDialogOpen(true);
     } catch (error: unknown) {
       const errorName =
         typeof error === 'object' && error !== null && 'name' in error
@@ -76,13 +126,7 @@ export function GlobalHeader() {
           : '';
 
       if (errorName !== 'AbortError') {
-        try {
-          const url = window.location.origin;
-             await navigator.clipboard.writeText(url);
-          toast.success(t('common.linkCopied'));
-        } catch {
-          toast.error(t('common.shareError'));
-        }
+        setShareDialogOpen(true);
       }
     }
   };
@@ -159,29 +203,149 @@ export function GlobalHeader() {
 
           {isAuthenticated ? (
             <div className="ml-1 sm:ml-2 flex items-center">
-              {avatarUrl ? (
-                <div className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-white/10">
-                  <Image
-                    src={avatarUrl}
-                    alt={displayName ? `${displayName} avatar` : 'User avatar'}
-                    fill
-                    sizes="36px"
-                    className="object-cover"
-                  />
-                </div>
-              ) : (
-                <div
-                  aria-label={displayName ? `${displayName} initials` : 'User initials'}
-                  className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 text-white flex items-center justify-center text-xs sm:text-sm font-bold"
-                >
-                  {getInitials(displayName)}
-                </div>
-              )}
+              <Popover open={userMenuOpen} onOpenChange={setUserMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={language === 'es' ? 'Cuenta' : 'Account'}
+                    className="border-transparent bg-white/5 text-white hover:bg-white/10 hover:text-white h-7 w-7 sm:h-8 sm:w-8 p-0 inline-flex items-center justify-center rounded-md touch-manipulation select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f0ff]/50"
+                    onPointerDown={() => setUserMenuOpen(true)}
+                  >
+                    <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                </PopoverTrigger>
+
+                <PopoverContent align="end" className="w-56 p-2 bg-[#0b0b0b] border border-white/10 text-white z-[1000]">
+                  <div className="px-2 py-1.5 text-sm font-semibold truncate">
+                    {displayName || t('common.user')}
+                  </div>
+                  <div className="h-px bg-white/10 my-1" />
+
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-white/5"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      router.push('/perfil');
+                    }}
+                  >
+                    <UserIcon className="h-4 w-4" />
+                    <span>{t('nav.profile')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-white/5"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      router.push(dashboardHref);
+                    }}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span>{isAdmin || isBarber ? t('nav.dashboard') : t('nav.profile')}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-white/5"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      router.push('/inbox');
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    <span>{t('nav.inbox') || 'Inbox'}</span>
+                  </button>
+
+                  <div className="h-px bg-white/10 my-1" />
+
+                  <button
+                    type="button"
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-red-300 hover:bg-white/5"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      void signOut({ callbackUrl: '/inicio' });
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>{t('common.logout') || 'Logout'}</span>
+                  </button>
+                </PopoverContent>
+              </Popover>
+
+              {/* Decorative avatar (not clickable) */}
+              <div className="ml-2 rounded-full select-none pointer-events-none">
+                {avatarUrl ? (
+                  <div
+                    className="relative h-8 w-8 sm:h-9 sm:w-9 rounded-full overflow-hidden border border-white/10"
+                    style={{ WebkitTouchCallout: 'none' } as any}
+                  >
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName ? `${displayName} avatar` : 'User avatar'}
+                      fill
+                      sizes="36px"
+                      className="object-cover select-none"
+                      draggable={false}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    aria-label={displayName ? `${displayName} initials` : 'User initials'}
+                    className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-white/10 text-white flex items-center justify-center text-xs sm:text-sm font-bold"
+                  >
+                    {getInitials(displayName)}
+                  </div>
+                )}
+              </div>
             </div>
           ) : null}
 
         </div>
       </div>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="bg-[#0b0b0b] border border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">{t('common.shareApp') || 'Share'}</DialogTitle>
+            <DialogDescription className="text-gray-300">
+              {language === 'es'
+                ? 'Copia el enlace y compártelo donde quieras.'
+                : 'Copy the link and share it anywhere.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            <Input readOnly value={typeof window !== 'undefined' ? window.location.href : ''} />
+            <div className="text-xs text-gray-400">
+              {language === 'es'
+                ? 'En Safari computadora puede que no salga el share sheet.'
+                : 'Desktop Safari may not show a share sheet.'}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              className="bg-[#00f0ff] text-black hover:bg-[#00d9e6]"
+              onClick={() => {
+                try {
+                  const url = window.location.href;
+                  if (navigator.clipboard?.writeText) {
+                    void navigator.clipboard.writeText(url).then(() => toast.success(t('common.linkCopied')));
+                  } else {
+                    window.prompt(language === 'es' ? 'Copia este enlace:' : 'Copy this link:', url);
+                  }
+                } catch {
+                  toast.error(t('common.shareError'));
+                }
+              }}
+            >
+              {language === 'es' ? 'Copiar enlace' : 'Copy link'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

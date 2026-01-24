@@ -575,7 +575,7 @@ export default function InboxPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-black pt-12 lg:pt-0">
+      <div className="flex items-center justify-center min-h-screen bg-black pt-[calc(env(safe-area-inset-top)+3rem)] lg:pt-0">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading messages...</p>
@@ -585,7 +585,7 @@ export default function InboxPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pb-24 pt-12 lg:pt-0">
+    <div className="min-h-screen bg-black pb-24 pt-[calc(env(safe-area-inset-top)+3rem)] lg:pt-0">
       <div className="container mx-auto p-4 sm:p-6 max-w-6xl">
         <div className="flex justify-between items-center mb-4">
           <div>

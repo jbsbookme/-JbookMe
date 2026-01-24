@@ -16,6 +16,15 @@ async function getServiceWorkerRegistration() {
   if (typeof window === 'undefined') return null;
   if (!('serviceWorker' in navigator)) return null;
 
+  // Inside Capacitor (native shell), avoid SW registration to prevent stale UI.
+  // Push in the native app should be handled via native push notifications.
+  try {
+    const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } };
+    if (w.Capacitor?.isNativePlatform?.()) return null;
+  } catch {
+    // ignore
+  }
+
   const existing = await navigator.serviceWorker.getRegistration('/');
   if (existing) return existing;
 

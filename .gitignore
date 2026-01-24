@@ -34,6 +34,13 @@ android/**/build/
 android/app/build/
 android/build/
 
+# iOS / CocoaPods / Xcode
+ios/**/Pods/
+ios/**/DerivedData/
+ios/**/.symlinks/
+ios/**/*.xcuserstate
+ios/**/*.xcuserdata/
+
 # TypeScript
 *.tsbuildinfo
 
@@ -42,6 +49,12 @@ android/build/
 
 # Backups / dumps
 *.sql
+
+# Local iOS key/cert exports (never commit)
+upload_certificate.pem
+
+# Local backup folders
+ios_broken_backup_*/
 
 # Uploads (usually runtime data)
 public/uploads/

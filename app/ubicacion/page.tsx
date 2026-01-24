@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
 import { useI18n } from '@/lib/i18n/i18n-context'
 import { HistoryBackButton } from '@/components/layout/history-back-button'
+import { normalizeExternalUrl, normalizeWhatsAppUrl } from '@/lib/utils'
 
 interface Settings {
   shopName: string
@@ -43,6 +44,18 @@ export default function UbicacionPage() {
   const businessTiktok = settings?.tiktokUrl || settings?.tiktok || ''
   const businessYoutube = settings?.youtubeUrl || settings?.youtube || ''
   const businessWhatsapp = settings?.whatsappUrl || settings?.whatsapp || ''
+
+  const facebookHref = normalizeExternalUrl(businessFacebook) || ''
+  const instagramHref = normalizeExternalUrl(businessInstagram) || ''
+  const twitterHref = normalizeExternalUrl(businessTwitter) || ''
+  const tiktokHref = normalizeExternalUrl(businessTiktok) || ''
+  const youtubeHref = normalizeExternalUrl(businessYoutube) || ''
+  const whatsappHref = normalizeWhatsAppUrl(businessWhatsapp, settings?.phone || undefined) || ''
+
+  const telHref = settings?.phone
+    ? `tel:${settings.phone.trim().replace(/[^\d+]/g, '')}`
+    : ''
+  const mailHref = settings?.email ? `mailto:${settings.email.trim()}` : ''
   const hasSocial = Boolean(
     businessFacebook || businessInstagram || businessTwitter || businessTiktok || businessYoutube || businessWhatsapp
   )
@@ -69,11 +82,21 @@ export default function UbicacionPage() {
     if (settings?.latitude && settings?.longitude) {
       // Open in Google Maps with navigation
       const url = `https://www.google.com/maps/dir/?api=1&destination=${settings.latitude},${settings.longitude}`
-      window.open(url, '_blank')
+      try {
+        const w = window.open(url, '_blank', 'noopener,noreferrer')
+        if (!w) window.location.href = url
+      } catch {
+        window.location.href = url
+      }
     } else if (settings?.address) {
       // Fallback to address search
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`
-      window.open(url, '_blank')
+      try {
+        const w = window.open(url, '_blank', 'noopener,noreferrer')
+        if (!w) window.location.href = url
+      } catch {
+        window.location.href = url
+      }
     } else {
       toast.error(t('location.locationNotAvailable'))
     }
@@ -157,7 +180,7 @@ export default function UbicacionPage() {
                     <Phone className="w-5 h-5 text-cyan-500 mt-1 flex-shrink-0" />
                     <div>
                       <p className="text-sm text-gray-400 mb-1">{t('location.phone')}</p>
-                      <a href={`tel:${settings.phone}`} className="text-white hover:text-cyan-500">
+                      <a href={telHref} className="text-white hover:text-cyan-500">
                         {settings.phone}
                       </a>
                     </div>
@@ -169,7 +192,7 @@ export default function UbicacionPage() {
                     <Mail className="w-5 h-5 text-cyan-500 mt-1 flex-shrink-0" />
                     <div>
                       <p className="text-sm text-gray-400 mb-1">{t('location.email')}</p>
-                      <a href={`mailto:${settings.email}`} className="text-white hover:text-cyan-500">
+                      <a href={mailHref} className="text-white hover:text-cyan-500">
                         {settings.email}
                       </a>
                     </div>
@@ -194,8 +217,7 @@ export default function UbicacionPage() {
                   <div className="flex flex-wrap gap-3">
                     {businessFacebook ? (
                       <a
-                        href={businessFacebook}
-                        target="_blank"
+                        href={facebookHref}
                         rel="noopener noreferrer"
                         aria-label="Facebook"
                         className="w-11 h-11 rounded-full bg-blue-500/20 flex items-center justify-center hover:bg-blue-500/30 transition-colors"
@@ -206,8 +228,7 @@ export default function UbicacionPage() {
 
                     {businessInstagram ? (
                       <a
-                        href={businessInstagram}
-                        target="_blank"
+                        href={instagramHref}
                         rel="noopener noreferrer"
                         aria-label="Instagram"
                         className="w-11 h-11 rounded-full bg-pink-500/20 flex items-center justify-center hover:bg-pink-500/30 transition-colors"
@@ -218,8 +239,7 @@ export default function UbicacionPage() {
 
                     {businessTwitter ? (
                       <a
-                        href={businessTwitter}
-                        target="_blank"
+                        href={twitterHref}
                         rel="noopener noreferrer"
                         aria-label="Twitter / X"
                         className="w-11 h-11 rounded-full bg-[#00f0ff]/20 flex items-center justify-center hover:bg-[#00f0ff]/30 transition-colors"
@@ -230,8 +250,7 @@ export default function UbicacionPage() {
 
                     {businessTiktok ? (
                       <a
-                        href={businessTiktok}
-                        target="_blank"
+                        href={tiktokHref}
                         rel="noopener noreferrer"
                         aria-label="TikTok"
                         className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
@@ -242,8 +261,7 @@ export default function UbicacionPage() {
 
                     {businessYoutube ? (
                       <a
-                        href={businessYoutube}
-                        target="_blank"
+                        href={youtubeHref}
                         rel="noopener noreferrer"
                         aria-label="YouTube"
                         className="w-11 h-11 rounded-full bg-red-500/20 flex items-center justify-center hover:bg-red-500/30 transition-colors"
@@ -254,8 +272,7 @@ export default function UbicacionPage() {
 
                     {businessWhatsapp ? (
                       <a
-                        href={businessWhatsapp}
-                        target="_blank"
+                        href={whatsappHref}
                         rel="noopener noreferrer"
                         aria-label="WhatsApp"
                         className="w-11 h-11 rounded-full bg-green-500/20 flex items-center justify-center hover:bg-green-500/30 transition-colors"
