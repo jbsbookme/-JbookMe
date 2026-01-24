@@ -209,7 +209,13 @@ export function GlobalHeader() {
                     type="button"
                     aria-label={displayName ? `${displayName} menu` : language === 'es' ? 'Cuenta' : 'Account'}
                     className="rounded-full cursor-pointer touch-manipulation select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00f0ff]/50"
-                    onPointerDown={() => setUserMenuOpen(true)}
+                    onClick={(e) => {
+                      // Radix PopoverTrigger toggles on click. In controlled mode,
+                      // opening on pointerdown can result in an immediate close on click.
+                      // Prevent Radix default toggle and manage it here.
+                      e.preventDefault();
+                      setUserMenuOpen((prev) => !prev);
+                    }}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       setUserMenuOpen(true);
