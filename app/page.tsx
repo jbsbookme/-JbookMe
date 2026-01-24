@@ -71,9 +71,9 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-6xl md:text-8xl font-bold mb-6"
+            className="text-[clamp(32px,12vw,96px)] font-bold mb-6 leading-none tracking-tight"
           >
-            <span className="bg-gradient-to-r from-[#00f0ff] via-[#ffd700] to-[#00f0ff] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#00f0ff] via-[#ffd700] to-[#00f0ff] bg-clip-text text-transparent whitespace-nowrap">
               JBookMe
             </span>
           </motion.h1>
