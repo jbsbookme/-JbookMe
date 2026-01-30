@@ -58,9 +58,9 @@ export function RegisterServiceWorker() {
 
         const existing = await navigator.serviceWorker.getRegistration('/');
         const existingUrl = existing?.active?.scriptURL || existing?.installing?.scriptURL || '';
-        if (existing && existingUrl && !existingUrl.includes(`sw=${encodeURIComponent(swVersion)}`)) {
+        if (existingUrl && !existingUrl.includes(`sw=${encodeURIComponent(swVersion)}`)) {
           try {
-            await existing.unregister();
+            await existing?.unregister();
           } catch {
             // ignore
           }
