@@ -1,5 +1,7 @@
 // Service Worker for BookMe PWA
-const CACHE_NAME = 'bookme-v7';
+const swUrl = new URL(self.location.href);
+const SW_VERSION = swUrl.searchParams.get('sw') || 'v1';
+const CACHE_NAME = `bookme-${SW_VERSION}`;
 const urlsToCache = [
   '/manifest.json',
   '/icon-192.png',

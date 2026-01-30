@@ -22,6 +22,8 @@ function isRunningInCapacitor() {
 export function RegisterServiceWorker() {
   useEffect(() => {
     let cancelled = false;
+    const swVersion = process.env.NEXT_PUBLIC_SW_VERSION || 'local';
+    const swUrl = `/service-worker.js?sw=${encodeURIComponent(swVersion)}`;
 
     (async () => {
       try {
@@ -54,7 +56,17 @@ export function RegisterServiceWorker() {
           return;
         }
 
-        const registration = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+        const existing = await navigator.serviceWorker.getRegistration('/');
+        const existingUrl = existing?.active?.scriptURL || existing?.installing?.scriptURL || '';
+        if (existingUrl && !existingUrl.includes(`sw=${encodeURIComponent(swVersion)}`)) {
+          try {
+            await existing.unregister();
+          } catch {
+            // ignore
+          }
+        }
+
+        const registration = await navigator.serviceWorker.register(swUrl, { scope: '/' });
         // Proactively check for updates so users get the latest build sooner.
         await registration.update();
       } catch (error) {

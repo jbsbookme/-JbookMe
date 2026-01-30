@@ -1,9 +1,22 @@
 const path = require('path');
 
+const SW_VERSION =
+  process.env.NEXT_PUBLIC_SW_VERSION ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.VERCEL_DEPLOYMENT_ID ||
+  process.env.VERCEL_BUILD_ID ||
+  process.env.VERCEL_GIT_COMMIT_REF ||
+  'local';
+
+const isVercelProd = process.env.VERCEL_ENV === 'production';
+const requestedOutputMode = process.env.NEXT_OUTPUT_MODE;
+const resolvedOutputMode =
+  isVercelProd && requestedOutputMode === 'export' ? undefined : requestedOutputMode;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
-  output: process.env.NEXT_OUTPUT_MODE,
+  output: resolvedOutputMode,
   async headers() {
     return [
       {
@@ -38,6 +51,9 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
   images: { unoptimized: true },
+  env: {
+    NEXT_PUBLIC_SW_VERSION: SW_VERSION,
+  },
 };
 
 module.exports = nextConfig;

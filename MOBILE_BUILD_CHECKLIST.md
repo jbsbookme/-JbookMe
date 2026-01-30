@@ -14,7 +14,9 @@ If you want to test changes **without Vercel**, you can point the app to a local
 
 Tip: `capacitor.config.ts` now supports:
 - `CAPACITOR_SERVER_URL` to override the hosted URL
-- `CAPACITOR_USE_BUNDLED_WEB=true` to disable `server.url` entirely and use the bundled `webDir` assets
+- `CAPACITOR_WEB_SOURCE=bundled` (DEV ONLY) to disable `server.url` and use bundled assets.
+
+For Play Store releases, keep the default (hosted) mode.
 
 ## 1) Pre-flight checklist (both platforms)
 - Confirm assistant stays disabled:
@@ -73,6 +75,9 @@ Then:
 
 ### Release (later)
 Release bundle (AAB) for Play:
+- Ensure Capacitor is in hosted mode (default) and points to production:
+  - `export CAPACITOR_SERVER_URL=https://www.jbsbookme.com`
+  - `unset CAPACITOR_WEB_SOURCE` (or set it to `hosted`)
 - (Optional) set version:
   - `ANDROID_VERSION_CODE=2`
   - `ANDROID_VERSION_NAME=1.0.1`
@@ -81,8 +86,12 @@ Release bundle (AAB) for Play:
   - `ANDROID_KEYSTORE_PASSWORD=...`
   - `ANDROID_KEY_ALIAS=...`
   - `ANDROID_KEY_PASSWORD=...`
-- Build:
-  - `./gradlew clean bundleRelease`
+
+- Sync + build:
+  - `npm run cap:sync:android`
+  - `./scripts/android-release.sh`
+
+The script validates the AAB is signed before reporting success.
 
 Output:
 - `android/app/build/outputs/bundle/release/app-release.aab`
@@ -126,3 +135,20 @@ When you find a difference, record:
 - Steps to reproduce
 - What happens in PWA vs what happens in native
 - Screenshots/screen recording if possible
+
+## 7) PWA cache/SW anti-regression checklist (production)
+- Confirm prod build identity:
+  - Open https://www.jbsbookme.com/api/version and verify `buildTime`, `vercel.deploymentId`, and `swVersion`.
+- Ensure SW versioning is active:
+  - `NEXT_PUBLIC_SW_VERSION` is set during build (Next config injects it from Vercel envs).
+  - Service worker URL includes `?sw=<version>`.
+- Confirm SW script is never cached by CDN:
+  - Response header for /service-worker.js is `Cache-Control: no-store`.
+- Force a clean redeploy when needed:
+  - Vercel → Deployments → Redeploy → **Clear build cache**.
+  - Or `vercel --prod --force`.
+- Sanity checks after deploy:
+  - PWA + Android show the same UI/data (services, photos, posts, bookings).
+  - No 404 when navigating back/exit.
+- Emergency rollback plan:
+  - Temporarily disable SW registration if necessary (feature flag), then re-enable after fix.

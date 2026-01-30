@@ -8,6 +8,7 @@ export function GET() {
   return NextResponse.json(
     {
     buildTime: BUILD_TIME,
+    swVersion: process.env.NEXT_PUBLIC_SW_VERSION || null,
     vercel: {
       gitCommitSha: process.env.VERCEL_GIT_COMMIT_SHA || null,
       gitCommitRef: process.env.VERCEL_GIT_COMMIT_REF || null,

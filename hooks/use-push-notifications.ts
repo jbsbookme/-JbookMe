@@ -25,10 +25,13 @@ async function getServiceWorkerRegistration() {
     // ignore
   }
 
+  const swVersion = process.env.NEXT_PUBLIC_SW_VERSION || 'local';
+  const swUrl = `/service-worker.js?sw=${encodeURIComponent(swVersion)}`;
+
   const existing = await navigator.serviceWorker.getRegistration('/');
   if (existing) return existing;
 
-  return navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+  return navigator.serviceWorker.register(swUrl, { scope: '/' });
 }
 
 export function usePushNotifications() {
