@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { signOut } from 'next-auth/react'
+import { clearWebAuthStorage } from '@/lib/auth/native-auth';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -152,8 +153,9 @@ export function LegalAcceptanceGate() {
               onClick={async () => {
                 try {
                   await signOut({ redirect: false });
+                  await clearWebAuthStorage();
                 } finally {
-                  window.location.assign('/');
+                  window.location.assign('/auth');
                 }
               }}
               className="w-full border-gray-700 text-white hover:bg-white/10"

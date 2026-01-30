@@ -15,6 +15,7 @@ import { SwipeBackGesture } from '@/components/swipe-back-gesture';
 import { RegisterServiceWorker } from '@/components/register-service-worker';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { LegalAcceptanceGate } from '@/components/legal/legal-acceptance-gate';
+import { NativeAuthGuard } from '@/components/native-auth-guard';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -133,6 +134,7 @@ export default function RootLayout({
                 <I18nProvider>
                   <GlobalHeader />
                   <LegalAcceptanceGate />
+                  <NativeAuthGuard />
                   <PwaInstallBanner />
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />

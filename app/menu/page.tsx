@@ -31,6 +31,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'next-auth/react';
+import { clearWebAuthStorage } from '@/lib/auth/native-auth';
 import { toast } from 'sonner';
 import { useI18n } from '@/lib/i18n/i18n-context';
 import { useUser } from '@/contexts/user-context';
@@ -122,8 +123,9 @@ export default function MenuPage() {
   const handleLogout = async () => {
     try {
       await signOut({ redirect: false });
+      await clearWebAuthStorage();
     } finally {
-      window.location.assign('/');
+      window.location.assign('/auth');
     }
   };
 
