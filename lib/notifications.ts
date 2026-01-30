@@ -34,6 +34,7 @@ export type AppointmentNotificationData = {
   clientName: string;
   clientEmail: string;
   clientPhone?: string;
+  clientLocale?: 'en' | 'es';
   barberName: string;
   barberEmail: string;
   barberPhone?: string;
@@ -51,20 +52,30 @@ export async function sendAppointmentCreatedNotifications(data: AppointmentNotif
   };
 
   const timeDisplay = formatTime12h(data.time);
+  const isSpanish = data.clientLocale === 'es';
+  const dateDisplay = data.date.toLocaleDateString(isSpanish ? 'es-US' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 
   if (data.clientEmail) {
     results.clientEmail = await sendEmail({
       to: data.clientEmail,
-      subject: 'Appointment request received',
-      text: `Hi ${data.clientName}, we received your appointment request for ${data.serviceName} on ${data.date.toDateString()} at ${timeDisplay}.\n\nPlease confirm by replying YES to the SMS we sent you (or reply NO to cancel).`,
+      subject: isSpanish ? 'Cita Confirmada – JBookMe' : 'Appointment Confirmed – JBookMe',
+      text: isSpanish
+        ? `Hola ${data.clientName},\n\nTu cita ha sido confirmada.\n\nDetalles:\n• Barbero: ${data.barberName}\n• Servicio: ${data.serviceName}\n• Fecha: ${dateDisplay}\n• Hora: ${timeDisplay}\n\nPuedes ver o administrar tu cita en cualquier momento desde la app JBookMe.\n\nLas notificaciones por SMS estarán disponibles próximamente.\n\nGracias por usar JBookMe.`
+        : `Hello ${data.clientName},\n\nYour appointment is confirmed.\n\nDetails:\n• Barber: ${data.barberName}\n• Service: ${data.serviceName}\n• Date: ${dateDisplay}\n• Time: ${timeDisplay}\n\nYou can manage or view your appointment anytime in the JBookMe app.\n\nSMS notifications will be enabled soon.\n\nThank you for using JBookMe.`,
     });
   }
 
   if (data.barberEmail) {
     results.barberEmail = await sendEmail({
       to: data.barberEmail,
-      subject: 'New appointment (pending confirmation)',
-      text: `Hi ${data.barberName}, a new appointment request (${data.serviceName}) was created for ${data.date.toDateString()} at ${timeDisplay}.\n\nStatus: PENDING (awaiting client SMS confirmation).`,
+      subject: isSpanish ? 'Nueva cita confirmada – JBookMe' : 'New appointment confirmed – JBookMe',
+      text: isSpanish
+        ? `Hola ${data.barberName},\n\nSe ha confirmado una nueva cita.\n\nDetalles:\n• Cliente: ${data.clientName}\n• Servicio: ${data.serviceName}\n• Fecha: ${dateDisplay}\n• Hora: ${timeDisplay}\n\nLas notificaciones por SMS estarán disponibles próximamente.`
+        : `Hello ${data.barberName},\n\nA new appointment has been confirmed.\n\nDetails:\n• Client: ${data.clientName}\n• Service: ${data.serviceName}\n• Date: ${dateDisplay}\n• Time: ${timeDisplay}\n\nSMS notifications will be enabled soon.`,
     });
   }
 

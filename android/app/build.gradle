@@ -28,8 +28,8 @@ android {
         applicationId "com.jbs.jbookme"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode versionCodeEnv ? versionCodeEnv.toInteger() : 1
-        versionName versionNameEnv ?: "1.0"
+        versionCode versionCodeEnv ? versionCodeEnv.toInteger() : 2
+        versionName versionNameEnv ?: "1.0.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

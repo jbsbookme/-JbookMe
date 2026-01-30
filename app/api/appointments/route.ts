@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 import { AppointmentStatus } from '@prisma/client';
 import { sendAppointmentCreatedNotifications } from '@/lib/notifications';
 import { isBarberOrAdmin } from '@/lib/auth/role-utils';
-import { isTwilioConfigured, sendSMS } from '@/lib/twilio';
+import { isTwilioConfigured, isTwilioSmsEnabled, sendSMS } from '@/lib/twilio';
 import { createNotification } from '@/lib/notifications';
 import { sendWebPushToUser } from '@/lib/push';
 import { buildAppointmentDateTime, normalizeTimeToHHmm, formatTime12h } from '@/lib/time';
@@ -151,6 +151,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const smsEnabled = isTwilioSmsEnabled();
+    const appointmentStatus = smsEnabled ? AppointmentStatus.PENDING : AppointmentStatus.CONFIRMED;
+
     const appointment = await prisma.appointment.create({
       data: {
         clientId: session.user.id,
@@ -161,7 +164,7 @@ export async function POST(request: NextRequest) {
         paymentMethod: paymentMethod || null,
         paymentReference: paymentReference || null,
         notes: notes || null,
-        status: AppointmentStatus.PENDING,
+        status: appointmentStatus,
       },
       include: {
         client: true,
@@ -183,7 +186,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Notify barber that the appointment is pending confirmation
+    // Notify barber about the appointment status
     try {
       const barberUserId = appointment.barber?.user?.id;
       if (barberUserId) {
@@ -193,31 +196,35 @@ export async function POST(request: NextRequest) {
           day: 'numeric',
         });
         const timeDisplay = formatTime12h(appointment.time);
+        const title = appointmentStatus === AppointmentStatus.CONFIRMED
+          ? 'Appointment confirmed'
+          : 'Appointment pending confirmation';
+        const body = `${appointmentStatus === AppointmentStatus.CONFIRMED ? 'Confirmed' : 'Pending'}: ${dateShort} at ${timeDisplay} (${appointment.service?.name || 'Service'})`;
 
         await createNotification({
           userId: barberUserId,
           type: 'APPOINTMENT_REMINDER',
-          title: 'Appointment pending confirmation',
-          message: `Pending: ${dateShort} at ${timeDisplay} (${appointment.service?.name || 'Service'})`,
+          title,
+          message: body,
           link: '/dashboard/barbero',
         });
 
         await sendWebPushToUser({
           userId: barberUserId,
-          title: 'Appointment pending confirmation',
-          body: `Pending: ${dateShort} at ${timeDisplay}`,
+          title,
+          body,
           url: '/dashboard/barbero',
           data: { appointmentId: appointment.id },
         });
       }
     } catch (error) {
-      console.error('[appointments] error notifying barber (pending):', error);
+      console.error('[appointments] error notifying barber:', error);
     }
 
-    // Send ONE confirmation SMS to the client (YES/NO). Appointment stays PENDING until YES.
+    // Send ONE confirmation SMS to the client (YES/NO) if enabled.
     try {
       const clientPhone = appointment.client?.phone;
-      if (clientPhone && isTwilioConfigured()) {
+      if (clientPhone && smsEnabled && isTwilioConfigured()) {
         const claimed = await prisma.appointment.updateMany({
           where: { id: appointment.id, smsConfirmationSent: false },
           data: { smsConfirmationSent: true },
@@ -245,12 +252,15 @@ export async function POST(request: NextRequest) {
       console.error('[appointments] error sending confirmation SMS:', error);
     }
 
-    // Send notifications to client, barber, and admin
+    // Send notifications to client and barber
     try {
+      const acceptLanguage = request.headers.get('accept-language') || '';
+      const clientLocale = acceptLanguage.toLowerCase().startsWith('es') ? 'es' : 'en';
       const notificationData = {
         clientName: appointment.client.name || 'Client',
         clientEmail: appointment.client.email || '',
         clientPhone: appointment.client.phone || '',
+        clientLocale,
         barberName: appointment.barber.user.name || 'Barber',
         barberEmail: appointment.barber.user.email || '',
         barberPhone: '', // Add barber phone if available in your schema

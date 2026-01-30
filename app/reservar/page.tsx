@@ -93,42 +93,7 @@ export default function ReservarPage() {
   const { t, language } = useI18n();
 
   const dateLocale = language === 'es' ? es : enUS;
-
-  const showProfessionalSuccessToast = (mode: 'booked' | 'rescheduled') => {
-    const title =
-      mode === 'booked' ? t('booking.toastBookingConfirmedTitle') : t('booking.toastAppointmentRescheduledTitle');
-    const subtitle = t('booking.toastThanksSubtitle');
-
-    toast.custom(
-      (toastData) => (
-        <div
-          className={`${
-            toastData.visible ? 'animate-enter' : 'animate-leave'
-          } max-w-md w-full pointer-events-auto rounded-xl border border-[#00f0ff]/30 bg-gray-950/95 backdrop-blur shadow-lg overflow-hidden`}
-        >
-          <div className="h-1.5 bg-gradient-to-r from-[#00f0ff] to-[#ffd700]" />
-          <div className="p-4 flex items-start gap-3">
-            <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#00f0ff]/20 to-[#ffd700]/20 border border-[#00f0ff]/30">
-              <Star className="h-5 w-5 text-[#ffd700]" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-white truncate">⭐ {title}</p>
-              <p className="text-sm text-gray-300 mt-0.5">{subtitle}</p>
-            </div>
-            <button
-              onClick={() => toast.dismiss(toastData.id)}
-              className="ml-2 text-gray-400 hover:text-white transition-colors"
-              aria-label={t('common.dismiss')}
-              type="button"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      ),
-      { duration: 4500 }
-    );
-  };
+  const isSpanish = language === 'es';
 
   // CRITICAL: Check if barberId exists in URL to determine initial step
   const initialBarberId = searchParams.get('barberId');
@@ -148,6 +113,14 @@ export default function ReservarPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [paymentReference, setPaymentReference] = useState('');
   const [acceptCancellationPolicy, setAcceptCancellationPolicy] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [confirmationMode, setConfirmationMode] = useState<'booked' | 'rescheduled' | null>(null);
+  const [confirmationDetails, setConfirmationDetails] = useState<{
+    serviceName: string;
+    barberName: string;
+    date: Date;
+    time: string;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [barbersLoading, setBarbersLoading] = useState(false);
   const [now, setNow] = useState<Date>(() => new Date());
@@ -775,6 +748,45 @@ export default function ReservarPage() {
     setCurrentStep('datetime');
   };
 
+  const getConfirmationCopy = useCallback(
+    (mode: 'booked' | 'rescheduled') => {
+      if (isSpanish) {
+        return {
+          title: 'Cita confirmada',
+          intro:
+            mode === 'rescheduled'
+              ? 'Tu cita ha sido reprogramada y está confirmada.'
+              : 'Tu cita ha sido confirmada.',
+          detailsTitle: 'Detalles de la cita',
+          manageLine: 'Puedes ver o administrar tu cita en cualquier momento desde la app JBookMe.',
+          smsNote: 'Las notificaciones por SMS estarán disponibles próximamente.',
+          primaryCta: 'Ver cita',
+          secondaryCta: 'Cerrar',
+        };
+      }
+
+      return {
+        title: 'Appointment confirmed',
+        intro:
+          mode === 'rescheduled'
+            ? 'Your appointment has been rescheduled and is confirmed.'
+            : 'Your appointment is confirmed.',
+        detailsTitle: 'Appointment details',
+        manageLine: 'You can manage or view your appointment anytime in the JBookMe app.',
+        smsNote: 'SMS notifications will be enabled soon.',
+        primaryCta: 'View appointment',
+        secondaryCta: 'Close',
+      };
+    },
+    [isSpanish]
+  );
+
+  const closeConfirmation = useCallback(() => {
+    setConfirmationOpen(false);
+    setConfirmationMode(null);
+    setConfirmationDetails(null);
+  }, []);
+
   const handleSubmitBooking = async () => {
     if (!session) {
       toast.error(t('booking.mustLogin'));
@@ -812,8 +824,14 @@ export default function ReservarPage() {
         });
 
         if (res.ok) {
-          showProfessionalSuccessToast('rescheduled');
-          router.push('/perfil');
+          setConfirmationMode('rescheduled');
+          setConfirmationDetails({
+            serviceName: selectedService.name,
+            barberName: selectedBarber.user.name || t('common.barber'),
+            date: selectedDate,
+            time: selectedTime,
+          });
+          setConfirmationOpen(true);
         } else {
           const data = await res.json().catch(() => ({}));
           toast.error(data.error || data.message || t('booking.errorReschedulingAppointment'));
@@ -838,8 +856,14 @@ export default function ReservarPage() {
       });
 
       if (res.ok) {
-        showProfessionalSuccessToast('booked');
-        router.push('/perfil');
+        setConfirmationMode('booked');
+        setConfirmationDetails({
+          serviceName: selectedService.name,
+          barberName: selectedBarber.user.name || t('common.barber'),
+          date: selectedDate,
+          time: selectedTime,
+        });
+        setConfirmationOpen(true);
       } else {
         const data = await res.json().catch(() => ({}));
         toast.error(data.error || data.message || t('booking.errorBookingAppointment'));
@@ -1929,9 +1953,82 @@ export default function ReservarPage() {
   };
 
   const isGenderStep = currentStep === 'gender';
+  const confirmationCopy = confirmationMode ? getConfirmationCopy(confirmationMode) : null;
 
   return (
     <div className="min-h-screen bg-black pb-24 flex flex-col">
+      {confirmationOpen && confirmationDetails && confirmationCopy ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur px-4 py-8">
+          <div className="w-full max-w-2xl rounded-2xl border border-[#00f0ff]/30 bg-gray-950/95 shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-800 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#00f0ff]/10 border border-[#00f0ff]/30">
+                  <Check className="h-5 w-5 text-[#00f0ff]" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-white">{confirmationCopy.title}</p>
+                  <p className="text-sm text-gray-300 mt-1">{confirmationCopy.intro}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={closeConfirmation}
+                className="text-gray-400 hover:text-white transition-colors"
+                aria-label={confirmationCopy.secondaryCta}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="rounded-xl border border-gray-800 bg-black/40 p-4">
+                <p className="text-sm text-gray-400 mb-3">{confirmationCopy.detailsTitle}</p>
+                <div className="space-y-2 text-sm text-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Scissors className="h-4 w-4 text-[#00f0ff]" />
+                    <span>{confirmationDetails.serviceName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-[#00f0ff]" />
+                    <span>{confirmationDetails.barberName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-[#00f0ff]" />
+                    <span>{format(confirmationDetails.date, 'MMMM d, yyyy', { locale: dateLocale })}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#00f0ff]" />
+                    <span>{confirmationDetails.time}</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-sm text-gray-300">{confirmationCopy.manageLine}</p>
+              <p className="text-sm text-gray-400">{confirmationCopy.smsNote}</p>
+            </div>
+
+            <div className="p-6 pt-0 flex flex-col sm:flex-row gap-3">
+              <Button
+                onClick={() => {
+                  closeConfirmation();
+                  router.push('/perfil');
+                }}
+                className="w-full sm:w-auto bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-semibold"
+              >
+                {confirmationCopy.primaryCta}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeConfirmation}
+                className="w-full sm:w-auto text-gray-300 hover:text-white"
+              >
+                {confirmationCopy.secondaryCta}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {/* Back button */}
       <div className="container mx-auto px-4 mt-4 mb-2 sm:mt-6 sm:mb-4">
         <Button
