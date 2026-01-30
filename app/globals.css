@@ -139,8 +139,9 @@ body {
 /* App shell: keep content consistently offset from header & bottom nav. */
 .app-content {
   min-height: 100dvh;
-  padding-top: calc(var(--app-header-height) + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
   padding-bottom: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom));
+  scroll-padding-top: calc(var(--app-header-height) + env(safe-area-inset-top));
 }
 
 @media (max-width: 640px) {
