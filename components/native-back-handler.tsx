@@ -12,7 +12,9 @@ export function NativeBackHandler() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
-    const handler = App.addListener('backButton', () => {
+    let handler: Awaited<ReturnType<typeof App.addListener>> | null = null;
+
+    App.addListener('backButton', () => {
       const canGoBack = window.history.length > 1;
       if (canGoBack) {
         router.back();
@@ -21,10 +23,13 @@ export function NativeBackHandler() {
 
       // If no history, exit app (Android default behavior)
       App.exitApp();
+    }).then((listener) => {
+      handler = listener;
     });
 
     return () => {
-      handler.remove();
+      handler?.remove();
+      handler = null;
     };
   }, [router, pathname]);
 
