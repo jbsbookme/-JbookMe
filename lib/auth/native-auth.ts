@@ -51,7 +51,7 @@ export async function clearWebAuthStorage() {
   }
 
   try {
-    await CapacitorCookies.clearCookies();
+    await CapacitorCookies.clearAllCookies();
   } catch {
     // ignore
   }
