@@ -5,6 +5,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --app-header-height: 56px;
+  --app-bottom-nav-height: 64px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -132,6 +134,20 @@ html, body {
 
 body {
   min-height: 100vh;
+}
+
+/* App shell: keep content consistently offset from header & bottom nav. */
+.app-content {
+  min-height: 100dvh;
+  padding-top: calc(var(--app-header-height) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 640px) {
+  :root {
+    --app-header-height: 44px;
+    --app-bottom-nav-height: 64px;
+  }
 }
 
 /* iOS overscroll (rubber-band) can reveal the browser background; keep a fixed black layer behind everything. */

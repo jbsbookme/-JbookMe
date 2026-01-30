@@ -139,8 +139,10 @@ export default function RootLayout({
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />
                   <SwipeBackGesture />
-                  {children}
-                  <Footer />
+                  <main className="app-content">
+                    {children}
+                    <Footer />
+                  </main>
                   <BottomNav />
                   <Toaster position="top-right" />
                 </I18nProvider>
