@@ -61,6 +61,7 @@
   },
   "dependencies": {
     "@capacitor/android": "8.0.1",
+    "@capacitor/app": "^8.0.0",
     "@capacitor/core": "8.0.1",
     "@capacitor/ios": "8.0.1",
     "@floating-ui/react": "0.26.0",

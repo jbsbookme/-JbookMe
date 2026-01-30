@@ -16,6 +16,7 @@ import { RegisterServiceWorker } from '@/components/register-service-worker';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { LegalAcceptanceGate } from '@/components/legal/legal-acceptance-gate';
 import { NativeAuthGuard } from '@/components/native-auth-guard';
+import { NativeBackHandler } from '@/components/native-back-handler';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -135,6 +136,7 @@ export default function RootLayout({
                   <GlobalHeader />
                   <LegalAcceptanceGate />
                   <NativeAuthGuard />
+                  <NativeBackHandler />
                   <PwaInstallBanner />
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />
