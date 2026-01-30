@@ -255,7 +255,7 @@ export async function POST(request: NextRequest) {
     // Send notifications to client and barber
     try {
       const acceptLanguage = request.headers.get('accept-language') || '';
-      const clientLocale = acceptLanguage.toLowerCase().startsWith('es') ? 'es' : 'en';
+      const clientLocale: 'es' | 'en' = acceptLanguage.toLowerCase().startsWith('es') ? 'es' : 'en';
       const notificationData = {
         clientName: appointment.client.name || 'Client',
         clientEmail: appointment.client.email || '',

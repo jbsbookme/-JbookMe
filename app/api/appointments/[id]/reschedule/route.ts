@@ -198,7 +198,7 @@ export async function POST(request: NextRequest, context: Params) {
     // Send notifications
     try {
       const acceptLanguage = request.headers.get('accept-language') || '';
-      const clientLocale = acceptLanguage.toLowerCase().startsWith('es') ? 'es' : 'en';
+      const clientLocale: 'es' | 'en' = acceptLanguage.toLowerCase().startsWith('es') ? 'es' : 'en';
       const notificationData = {
         clientName: newAppointment.client.name || 'Client',
         clientEmail: newAppointment.client.email || '',
