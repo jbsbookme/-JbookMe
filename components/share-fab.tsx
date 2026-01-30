@@ -4,6 +4,7 @@ import { Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { sharePayload } from '@/lib/share';
 
 export function ShareFAB() {
   const { t } = useI18n();
@@ -15,15 +16,15 @@ export function ShareFAB() {
     };
 
     try {
-      // Check if Web Share API is available
-      if (navigator.share) {
-        await navigator.share(shareData);
+      const shared = await sharePayload(shareData);
+      if (shared) {
         toast.success(t('common.shareSuccess'));
-      } else {
-        // Fallback: Copy link to clipboard
-        await navigator.clipboard.writeText(url);
-        toast.success(t('common.linkCopied'));
+        return;
       }
+
+      // Fallback: Copy link to clipboard
+      await navigator.clipboard.writeText(url);
+      toast.success(t('common.linkCopied'));
     } catch (error: unknown) {
       const errorName =
         typeof error === 'object' && error !== null && 'name' in error

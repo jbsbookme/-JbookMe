@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { sharePayload } from '@/lib/share';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { signOut } from 'next-auth/react';
@@ -93,8 +94,8 @@ export function GlobalHeader() {
         url,
       };
 
-      if (navigator.share) {
-        await navigator.share(shareData);
+      const shared = await sharePayload(shareData);
+      if (shared) {
         toast.success(t('common.shareSuccess'));
         return;
       }

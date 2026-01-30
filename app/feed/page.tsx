@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n/i18n-context';
+import { sharePayload } from '@/lib/share';
 import { motion, useMotionValue } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -214,10 +215,8 @@ export default function FeedPage() {
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
 
     try {
-      if (navigator.share) {
-        await navigator.share({ title, text, url: shareUrl });
-        return;
-      }
+      const shared = await sharePayload({ title, text, url: shareUrl });
+      if (shared) return;
 
       const ok = await copyToClipboard(shareUrl);
       if (ok) {
@@ -245,13 +244,12 @@ export default function FeedPage() {
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
 
     try {
-      if (navigator.share) {
-        await navigator.share({ title, text, url: shareUrl });
-      } else {
-        const ok = await copyToClipboard(shareUrl);
-        if (ok) toast.success(t('common.linkCopied'));
-        else toast.error(t('common.error'));
-      }
+      const shared = await sharePayload({ title, text, url: shareUrl });
+      if (shared) return;
+
+      const ok = await copyToClipboard(shareUrl);
+      if (ok) toast.success(t('common.linkCopied'));
+      else toast.error(t('common.error'));
     } catch {
       // user cancelled
     }
@@ -279,10 +277,8 @@ export default function FeedPage() {
     // Instagram does not support a reliable web-based "share" URL for arbitrary links.
     // Best-effort: use Web Share (mobile), otherwise copy link.
     try {
-      if (navigator.share) {
-        await navigator.share({ title: barbershopName, text, url: shareUrl });
-        return;
-      }
+      const shared = await sharePayload({ title: barbershopName, text, url: shareUrl });
+      if (shared) return;
     } catch {
       // user cancelled / not supported
     }
