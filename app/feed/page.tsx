@@ -138,6 +138,12 @@ export default function FeedPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sharedPostId = searchParams.get('post');
+  const shareBaseUrl = useMemo(() => {
+    const envUrl = (process.env.NEXT_PUBLIC_APP_URL || '').trim();
+    if (envUrl) return envUrl.replace(/\/$/, '');
+    if (typeof window !== 'undefined') return window.location.origin;
+    return '';
+  }, []);
 
   const copyToClipboard = useCallback(
     async (text: string): Promise<boolean> => {
@@ -209,7 +215,8 @@ export default function FeedPage() {
   } | null>(null);
 
   const sharePost = useCallback(async (post: Post) => {
-    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const baseUrl = shareBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const shareUrl = `${baseUrl}/p/${post.id}`;
     const barbershopName = "JB's Barbershop";
     const title = barbershopName;
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
@@ -235,10 +242,11 @@ export default function FeedPage() {
         toast.error(t('common.error'));
       }
     }
-  }, [copyToClipboard, t]);
+  }, [copyToClipboard, shareBaseUrl, t]);
 
   const sharePostLinkOnly = useCallback(async (post: Post) => {
-    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const baseUrl = shareBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const shareUrl = `${baseUrl}/p/${post.id}`;
     const barbershopName = "JB's Barbershop";
     const title = barbershopName;
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
@@ -253,24 +261,27 @@ export default function FeedPage() {
     } catch {
       // user cancelled
     }
-  }, [copyToClipboard, t]);
+  }, [copyToClipboard, shareBaseUrl, t]);
 
   const shareToFacebook = useCallback((post: Post) => {
-    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const baseUrl = shareBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const shareUrl = `${baseUrl}/p/${post.id}`;
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, []);
+  }, [shareBaseUrl]);
 
   const shareToWhatsApp = useCallback((post: Post) => {
-    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const baseUrl = shareBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const shareUrl = `${baseUrl}/p/${post.id}`;
     const barbershopName = "JB's Barbershop";
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}\n${shareUrl}` : `${barbershopName}\n${shareUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, []);
+  }, [shareBaseUrl]);
 
   const shareToInstagram = useCallback(async (post: Post) => {
-    const shareUrl = `${window.location.origin}/p/${post.id}`;
+    const baseUrl = shareBaseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+    const shareUrl = `${baseUrl}/p/${post.id}`;
     const barbershopName = "JB's Barbershop";
     const text = post.caption?.trim() ? `${post.caption}\n\n${barbershopName}` : barbershopName;
 
@@ -290,7 +301,7 @@ export default function FeedPage() {
     } catch {
       // ignore
     }
-  }, [copyToClipboard, t]);
+  }, [copyToClipboard, shareBaseUrl, t]);
   const bookingCtaRef = useRef<HTMLDivElement | null>(null);
   const [isBookingCtaInView, setIsBookingCtaInView] = useState(true);
   const [zoomedMedia, setZoomedMedia] = useState<{
