@@ -133,13 +133,13 @@ html, body {
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* App shell: keep content consistently offset from header & bottom nav. */
-.app-content {
+.app-shell {
   min-height: 100dvh;
-  padding-top: env(safe-area-inset-top);
+  padding-top: calc(var(--app-header-height) + env(safe-area-inset-top));
   padding-bottom: calc(var(--app-bottom-nav-height) + env(safe-area-inset-bottom));
   scroll-padding-top: calc(var(--app-header-height) + env(safe-area-inset-top));
 }

@@ -139,7 +139,7 @@ export default function RootLayout({
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />
                   <SwipeBackGesture />
-                  <main className="app-content">
+                  <main className="app-shell min-h-[100dvh] flex flex-col">
                     {children}
                     <Footer />
                   </main>
