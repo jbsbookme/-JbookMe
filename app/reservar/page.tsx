@@ -1468,7 +1468,7 @@ export default function ReservarPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Calendar */}
-          <Card className="bg-black/35 border-gray-800">
+          <Card className="order-1 bg-black/35 border-gray-800">
             <CardContent className="p-6">
               <h3 className="text-xl font-bold text-[#00f0ff] mb-4 text-center">{t('booking.selectDate')}</h3>
 
@@ -1542,7 +1542,7 @@ export default function ReservarPage() {
           </Card>
 
           {/* Time Slots */}
-          <Card className="bg-black/35 border-gray-800">
+          <Card className="order-2 bg-black/35 border-gray-800">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-bold text-[#00f0ff]">{t('booking.selectTime')}</h3>
