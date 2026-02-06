@@ -98,7 +98,7 @@ export const metadata: Metadata = {
     ],
   },
   
-};};  manifest: '/manifest.json',
+ manifest: '/manifest.json',
   openGraph: {
     type: 'website',
     title: '💈 JBookMe — JB Barbershop',
