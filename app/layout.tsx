@@ -40,20 +40,52 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(metadataBaseUrl),
+
   title: {
-    default: '💈 JBookMe — JB Barbershop',
-    template: '%s | 💈 JBookMe — JB Barbershop',
+    default: '💈 JBookMe – JB Barbershop',
+    template: '%s | 💈 JBookMe – JB Barbershop',
   },
-  description: 'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
+
+  description:
+    'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
+
+  openGraph: {
+    title: 'JBookMe – JB Barbershop',
+    description:
+      'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
+    url: metadataBaseUrl,
+    siteName: 'JBookMe',
+    images: [
+      {
+        url: '/og-preview.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'JBookMe preview',
+      },
+    ],
+    type: 'website',
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'JBookMe – JB Barbershop',
+    description:
+      'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
+    images: ['/og-preview.jpg'],
+  },
+
   applicationName: 'JBookMe',
+
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'JBookMe',
   },
+
   formatDetection: {
     telephone: false,
   },
+
   icons: {
     icon: [
       { url: '/favicon.png', sizes: '48x48', type: 'image/png' },
@@ -62,13 +94,8 @@ export const metadata: Metadata = {
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icon-256.png', sizes: '256x256', type: 'image/png' },
-      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
   },
-  manifest: '/manifest.json',
+};  manifest: '/manifest.json',
   openGraph: {
     type: 'website',
     title: '💈 JBookMe — JB Barbershop',
