@@ -99,36 +99,7 @@ export const metadata: Metadata = {
   },
 };
 
- manifest: '/manifest.json',
-  openGraph: {
-    type: 'website',
-    title: '💈 JBookMe — JB Barbershop',
-    description: 'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
-    url: '/',
-    siteName: "JB's Barbershop",
-    images: [
-      {
-        url: '/opengraph-image',
-        width: 1200,
-        height: 630,
-        alt: 'JBookMe',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: '💈 JBookMe — JB Barbershop',
-    description: 'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
-    images: [
-      {
-        url: '/twitter-image',
-        width: 1200,
-        height: 630,
-        alt: 'JBookMe',
-      },
-    ],
-  },
-};
+
 
 export default function RootLayout({
   children,
