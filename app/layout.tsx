@@ -42,15 +42,30 @@ export const metadata: Metadata = {
   metadataBase: new URL(metadataBaseUrl),
 
   title: {
-    default: '💈 JBookMe – JB Barbershop',
-    template: '%s | 💈 JBookMe – JB Barbershop',
+    default: '💈 JBookMe — JB Barbershop',
+    template: '%s | 💈 JBookMe — JB Barbershop',
   },
 
   description:
     'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
 
+  applicationName: 'JBookMe',
+
+  manifest: '/manifest.json',
+
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'JBookMe',
+  },
+
+  formatDetection: {
+    telephone: false,
+  },
+
   openGraph: {
-    title: 'JBookMe – JB Barbershop',
+    type: 'website',
+    title: '💈 JBookMe — JB Barbershop',
     description:
       'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
     url: metadataBaseUrl,
@@ -63,27 +78,14 @@ export const metadata: Metadata = {
         alt: 'JBookMe preview',
       },
     ],
-    type: 'website',
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'JBookMe – JB Barbershop',
+    title: '💈 JBookMe — JB Barbershop',
     description:
       'Book your barber online in seconds. Choose your barber • Pick your time • No waiting.',
     images: ['/og-preview.jpg'],
-  },
-
-  applicationName: 'JBookMe',
-
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'JBookMe',
-  },
-
-  formatDetection: {
-    telephone: false,
   },
 
   icons: {
@@ -95,7 +97,8 @@ export const metadata: Metadata = {
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
   },
-};  manifest: '/manifest.json',
+  
+};};  manifest: '/manifest.json',
   openGraph: {
     type: 'website',
     title: '💈 JBookMe — JB Barbershop',
