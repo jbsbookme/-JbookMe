@@ -95,7 +95,9 @@ export const metadata: Metadata = {
       { url: '/icon-128.png', sizes: '128x128', type: 'image/png' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
-
+    ],
+  },
+};
 export default function RootLayout({
   children,
 }: {
