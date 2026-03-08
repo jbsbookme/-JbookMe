@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
-    "@capacitor/cli": "7.4.5",
+    "@capacitor/cli": "^7.4.5",
     "@next/swc-wasm-nodejs": "13.5.1",
     "@types/node": "20.6.2",
     "@types/react": "18.2.22",
@@ -60,9 +60,9 @@
     "typescript": "5.2.2"
   },
   "dependencies": {
-    "@capacitor/android": "8.0.1",
+    "@capacitor/android": "^8.0.1",
     "@capacitor/app": "^8.0.0",
-    "@capacitor/core": "8.0.1",
+    "@capacitor/core": "^8.0.1",
     "@capacitor/ios": "8.0.1",
     "@capacitor/share": "^8.0.0",
     "@floating-ui/react": "0.26.0",
@@ -120,6 +120,7 @@
     "dotenv": "16.5.0",
     "embla-carousel-react": "8.3.0",
     "firebase": "^12.7.0",
+    "firebase-admin": "^13.7.0",
     "formik": "2.4.5",
     "framer-motion": "^10.18.0",
     "gray-matter": "4.0.3",
