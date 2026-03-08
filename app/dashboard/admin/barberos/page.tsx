@@ -47,6 +47,7 @@ interface Barber {
   hourlyRate: number | null;
   profileImage: string | null;
   isActive: boolean;
+  featured: boolean;
   gender: string | null;
   contactEmail: string | null;
   facebookUrl: string | null;
@@ -162,6 +163,7 @@ export default function AdminBarberosPage() {
   }, [t]);
 
   const [togglingActiveId, setTogglingActiveId] = useState<string | null>(null);
+  const [togglingFeaturedId, setTogglingFeaturedId] = useState<string | null>(null);
 
   const toggleActive = async (barber: Barber) => {
     if (togglingActiveId) return;
@@ -190,6 +192,36 @@ export default function AdminBarberosPage() {
       toast.error(e instanceof Error ? e.message : t('admin.barbersPage.failedToUpdateStatus'));
     } finally {
       setTogglingActiveId(null);
+    }
+  };
+
+  const toggleFeatured = async (barber: Barber) => {
+    if (togglingFeaturedId) return;
+
+    const nextFeatured = !barber.featured;
+
+    setTogglingFeaturedId(barber.id);
+    setBarbers((prev) => prev.map((b) => (b.id === barber.id ? { ...b, featured: nextFeatured } : b)));
+
+    try {
+      const response = await fetch(`/api/admin/barbers/${barber.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ featured: nextFeatured }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err?.error || t('admin.barbersPage.failedToUpdateStatus'));
+      }
+
+      toast.success(nextFeatured ? 'Featured on homepage' : 'Removed from homepage');
+    } catch (e) {
+      console.error('[AdminBarberos] toggleFeatured failed:', e);
+      setBarbers((prev) => prev.map((b) => (b.id === barber.id ? { ...b, featured: barber.featured } : b)));
+      toast.error(e instanceof Error ? e.message : t('admin.barbersPage.failedToUpdateStatus'));
+    } finally {
+      setTogglingFeaturedId(null);
     }
   };
 
@@ -659,6 +691,21 @@ export default function AdminBarberosPage() {
                         } ${togglingActiveId === barber.id ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'}`}
                       >
                         {barber.isActive ? t('admin.barbersPage.statusActive') : t('admin.barbersPage.statusInactive')}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-400">⭐ Featured on Homepage</span>
+                      <button
+                        type="button"
+                        disabled={togglingFeaturedId === barber.id}
+                        onClick={() => toggleFeatured(barber)}
+                        className={`px-2 py-1 rounded text-xs font-semibold transition-opacity ${
+                          barber.featured
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : 'bg-gray-700/40 text-gray-300'
+                        } ${togglingFeaturedId === barber.id ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'}`}
+                      >
+                        {barber.featured ? 'Featured' : 'Not featured'}
                       </button>
                     </div>
                   </div>

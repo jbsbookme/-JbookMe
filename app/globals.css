@@ -248,3 +248,18 @@ body {
 .hover\:glow-pink:hover {
   box-shadow: 0 0 30px rgba(236, 72, 153, 0.3);
 }
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradientMove 6s ease infinite;
+}

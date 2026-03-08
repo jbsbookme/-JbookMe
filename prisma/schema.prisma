@@ -87,6 +87,7 @@ model Barber {
   specialties        String?
   hourlyRate         Float?
   isActive           Boolean             @default(true)
+  featured           Boolean             @default(false)
   profileImage       String?
   phone              String?
   facebookUrl        String?

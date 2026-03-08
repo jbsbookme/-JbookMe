@@ -26,23 +26,6 @@ const quickSuggestions = [
 ]
 
 export default function AdminAssistant() {
-  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
-  if (!assistantEnabled) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center px-4">
-        <div className="max-w-md w-full bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center space-y-4">
-          <h1 className="text-xl font-bold text-white">Asistente desactivado</h1>
-          <p className="text-sm text-gray-400">
-            El asistente está temporalmente desactivado. Más adelante lo activamos de nuevo.
-          </p>
-          <Link href="/dashboard/admin">
-            <Button className="bg-[#00f0ff] text-black hover:bg-[#00d0df]">Volver</Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
   const router = useRouter()
   const { data: session, status } = useSession()
   const [messages, setMessages] = useState<Message[]>(() => {
@@ -92,6 +75,8 @@ export default function AdminAssistant() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [messages])
+
+  const assistantEnabled = process.env.NEXT_PUBLIC_ASSISTANT_ENABLED === 'true'
 
   const handleSend = async () => {
     if (!input.trim() || loading) return
@@ -149,6 +134,22 @@ export default function AdminAssistant() {
       localStorage.removeItem(STORAGE_KEY);
     }
     toast.success('Conversation restarted');
+  }
+
+  if (!assistantEnabled) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-gray-900 border border-gray-800 rounded-2xl p-6 text-center space-y-4">
+          <h1 className="text-xl font-bold text-white">Asistente desactivado</h1>
+          <p className="text-sm text-gray-400">
+            El asistente está temporalmente desactivado. Más adelante lo activamos de nuevo.
+          </p>
+          <Link href="/dashboard/admin">
+            <Button className="bg-[#00f0ff] text-black hover:bg-[#00d0df]">Volver</Button>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   if (status === 'loading') {

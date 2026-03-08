@@ -13,7 +13,6 @@ import { GlobalHeader } from '@/components/layout/global-header';
 import { PauseVideosOnHide } from '@/components/pause-videos-on-hide';
 import { SwipeBackGesture } from '@/components/swipe-back-gesture';
 import { RegisterServiceWorker } from '@/components/register-service-worker';
-import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { LegalAcceptanceGate } from '@/components/legal/legal-acceptance-gate';
 import { NativeAuthGuard } from '@/components/native-auth-guard';
 import { NativeBackHandler } from '@/components/native-back-handler';
@@ -136,7 +135,6 @@ export default function RootLayout({
                   <LegalAcceptanceGate />
                   <NativeAuthGuard />
                   <NativeBackHandler />
-                  <PwaInstallBanner />
                   <RegisterServiceWorker />
                   <PauseVideosOnHide />
                   <SwipeBackGesture />

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
+import { syncServiceToFirestore } from '@/lib/syncServiceToFirestore';
 import type { Prisma } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -191,6 +192,20 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      try {
+        const serviceFor = normalizedGender === 'FEMALE' ? 'Women' : 'Men';
+        await syncServiceToFirestore({
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          duration: service.duration,
+          serviceFor,
+          active: service.isActive,
+        });
+      } catch (error) {
+        console.error('Firestore sync failed (create/general):', error);
+      }
+
       return NextResponse.json({ service }, { status: 201 });
     }
 
@@ -218,6 +233,20 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    try {
+      const serviceFor = normalizedGender === 'FEMALE' ? 'Women' : 'Men';
+      await syncServiceToFirestore({
+        id: service.id,
+        name: service.name,
+        price: service.price,
+        duration: service.duration,
+        serviceFor,
+        active: service.isActive,
+      });
+    } catch (error) {
+      console.error('Firestore sync failed (create/barber):', error);
+    }
 
     return NextResponse.json({ service }, { status: 201 });
   } catch (error) {

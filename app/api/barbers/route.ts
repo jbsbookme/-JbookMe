@@ -41,6 +41,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const gender = searchParams.get('gender');
     const includeInactive = searchParams.get('includeInactive') === '1';
+    const featuredParam = searchParams.get('featured');
+    const featuredOnly = featuredParam === '1' || featuredParam === 'true';
 
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
@@ -49,6 +51,10 @@ export async function GET(request: NextRequest) {
     const whereClause: Prisma.BarberWhereInput = {};
     if (!includeInactive || !isAdmin) {
       whereClause.isActive = true;
+    }
+
+    if (featuredOnly) {
+      whereClause.featured = true;
     }
     
     if (gender === 'MALE') {
@@ -65,6 +71,7 @@ export async function GET(request: NextRequest) {
         id: true,
         userId: true,
         isActive: true,
+        featured: true,
         bio: true,
         specialties: true,
         hourlyRate: true,

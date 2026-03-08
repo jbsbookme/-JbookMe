@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
+import { syncServiceToFirestore } from '@/lib/syncServiceToFirestore';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,20 @@ export async function PUT(
         },
       },
     });
+
+    try {
+      const serviceFor = updatedService.gender === 'FEMALE' ? 'Women' : 'Men';
+      await syncServiceToFirestore({
+        id: updatedService.id,
+        name: updatedService.name,
+        price: updatedService.price,
+        duration: updatedService.duration,
+        serviceFor,
+        active: updatedService.isActive,
+      });
+    } catch (error) {
+      console.error('Firestore sync failed (update):', error);
+    }
 
     return NextResponse.json({ service: updatedService });
   } catch (error) {
