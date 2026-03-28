@@ -40,6 +40,10 @@ export async function GET(request: NextRequest) {
     // FIXED: Add gender filter
     const { searchParams } = new URL(request.url);
     const gender = searchParams.get('gender');
+    let categoryFilter = null
+
+if (gender === "MALE") categoryFilter = "men"
+if (gender === "FEMALE") categoryFilter = "women"
     const includeInactive = searchParams.get('includeInactive') === '1';
     const featuredParam = searchParams.get('featured');
     const featuredOnly = featuredParam === '1' || featuredParam === 'true';
@@ -49,6 +53,9 @@ export async function GET(request: NextRequest) {
 
     // Build where clause
     const whereClause: Prisma.BarberWhereInput = {};
+    if (categoryFilter) {
+  whereClause.category = categoryFilter;
+}
     if (!includeInactive || !isAdmin) {
       whereClause.isActive = true;
     }
