@@ -141,6 +141,9 @@ export default function RootLayout({
                   <main className="app-shell min-h-[100dvh] flex flex-col">
                     {children}
                     <Footer />
+                    <div style={{ textAlign: "center", marginTop: 40 }}>
+                      <a href="/privacy">Privacy Policy</a> | <a href="/terms">Terms & Conditions</a>
+                    </div>
                   </main>
                   <BottomNav />
                   <Toaster position="top-right" />

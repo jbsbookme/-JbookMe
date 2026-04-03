@@ -225,6 +225,9 @@ export default function HomePage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white">
               Featured <span className="text-[#00f0ff]">Barbers</span>
             </h2>
+            <p style={{ textAlign: "center", color: "#aaa", fontSize: "14px", marginTop: "10px" }}>
+              By booking an appointment, you agree to receive SMS notifications for confirmations and reminders from JB's Barbershop.
+            </p>
             <p className="text-gray-400 mt-3">
               Pick your favorite — see ratings and book instantly.
             </p>

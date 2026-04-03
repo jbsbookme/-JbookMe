@@ -62,3 +62,4 @@ public/uploads/
 # macOS
 .DS_Store
 ._*
+.env*.local
