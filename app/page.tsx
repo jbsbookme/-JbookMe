@@ -56,21 +56,19 @@ export default function HomePage() {
     `/auth?callbackUrl=${encodeURIComponent(callbackUrl)}`;
 
   useEffect(() => {
-  if (status === 'authenticated') {
-    if (session?.user?.role === 'ADMIN') {
-      router.push('/dashboard/admin');
-    } else if (
-      session?.user?.role === 'BARBER' ||
-      session?.user?.role === 'STYLIST'
-    ) {
-      router.push('/dashboard/barbero');
-    } else {
-      router.push('/feed');
+    if (status === 'authenticated') {
+      if (session?.user?.role === 'ADMIN') {
+        router.push('/dashboard/admin');
+      } else if (
+        session?.user?.role === 'BARBER' ||
+        session?.user?.role === 'STYLIST'
+      ) {
+        router.push('/dashboard/barbero');
+      } else {
+        router.push('/feed');
+      }
     }
-  } else if (status === 'unauthenticated') {
-    router.push('/feed'); // 🔥 ESTE ES EL FIX
-  }
-}, [status]);
+  }, [session, status, router]);
 
   // Load featured barbers (real)
   useEffect(() => {
