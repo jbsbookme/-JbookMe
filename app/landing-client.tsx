@@ -74,7 +74,6 @@ export function LandingClient() {
   const [shopInfo, setShopInfo] = useState<ShopInfo>({});
   const [loading, setLoading] = useState(true);
   const [activeStoreLinks, setActiveStoreLinks] = useState<string | null>(null);
-  const reviewAuthors = ['Marcus Lee', 'Sofia Rivera', 'Daniel Cruz'];
 
   useEffect(() => {
     let cancelled = false;
@@ -518,7 +517,7 @@ export function LandingClient() {
                   “{review || 'Review coming soon.'}”
                 </div>
                 <div className="mt-4 text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/60">
-                  — {reviewAuthors[index] || 'Client'}
+                  — Client
                 </div>
               </div>
             )
