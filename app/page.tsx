@@ -1,7 +1,16 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
-const featuredBarbers = [
+type Barber = {
+  id: string;
+  name: string;
+  image?: string | null;
+  rating?: number | null;
+  reviewsCount?: number | null;
+  specialty?: string | null;
+};
+
+const fallbackBarbers: Barber[] = [
   {
     id: 'landing-1',
     name: 'JB Crew',
@@ -19,7 +28,62 @@ const featuredBarbers = [
   },
 ];
 
-export default function LandingPage() {
+async function fetchFeaturedBarbers(): Promise<Barber[] | null> {
+  try {
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+    const url = baseUrl ? `${baseUrl}/api/barbers` : '/api/barbers';
+
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      barbers?: Array<Record<string, unknown>>;
+    };
+    const list = Array.isArray(data.barbers) ? data.barbers : [];
+
+    const mapped = list
+      .map((barber) => {
+        const user = barber.user as { name?: string | null; image?: string | null } | undefined;
+        return {
+          id: String(barber.id ?? ''),
+          name: String(barber.name ?? user?.name ?? 'Barber'),
+          image:
+            (barber.imageUrl as string | null | undefined) ||
+            (barber.image as string | null | undefined) ||
+            (barber.profileImage as string | null | undefined) ||
+            user?.image ||
+            null,
+          rating:
+            (barber.rating as number | null | undefined) ??
+            (barber.avgRating as number | null | undefined) ??
+            null,
+          reviewsCount:
+            (barber.reviewsCount as number | null | undefined) ??
+            (barber.totalReviews as number | null | undefined) ??
+            null,
+          specialty:
+            (barber.specialty as string | null | undefined) ??
+            (barber.specialties as string | null | undefined) ??
+            null,
+        } as Barber;
+      })
+      .filter((barber) => barber.id)
+      .slice(0, 3);
+
+    return mapped.length > 0 ? mapped : [];
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+export default async function LandingPage() {
+  const barbers = await fetchFeaturedBarbers();
+  const isLoading = barbers === null;
+  const featuredBarbers = barbers && barbers.length ? barbers : fallbackBarbers;
+
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
       <div className="absolute inset-0 -z-10">
@@ -42,7 +106,7 @@ export default function LandingPage() {
             size="lg"
             className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold px-10 py-6"
           >
-            <Link href="/reservar">Book Now</Link>
+            <Link href="/app/book">Book Now</Link>
           </Button>
           <Button
             asChild
@@ -50,7 +114,7 @@ export default function LandingPage() {
             variant="outline"
             className="border-gray-500/50 text-white hover:bg-white/10 px-10 py-6"
           >
-            <Link href="/barberos">Find Your Barber</Link>
+            <Link href="/app">Find Your Barber</Link>
           </Button>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -84,26 +148,42 @@ export default function LandingPage() {
             variant="outline"
             className="border-gray-700 text-white hover:bg-white/10"
           >
-            <Link href="/barberos">See all barbers</Link>
+            <Link href="/app">See all barbers</Link>
           </Button>
         </div>
 
         <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-3">
+          {isLoading ? (
+            <div className="rounded-2xl border border-gray-800 bg-[#0f0f0f] p-6 text-center text-sm text-gray-400">
+              Loading...
+            </div>
+          ) : null}
           {featuredBarbers.map((barber) => (
             <div
               key={barber.id}
               className="group rounded-2xl border border-gray-800 bg-[#0f0f0f] p-6 transition-all hover:border-[#00f0ff]"
             >
-              <div className="h-40 rounded-xl bg-gradient-to-b from-gray-900 to-black" />
+              <div className="relative h-40 overflow-hidden rounded-xl bg-gradient-to-b from-gray-900 to-black">
+                {barber.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={barber.image}
+                    alt={barber.name}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : null}
+              </div>
               <div className="mt-5">
                 <h3 className="text-xl font-semibold text-white">{barber.name}</h3>
-                <p className="mt-2 text-sm text-gray-400">{barber.specialty}</p>
+                <p className="mt-2 text-sm text-gray-400">
+                  {barber.specialty ?? 'Modern cuts, fades, detail work'}
+                </p>
                 <div className="mt-5 flex gap-3">
                   <Button asChild variant="outline" className="w-full border-gray-700 text-white hover:bg-white/10">
-                    <Link href="/barberos">View</Link>
+                    <Link href={`/app/barber/${barber.id}`}>View</Link>
                   </Button>
                   <Button asChild className="w-full bg-[#00f0ff] text-black hover:bg-[#00d0dd]">
-                    <Link href="/reservar">Book</Link>
+                    <Link href={`/app/book?barberId=${barber.id}`}>Book</Link>
                   </Button>
                 </div>
               </div>
@@ -120,10 +200,10 @@ export default function LandingPage() {
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button asChild className="bg-[#00f0ff] text-black hover:bg-[#00d0dd] px-10">
-              <Link href="/reservar">Book Now</Link>
+              <Link href="/app/book">Book Now</Link>
             </Button>
             <Button asChild variant="outline" className="border-gray-700 text-white hover:bg-white/10 px-10">
-              <Link href="/barberos">Find Your Barber</Link>
+              <Link href="/app">Find Your Barber</Link>
             </Button>
           </div>
         </div>
