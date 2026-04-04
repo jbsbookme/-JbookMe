@@ -132,12 +132,22 @@ export function LandingClient() {
     };
   }, []);
 
+  const formatInstagram = (value?: string | null) => {
+    const raw = (value || '').trim();
+    if (!raw) return '';
+    const withoutProtocol = raw.replace(/^https?:\/\//i, '');
+    const withoutDomain = withoutProtocol.replace(/^www\./i, '').replace(/^instagram\.com\//i, '');
+    const cleaned = withoutDomain.replace(/^@/, '').replace(/\/$/, '');
+    return cleaned;
+  };
+
   const renderStaff = (items: Staff[]) => {
     const list = items;
     if (list.length === 0) return <p className="text-white/50">No results yet.</p>;
 
     return list.map((item) => {
       const image = item.imageUrl || item.photoUrl || '';
+      const instagramHandle = formatInstagram(item.instagram);
       return (
         <div
           key={item.id}
@@ -145,7 +155,9 @@ export function LandingClient() {
         >
           <div className="flex items-center justify-between gap-3">
             <strong className="text-lg font-semibold">{item.name}</strong>
-            {item.instagram ? <span className="text-xs text-white/50">@{item.instagram}</span> : null}
+            {instagramHandle ? (
+              <span className="text-xs text-white/50">@{instagramHandle}</span>
+            ) : null}
           </div>
           <div className="mt-2 text-sm text-white/70">
             {item.specialties || item.specialty || 'Specialty not listed'}
@@ -270,17 +282,41 @@ export function LandingClient() {
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
-              <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
-              <div className="mt-4 grid gap-2 text-white/70">
+                <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
+                <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
+                <div className="mt-4 grid gap-2 text-white/70">
                   {settings.about ? <div>{settings.about}</div> : null}
                   <div>Address: {settings.address || 'Coming soon'}</div>
                   <div>Hours: {settings.hours || 'Daily • 9am - 8pm'}</div>
-                  {settings.instagram ? <div>Instagram: {settings.instagram}</div> : null}
-                  {settings.facebook ? <div>Facebook: {settings.facebook}</div> : null}
-                  {settings.privacy ? <div>Privacy: {settings.privacy}</div> : null}
-                  {settings.terms ? <div>Terms: {settings.terms}</div> : null}
-              </div>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    {settings.instagram ? (
+                      <a
+                        href={settings.instagram}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                          <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7-.82-.93-1.4-.22-.55-.38-1.18-.42-2.1-.05-.9-.05-1.2-.05-3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22 1.18-.38 2.1-.42.9-.05 1.2-.05 3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-1.06-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
+                        </svg>
+                        Instagram
+                      </a>
+                    ) : null}
+                    {settings.facebook ? (
+                      <a
+                        href={settings.facebook}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                          <path d="M13.2 20.4v-7.2h2.44l.36-2.8h-2.8V8.6c0-.8.22-1.34 1.36-1.34h1.46V4.8c-.7-.08-1.56-.12-2.42-.12-2.4 0-4.04 1.46-4.04 4.14v1.62H7.2v2.8h2.36v7.2h3.64Z" />
+                        </svg>
+                        Facebook
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
             </div>
             <div className="flex flex-col gap-3">
               <a
@@ -335,17 +371,9 @@ export function LandingClient() {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
           <div>JBookMe</div>
           <div className="flex gap-4">
-            {settings.privacy ? (
-              <span className="text-white/60">Privacy</span>
-            ) : (
               <a href="/privacy" className="hover:text-white">Privacy</a>
-            )}
-            {settings.terms ? (
-              <span className="text-white/60">Terms</span>
-            ) : (
               <a href="/terms" className="hover:text-white">Terms</a>
-            )}
-          </div>
+            </div>
         </div>
       </footer>
     </main>
