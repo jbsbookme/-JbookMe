@@ -344,7 +344,7 @@ export function LandingClient() {
           {gallery.map((item) => (
             <div
               key={item.id}
-              className="group overflow-hidden rounded-3xl border border-[#ff2d2d]/12 bg-black p-3 transition duration-300 hover:-translate-y-2 hover:scale-[1.01] hover:border-[#ff2d2d]/45 hover:shadow-[0_0_28px_rgba(255,45,45,0.35)]"
+              className="group overflow-hidden rounded-3xl border border-[#3b82f6]/25 bg-black p-3 transition duration-300 hover:-translate-y-2 hover:scale-[1.01] hover:border-[#3b82f6]/60 hover:shadow-[0_0_28px_rgba(59,130,246,0.4)]"
             >
               {item.showTitle ? (
                 <div className="text-sm text-[#e5e5e5]/75">
