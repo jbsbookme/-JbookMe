@@ -172,9 +172,6 @@ export function LandingClient() {
           <div className="mt-2 text-sm text-white/70">
             {item.specialties || item.specialty || 'Specialty not listed'}
           </div>
-          {item.bio ? (
-            <div className="mt-3 text-sm text-white/60">{item.bio}</div>
-          ) : null}
           {item.experience ? (
             <div className="mt-2 text-xs uppercase tracking-[0.2em] text-white/45">
               {item.experience}
