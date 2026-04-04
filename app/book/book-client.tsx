@@ -64,6 +64,11 @@ export function BookClient({ barberId }: Props) {
   );
 
   const handleConfirm = async () => {
+    if (!service || !time) {
+      alert('Please select service and time');
+      return;
+    }
+
     setErrorMessage('');
     setStatus('saving');
 
