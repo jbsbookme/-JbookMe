@@ -1,15 +1,25 @@
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'bookme-65bd5',
+type FirebaseConfig = {
+  apiKey: string;
+  authDomain: string;
+  projectId: string;
 };
 
-if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
-  throw new Error('Missing Firebase client environment variables.');
+function getFirebaseConfig(): FirebaseConfig | null {
+  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
+  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '';
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'bookme-65bd5';
+
+  if (!apiKey || !authDomain || !projectId) return null;
+
+  return { apiKey, authDomain, projectId };
 }
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+export function getFirestoreDb() {
+  const config = getFirebaseConfig();
+  if (!config) return null;
+  const app = getApps().length > 0 ? getApp() : initializeApp(config);
+  return getFirestore(app);
+}
