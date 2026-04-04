@@ -508,14 +508,16 @@ export function LandingClient() {
             (review, index) => (
               <div
                 key={`review-${index}`}
-                className="rounded-3xl border border-[#3b82f6]/20 bg-black p-6 text-[#e5e5e5] transition duration-300 hover:-translate-y-2 hover:border-[#3b82f6]/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.35)]"
+                className="rounded-3xl border border-[#3b82f6]/12 bg-black p-6 text-[#e5e5e5] transition duration-300 hover:-translate-y-2 hover:border-[#3b82f6]/45 hover:shadow-[0_0_24px_rgba(59,130,246,0.35)]"
               >
-                <div className="text-[#ffd700]">★★★★★</div>
+                <div className="text-[11px] tracking-[0.35em] text-[#ffd700]">
+                  ★★★★★
+                </div>
                 <div className="mt-3 text-sm text-[#e5e5e5]/85">
-                  {review || 'Review coming soon.'}
+                  “{review || 'Review coming soon.'}”
                 </div>
                 <div className="mt-4 text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/60">
-                  Client
+                  — Client
                 </div>
               </div>
             )
