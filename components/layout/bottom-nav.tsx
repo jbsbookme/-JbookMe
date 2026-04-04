@@ -19,7 +19,12 @@ export default function BottomNav() {
 
   const isAssistantRoute = !!pathname && /^\/([a-z]{2}\/)?asistente(\/|$)/i.test(pathname);
 
-  // Solo ocultar en páginas de auth, asistente y dashboards de admin/barbero
+  // Solo mostrar en rutas de app; ocultar en landing
+  if (pathname === '/') {
+    return null;
+  }
+
+  // Solo ocultar en paginas de auth, asistente y dashboards de admin/barbero
   if (pathname?.startsWith('/login') || 
       pathname?.startsWith('/registro') ||
       pathname?.startsWith('/auth') ||
