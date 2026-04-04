@@ -71,18 +71,15 @@ export async function GET(request: NextRequest) {
       barbers = barbers.filter((barber) => String(barber.gender ?? '') === 'BOTH');
     }
 
-    return NextResponse.json(
-      { barbers },
-      {
-        headers: {
-          'Cache-Control': 'private, no-store, max-age=0',
-          Vary: 'Cookie',
-        },
-      }
-    );
+    return NextResponse.json(barbers, {
+      headers: {
+        'Cache-Control': 'private, no-store, max-age=0',
+        Vary: 'Cookie',
+      },
+    });
   } catch (error) {
     console.error('Error fetching barbers:', error);
-    return NextResponse.json({ barbers: [] }, { status: 200 });
+    return NextResponse.json([], { status: 200 });
   }
 }
 
