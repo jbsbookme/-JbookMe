@@ -43,6 +43,13 @@ export async function GET(request: NextRequest) {
   const featuredParam = searchParams.get('featured');
   const featuredOnly = featuredParam === '1' || featuredParam === 'true';
 
+  const normalizeImage = (value: unknown) => {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed || trimmed === '""') return null;
+    return trimmed;
+  };
+
   try {
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
@@ -71,7 +78,12 @@ export async function GET(request: NextRequest) {
       barbers = barbers.filter((barber) => String(barber.gender ?? '') === 'BOTH');
     }
 
-    return NextResponse.json(barbers, {
+    const cleaned = barbers.map((barber) => ({
+      ...barber,
+      image: normalizeImage(barber.image),
+    }));
+
+    return NextResponse.json(cleaned, {
       headers: {
         'Cache-Control': 'private, no-store, max-age=0',
         Vary: 'Cookie',
