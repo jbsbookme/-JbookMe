@@ -62,6 +62,9 @@ export function LandingClient() {
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [shopInfo, setShopInfo] = useState<ShopInfo>({});
   const [loading, setLoading] = useState(true);
+  const [activeStoreCardId, setActiveStoreCardId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -195,33 +198,37 @@ export function LandingClient() {
               <div className="text-sm text-white/55">{item.bio}</div>
             ) : null}
             <div className="pt-2">
-              <a
-                href="/book"
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveStoreCardId((prev) =>
+                    prev === item.id ? null : item.id
+                  )
+                }
                 className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-2 text-xs font-semibold text-black transition duration-300 hover:-translate-y-0.5"
               >
                 Reservar ahora
-              </a>
-              <div className="mt-2 text-xs text-white/50">
-                Descarga la app para reservar.
-              </div>
-              <div className="mt-2 flex gap-3 text-xs">
-                <a
-                  href="https://apps.apple.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-white/70 hover:text-white"
-                >
-                  App Store
-                </a>
-                <a
-                  href="https://play.google.com/store"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-white/70 hover:text-white"
-                >
-                  Google Play
-                </a>
-              </div>
+              </button>
+              {activeStoreCardId === item.id ? (
+                <div className="mt-3 flex gap-2">
+                  <a
+                    href="https://play.google.com/store"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                  >
+                    Play Store
+                  </a>
+                  <a
+                    href="https://apps.apple.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                  >
+                    Apple Store
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
