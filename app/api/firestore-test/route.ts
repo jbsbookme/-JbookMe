@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
-import { firestore } from '@/lib/firebaseAdmin';
+import { getAdminFirestore } from '@/lib/firebaseAdmin';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    const firestore = getAdminFirestore();
     await firestore.collection('test_connection').add({
       message: 'Firestore connection OK',
       timestamp: new Date(),
@@ -19,6 +20,7 @@ export async function GET() {
 
 export async function DELETE() {
   try {
+    const firestore = getAdminFirestore();
     const snapshot = await firestore.collection('test_connection').get();
     const batch = firestore.batch();
 

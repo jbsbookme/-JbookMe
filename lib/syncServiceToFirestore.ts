@@ -1,4 +1,4 @@
-import { firestore } from './firebaseAdmin';
+import { getAdminFirestore } from './firebaseAdmin';
 
 type ServicePayload = {
   id: string;
@@ -14,7 +14,7 @@ export const syncServiceToFirestore = async (service: ServicePayload) => {
     throw new Error('Service id is required for Firestore sync.');
   }
 
-  await firestore
+  await getAdminFirestore()
     .collection('services')
     .doc(service.id)
     .set(

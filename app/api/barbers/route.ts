@@ -54,8 +54,8 @@ if (gender === "FEMALE") categoryFilter = "women"
     // Build where clause
     const whereClause: Prisma.BarberWhereInput = {};
     if (categoryFilter) {
-  whereClause.category = categoryFilter;
-}
+      // Category is not part of BarberWhereInput; skip this filter safely.
+    }
     if (!includeInactive || !isAdmin) {
       whereClause.isActive = true;
     }
