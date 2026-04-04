@@ -340,11 +340,11 @@ export function LandingClient() {
           <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Gallery</p>
           <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Recent work</h2>
         </div>
-        <div className="mt-8 grid gap-5 grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-6 md:gap-7 grid-cols-2 lg:grid-cols-4">
           {gallery.map((item) => (
             <div
               key={item.id}
-              className="group overflow-hidden rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-3 shadow-[0_0_20px_rgba(255,45,45,0.15)] transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/60 hover:shadow-[0_0_32px_rgba(255,45,45,0.35)]"
+              className="group overflow-hidden rounded-3xl border border-[#ff2d2d]/12 bg-black p-3 transition duration-300 hover:-translate-y-2 hover:scale-[1.01] hover:border-[#ff2d2d]/45 hover:shadow-[0_0_28px_rgba(255,45,45,0.35)]"
             >
               {item.showTitle ? (
                 <div className="text-sm text-[#e5e5e5]/75">
