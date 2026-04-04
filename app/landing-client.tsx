@@ -31,6 +31,7 @@ type GalleryItem = {
   id: string;
   imageUrl?: string | null;
   title?: string | null;
+  barberName?: string | null;
 };
 
 type ShopInfo = {
@@ -318,7 +319,9 @@ export function LandingClient() {
               key={item.id}
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-2 hover:border-white/30 hover:shadow-[0_26px_70px_rgba(0,0,0,0.55)]"
             >
-              <div className="text-sm text-white/70">{item.title || 'Untitled'}</div>
+              <div className="text-sm text-white/70">
+                {item.title || item.barberName || 'Untitled'}
+              </div>
               {item.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
