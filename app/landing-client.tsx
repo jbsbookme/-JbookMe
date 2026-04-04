@@ -41,6 +41,17 @@ export function LandingClient() {
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [loading, setLoading] = useState(true);
+  const fallbackStaff: Staff[] = [
+    { id: 'fallback-1', name: 'JBookMe Crew', specialty: 'Modern cuts • Fades' },
+    { id: 'fallback-2', name: 'Studio Barber', specialty: 'Line up • Beard' },
+    { id: 'fallback-3', name: 'Premium Stylist', specialty: 'Color • Style' },
+  ];
+  const fallbackGallery: GalleryItem[] = [
+    { id: 'gallery-1', title: 'Clean fade' },
+    { id: 'gallery-2', title: 'Classic cut' },
+    { id: 'gallery-3', title: 'Beard trim' },
+    { id: 'gallery-4', title: 'Texture crop' },
+  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -119,10 +130,10 @@ export function LandingClient() {
     };
   }, []);
 
-  const renderStaff = (items: Staff[]) => {
-    if (items.length === 0) return <p className="text-white/50">No results yet.</p>;
+  const renderStaff = (items: Staff[], fallback: Staff[]) => {
+    const list = items.length > 0 ? items : fallback;
 
-    return items.map((item) => {
+    return list.map((item) => {
       const image = item.imageUrl || item.photoUrl || '';
       return (
         <div
@@ -201,7 +212,7 @@ export function LandingClient() {
           {loading ? <p className="text-white/50">Loading...</p> : null}
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {renderStaff(barbers)}
+          {renderStaff(barbers, fallbackStaff)}
         </div>
       </section>
 
@@ -211,7 +222,7 @@ export function LandingClient() {
           <h2 className="mt-2 text-3xl font-semibold">Style specialists</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {renderStaff(stylists)}
+          {renderStaff(stylists, fallbackStaff)}
         </div>
       </section>
 
@@ -221,28 +232,24 @@ export function LandingClient() {
           <h2 className="mt-2 text-3xl font-semibold">Recent work</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {gallery.length === 0 ? (
-            <p className="text-white/50">No gallery items yet.</p>
-          ) : (
-            gallery.map((item) => (
-              <div
-                key={item.id}
-                className="group rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:-translate-y-1 hover:border-white/30"
-              >
-                <div className="text-sm text-white/70">{item.title || 'Untitled'}</div>
-                {item.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title || 'Gallery image'}
-                    className="mt-3 h-40 w-full rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="mt-3 h-40 w-full rounded-xl bg-white/5" />
-                )}
-              </div>
-            ))
-          )}
+          {(gallery.length > 0 ? gallery : fallbackGallery).map((item) => (
+            <div
+              key={item.id}
+              className="group rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:-translate-y-1 hover:border-white/30"
+            >
+              <div className="text-sm text-white/70">{item.title || 'Untitled'}</div>
+              {item.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.imageUrl}
+                  alt={item.title || 'Gallery image'}
+                  className="mt-3 h-40 w-full rounded-xl object-cover"
+                />
+              ) : (
+                <div className="mt-3 h-40 w-full rounded-xl bg-white/5" />
+              )}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -253,8 +260,8 @@ export function LandingClient() {
               <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
               <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
               <div className="mt-4 grid gap-2 text-white/70">
-                <div>Address: {settings.address || 'N/A'}</div>
-                <div>Hours: {settings.hours || 'N/A'}</div>
+                <div>Address: {settings.address || 'Coming soon'}</div>
+                <div>Hours: {settings.hours || 'Daily • 9am - 8pm'}</div>
                 {settings.instagram ? <div>Instagram: {settings.instagram}</div> : null}
                 {settings.facebook ? <div>Facebook: {settings.facebook}</div> : null}
               </div>
