@@ -22,6 +22,8 @@ type Staff = {
   specialty?: string | null;
   specialties?: string | null;
   instagram?: string | null;
+  bio?: string | null;
+  experience?: string | null;
   isActive?: boolean | null;
 };
 
@@ -42,6 +44,9 @@ type ShopInfo = {
   about?: string | null;
   privacy?: string | null;
   terms?: string | null;
+  review1?: string | null;
+  review2?: string | null;
+  review3?: string | null;
   socials?: {
     instagram?: string | null;
     facebook?: string | null;
@@ -127,6 +132,9 @@ export function LandingClient() {
           about: shopData?.about ?? null,
           privacy: shopData?.privacy ?? null,
           terms: shopData?.terms ?? null,
+          review1: shopData?.review1 ?? null,
+          review2: shopData?.review2 ?? null,
+          review3: shopData?.review3 ?? null,
         });
       } catch {
         if (!cancelled) {
@@ -164,6 +172,14 @@ export function LandingClient() {
           <div className="mt-2 text-sm text-white/70">
             {item.specialties || item.specialty || 'Specialty not listed'}
           </div>
+          {item.bio ? (
+            <div className="mt-3 text-sm text-white/60">{item.bio}</div>
+          ) : null}
+          {item.experience ? (
+            <div className="mt-2 text-xs uppercase tracking-[0.2em] text-white/45">
+              {item.experience}
+            </div>
+          ) : null}
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -383,6 +399,25 @@ export function LandingClient() {
               </a>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Reviews</p>
+          <h2 className="mt-2 text-3xl font-semibold">Clients love us</h2>
+        </div>
+        <div className="mt-8 grid gap-6 md:grid-cols-3">
+          {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
+            (review, index) => (
+              <div
+                key={`review-${index}`}
+                className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-white/70"
+              >
+                {review || 'Review coming soon.'}
+              </div>
+            )
+          )}
         </div>
       </section>
 
