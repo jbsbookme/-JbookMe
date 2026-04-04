@@ -87,7 +87,7 @@ export function LandingClient() {
         );
 
         const galleryQuery = query(
-          collection(db, 'gallery'),
+          collection(db, 'shopGallery'),
           orderBy('createdAt', 'desc'),
           limit(12)
         );
