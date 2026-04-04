@@ -58,6 +58,9 @@ type ShopInfo = {
   review1?: string | null;
   review2?: string | null;
   review3?: string | null;
+  review1Name?: string | null;
+  review2Name?: string | null;
+  review3Name?: string | null;
   socials?: {
     instagram?: string | null;
     facebook?: string | null;
@@ -148,6 +151,9 @@ export function LandingClient() {
           review1: shopData?.review1 ?? null,
           review2: shopData?.review2 ?? null,
           review3: shopData?.review3 ?? null,
+          review1Name: shopData?.review1Name ?? null,
+          review2Name: shopData?.review2Name ?? null,
+          review3Name: shopData?.review3Name ?? null,
         });
       } catch {
         if (!cancelled) {
@@ -518,7 +524,12 @@ export function LandingClient() {
                   “{review || 'Review coming soon.'}”
                 </div>
                 <div className="mt-4 text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/60">
-                  — {reviewAuthors[index] || 'Client'}
+                  —
+                  {index === 0
+                    ? shopInfo.review1Name || 'Client'
+                    : index === 1
+                    ? shopInfo.review2Name || 'Client'
+                    : shopInfo.review3Name || 'Client'}
                 </div>
               </div>
             )
