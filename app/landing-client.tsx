@@ -66,6 +66,9 @@ export function LandingClient() {
   const [activeStoreCardId, setActiveStoreCardId] = useState<string | null>(
     null
   );
+  const [activeDownloadSection, setActiveDownloadSection] = useState<
+    'hero' | 'info' | 'cta' | null
+  >(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -262,22 +265,39 @@ export function LandingClient() {
                 Descubre barberos y estilistas top, mira trabajos reales y reserva directo desde la app JBookMe.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
-                <a
-                  href="https://apps.apple.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-8 py-4 text-center text-base font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
-                >
-                  Descargar la app
-                </a>
-                <a
-                  href="https://play.google.com/store"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-white/25 px-8 py-4 text-center text-base font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
-                >
-                  Google Play
-                </a>
+                <div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActiveDownloadSection((prev) =>
+                        prev === 'hero' ? null : 'hero'
+                      )
+                    }
+                    className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-8 py-4 text-center text-base font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
+                  >
+                    Descargar la app
+                  </button>
+                  {activeDownloadSection === 'hero' ? (
+                    <div className="mt-3 flex gap-2">
+                      <a
+                        href="https://play.google.com/store"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                      >
+                        Play Store
+                      </a>
+                      <a
+                        href="https://apps.apple.com"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                      >
+                        Apple Store
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
               </div>
               <p className="mt-5 text-sm text-white/50">Descarga la app para reservar tu cita.</p>
             </div>
@@ -417,22 +437,39 @@ export function LandingClient() {
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <a
-                href="https://apps.apple.com"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
-              >
-                Descargar la app
-              </a>
-              <a
-                href="https://play.google.com/store"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-white/20 px-6 py-3 text-center text-base font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
-              >
-                Google Play
-              </a>
+              <div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDownloadSection((prev) =>
+                      prev === 'info' ? null : 'info'
+                    )
+                  }
+                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                >
+                  Descargar la app
+                </button>
+                {activeDownloadSection === 'info' ? (
+                  <div className="mt-3 flex gap-2">
+                    <a
+                      href="https://play.google.com/store"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                    >
+                      Play Store
+                    </a>
+                    <a
+                      href="https://apps.apple.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                    >
+                      Apple Store
+                    </a>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
@@ -463,22 +500,39 @@ export function LandingClient() {
             <h2 className="text-3xl font-semibold">Listo para reservar?</h2>
             <p className="mt-3 text-white/70">Descarga la app y reserva tu turno.</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
-                href="https://apps.apple.com"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
-              >
-                Descargar la app
-              </a>
-              <a
-                href="https://play.google.com/store"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-full border border-white/20 px-6 py-3 text-base font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
-              >
-                Google Play
-              </a>
+              <div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveDownloadSection((prev) =>
+                      prev === 'cta' ? null : 'cta'
+                    )
+                  }
+                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                >
+                  Descargar la app
+                </button>
+                {activeDownloadSection === 'cta' ? (
+                  <div className="mt-3 flex gap-2 justify-center">
+                    <a
+                      href="https://play.google.com/store"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                    >
+                      Play Store
+                    </a>
+                    <a
+                      href="https://apps.apple.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                    >
+                      Apple Store
+                    </a>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
