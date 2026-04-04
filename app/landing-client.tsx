@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import {
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-3 text-xs font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
   collection,
   doc,
   getDoc,
