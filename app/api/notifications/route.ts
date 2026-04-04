@@ -5,9 +5,20 @@ import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
+const prismaEnabled =
+  process.env.USE_FIRESTORE_ONLY !== 'true' &&
+  process.env.DISABLE_PRISMA !== 'true' &&
+  Boolean(process.env.DATABASE_URL);
+
 // GET - Fetch user's notifications
 export async function GET(_request: NextRequest) {
   try {
+    if (!prismaEnabled) {
+      return NextResponse.json(
+        { error: 'Notifications disabled: Firestore-only mode' },
+        { status: 503 }
+      );
+    }
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -50,6 +61,12 @@ export async function GET(_request: NextRequest) {
 // PUT - Mark notification(s) as read
 export async function PUT(request: NextRequest) {
   try {
+    if (!prismaEnabled) {
+      return NextResponse.json(
+        { error: 'Notifications disabled: Firestore-only mode' },
+        { status: 503 }
+      );
+    }
     const session = await getServerSession(authOptions);
 
     if (!session) {
@@ -109,6 +126,12 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete notification(s)
 export async function DELETE(request: NextRequest) {
   try {
+    if (!prismaEnabled) {
+      return NextResponse.json(
+        { error: 'Notifications disabled: Firestore-only mode' },
+        { status: 503 }
+      );
+    }
     const session = await getServerSession(authOptions);
 
     if (!session) {

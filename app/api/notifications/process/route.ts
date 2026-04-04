@@ -15,6 +15,11 @@ import { formatTime12h } from '@/lib/time';
 
 export const dynamic = 'force-dynamic';
 
+const prismaEnabled =
+  process.env.USE_FIRESTORE_ONLY !== 'true' &&
+  process.env.DISABLE_PRISMA !== 'true' &&
+  Boolean(process.env.DATABASE_URL);
+
 function isCronAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) return true;
@@ -108,6 +113,14 @@ async function sendPushNotification(
  * This endpoint checks for appointments that need notifications and sends them
  */
 async function processNotifications() {
+  if (!prismaEnabled) {
+    console.log('[Cron][notifications/process] skipped: prisma disabled');
+    return NextResponse.json({
+      success: true,
+      skipped: true,
+      message: 'Notifications disabled: Firestore-only mode',
+    });
+  }
   try {
     const now = new Date();
     console.log('[Cron][notifications/process] start', { now: now.toISOString() });
