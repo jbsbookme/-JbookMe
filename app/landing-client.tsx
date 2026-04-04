@@ -377,118 +377,120 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
-        <div className="rounded-[32px] border border-[#ff2d2d]/20 bg-white/[0.03] p-6 sm:p-8 shadow-[0_0_24px_rgba(255,45,45,0.18)] md:p-12">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Info</p>
-              <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Visit us</h2>
-              <div className="mt-4 grid gap-2 text-[#e5e5e5]/80">
-                {shopInfo.about ? <div>{shopInfo.about}</div> : null}
-                <div>Address: {shopInfo.address || 'Coming soon'}</div>
-                <div>Hours: {shopInfo.hours || 'Daily - 9am - 8pm'}</div>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  {shopInfo.instagram ? (
-                    <a
-                      href={shopInfo.instagram}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="Instagram"
-                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                        <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.20-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
-                      </svg>
-                    </a>
-                  ) : null}
-                  {shopInfo.facebook ? (
-                    <a
-                      href={shopInfo.facebook}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="Facebook"
-                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                    >
-                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                        <path d="M13.2 20.4v-7.2h2.44l.36-2.8h-2.8V8.6c0-.8.22-1.34 1.36-1.34h1.46V4.8c-.7-.08-1.56-.12-2.42-.12-2.4 0-4.04 1.46-4.04 4.14v1.62H7.2v2.8h2.36v7.2h3.64Z" />
-                      </svg>
-                    </a>
-                  ) : null}
-                  {shopInfo.tiktok ? (
-                    <a
-                      href={shopInfo.tiktok}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="TikTok"
-                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                    >
-                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
-                        T
-                      </span>
-                    </a>
-                  ) : null}
-                  {shopInfo.whatsapp ? (
-                    <a
-                      href={shopInfo.whatsapp}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="WhatsApp"
-                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                    >
-                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
-                        W
-                      </span>
-                    </a>
-                  ) : null}
-                  {shopInfo.website ? (
-                    <a
-                      href={shopInfo.website}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="Website"
-                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                    >
-                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[8px] font-semibold">
-                        WWW
-                      </span>
-                    </a>
-                  ) : null}
+        <div className="rounded-[32px] border border-[#3b82f6]/20 bg-gradient-to-b from-black via-black to-[#0a0f1f] p-6 sm:p-8 shadow-[0_0_24px_rgba(59,130,246,0.2)] md:p-12">
+          <div className="text-center">
+            <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Info</p>
+            <h2 className="mt-2 text-3xl font-semibold text-[#ffd700]">Visit us</h2>
+            <div className="mt-5 grid gap-3 text-[#e5e5e5]/85">
+              {shopInfo.about ? (
+                <div className="mx-auto max-w-2xl text-sm text-[#e5e5e5]/70">
+                  {shopInfo.about}
+                </div>
+              ) : null}
+              <div className="flex flex-col items-center gap-2 text-sm">
+                <div className="inline-flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#3b82f6]/30">📍</span>
+                  <span>Address: {shopInfo.address || 'Coming soon'}</span>
+                </div>
+                <div className="inline-flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#3b82f6]/30">⏰</span>
+                  <span>Hours: {shopInfo.hours || 'Daily - 9am - 8pm'}</span>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              <div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveStoreLinks((prev) =>
-                      prev === 'info' ? null : 'info'
-                    )
-                  }
-                  className="rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-center text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
-                >
-                  Download the app
-                </button>
-                {activeStoreLinks === 'info' ? (
-                  <div className="mt-3 flex gap-2">
-                    <a
-                      href="https://play.google.com/store"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
-                    >
-                      Google Play
-                    </a>
-                    <a
-                      href="https://apps.apple.com"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
-                    >
-                      App Store
-                    </a>
-                  </div>
+              <div className="mt-2 flex flex-wrap justify-center gap-3">
+                {shopInfo.instagram ? (
+                  <a
+                    href={shopInfo.instagram}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Instagram"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                      <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.20-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
+                    </svg>
+                  </a>
+                ) : null}
+                {shopInfo.facebook ? (
+                  <a
+                    href={shopInfo.facebook}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Facebook"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                  >
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                      <path d="M13.2 20.4v-7.2h2.44l.36-2.8h-2.8V8.6c0-.8.22-1.34 1.36-1.34h1.46V4.8c-.7-.08-1.56-.12-2.42-.12-2.4 0-4.04 1.46-4.04 4.14v1.62H7.2v2.8h2.36v7.2h3.64Z" />
+                    </svg>
+                  </a>
+                ) : null}
+                {shopInfo.tiktok ? (
+                  <a
+                    href={shopInfo.tiktok}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="TikTok"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                  >
+                    <span className="text-[10px] font-semibold">T</span>
+                  </a>
+                ) : null}
+                {shopInfo.whatsapp ? (
+                  <a
+                    href={shopInfo.whatsapp}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="WhatsApp"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                  >
+                    <span className="text-[10px] font-semibold">W</span>
+                  </a>
+                ) : null}
+                {shopInfo.website ? (
+                  <a
+                    href={shopInfo.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Website"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                  >
+                    <span className="text-[9px] font-semibold">WWW</span>
+                  </a>
                 ) : null}
               </div>
+            </div>
+            <div className="mt-8 flex flex-col items-center">
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveStoreLinks((prev) =>
+                    prev === 'info' ? null : 'info'
+                  )
+                }
+                className="rounded-full border border-[#ff1a1a] bg-[#ff1a1a] px-8 py-4 text-center text-base font-semibold text-[#ffd700] shadow-[0_0_18px_rgba(255,26,26,0.5)] transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:shadow-[0_0_28px_rgba(255,26,26,0.7)]"
+              >
+                Download the app
+              </button>
+              {activeStoreLinks === 'info' ? (
+                <div className="mt-3 flex gap-2">
+                  <a
+                    href="https://play.google.com/store"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
+                  >
+                    Google Play
+                  </a>
+                  <a
+                    href="https://apps.apple.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
+                  >
+                    App Store
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
