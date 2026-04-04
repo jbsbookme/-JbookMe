@@ -166,7 +166,7 @@ export function LandingClient() {
       return (
         <div
           key={item.id}
-          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/10 bg-white/[0.03] p-7 transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/45 hover:shadow-[0_0_28px_rgba(255,45,45,0.35)]"
+          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/12 bg-black p-7 transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/45 hover:shadow-[0_0_28px_rgba(255,45,45,0.35)]"
         >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -176,7 +176,7 @@ export function LandingClient() {
               className="h-40 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-white/5 text-2xl font-semibold text-white/70">
+            <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-black/70 text-2xl font-semibold text-white/70">
               {(item.name || 'JB')
                 .split(' ')
                 .filter(Boolean)
@@ -188,15 +188,15 @@ export function LandingClient() {
           )}
           <div className="mt-5 space-y-3">
             <strong className="block text-lg font-semibold text-[#3b82f6]">{item.name}</strong>
-            <div className="text-sm text-[#e5e5e5]/75">
+            <div className="text-sm text-[#e5e5e5]">
               {item.specialties || item.specialty || 'Specialty not listed'}
             </div>
             {shopInfo.review1 ? (
-              <div className="text-sm text-[#e5e5e5]/60">{shopInfo.review1}</div>
+              <div className="text-sm text-[#e5e5e5]">{shopInfo.review1}</div>
             ) : null}
             {item.bio ? (
               <div
-                className="text-sm text-[#e5e5e5]/60"
+                className="text-sm text-[#e5e5e5]"
                 style={{
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
