@@ -162,7 +162,6 @@ export function LandingClient() {
 
     return list.map((item) => {
       const image = item.imageUrl || item.photoUrl || '';
-      const instagramHandle = formatInstagram(item.instagram);
       return (
         <div
           key={item.id}
@@ -170,9 +169,6 @@ export function LandingClient() {
         >
           <div className="flex items-center justify-between gap-3">
             <strong className="text-lg font-semibold">{item.name}</strong>
-            {instagramHandle ? (
-              <span className="text-xs text-white/50">@{instagramHandle}</span>
-            ) : null}
           </div>
           <div className="mt-2 text-sm text-white/70">
             {item.specialties || item.specialty || 'Specialty not listed'}
