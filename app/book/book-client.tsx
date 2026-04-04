@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { addDoc, collection } from 'firebase/firestore';
-import { getFirestoreDb } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseClient';
 
 type Barber = {
   id?: string | number;
@@ -21,6 +21,8 @@ export function BookClient({ barberId }: Props) {
   const [time, setTime] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'confirmed' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [hasError, setHasError] = useState(false);
 
   const isReady = Boolean(barberId && service && time);
 
@@ -70,10 +72,11 @@ export function BookClient({ barberId }: Props) {
     }
 
     setErrorMessage('');
+    setSuccess(false);
+    setHasError(false);
     setStatus('saving');
 
     try {
-      const db = getFirestoreDb();
       await addDoc(collection(db, 'appointments'), {
         barberId,
         barberName,
@@ -82,9 +85,12 @@ export function BookClient({ barberId }: Props) {
         createdAt: new Date(),
       });
       setStatus('confirmed');
+      setSuccess(true);
     } catch (error) {
+      console.error(error);
       setStatus('error');
       setErrorMessage('Booking failed. Please try again.');
+      setHasError(true);
     }
   };
 
@@ -122,8 +128,8 @@ export function BookClient({ barberId }: Props) {
         </button>
       </div>
 
-      {status === 'confirmed' ? <p style={{ marginTop: 16 }}>Booking confirmed</p> : null}
-      {status === 'error' ? <p style={{ marginTop: 16 }}>{errorMessage}</p> : null}
+      {success ? <p style={{ marginTop: 16 }}>Booking confirmed</p> : null}
+      {hasError ? <p style={{ marginTop: 16 }}>{errorMessage}</p> : null}
     </div>
   );
 }

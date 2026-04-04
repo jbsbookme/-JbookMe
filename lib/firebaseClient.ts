@@ -1,35 +1,15 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-type FirebaseConfig = {
-  apiKey: string;
-  authDomain: string;
-  projectId: string;
-  storageBucket: string;
-  messagingSenderId: string;
-  appId: string;
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'bookme-65bd5',
 };
 
-function getFirebaseConfig(): FirebaseConfig {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || '';
-  const authDomain = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || '';
-  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '';
-  const storageBucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '';
-  const messagingSenderId = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '';
-  const appId = process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '';
-
-  if (!apiKey || !authDomain || !projectId || !storageBucket || !messagingSenderId || !appId) {
-    throw new Error('Missing Firebase client environment variables.');
-  }
-
-  return { apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId };
+if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
+  throw new Error('Missing Firebase client environment variables.');
 }
 
-function getFirebaseApp() {
-  if (getApps().length > 0) return getApp();
-  return initializeApp(getFirebaseConfig());
-}
-
-export function getFirestoreDb() {
-  return getFirestore(getFirebaseApp());
-}
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const db = getFirestore(app);
