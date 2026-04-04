@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db';
+import { getAdminFirestore } from '@/lib/firebaseAdmin';
 import bcrypt from 'bcryptjs';
 import { DayOfWeek } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
@@ -36,122 +37,44 @@ async function createDefaultAvailability(barberId: string) {
 
 // GET all active barbers with their ratings
 export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const gender = searchParams.get('gender');
+  const includeInactive = searchParams.get('includeInactive') === '1';
+  const featuredParam = searchParams.get('featured');
+  const featuredOnly = featuredParam === '1' || featuredParam === 'true';
+
   try {
-    // FIXED: Add gender filter
-    const { searchParams } = new URL(request.url);
-    const gender = searchParams.get('gender');
-    let categoryFilter = null
-
-if (gender === "MALE") categoryFilter = "men"
-if (gender === "FEMALE") categoryFilter = "women"
-    const includeInactive = searchParams.get('includeInactive') === '1';
-    const featuredParam = searchParams.get('featured');
-    const featuredOnly = featuredParam === '1' || featuredParam === 'true';
-
     const session = await getServerSession(authOptions);
     const isAdmin = session?.user?.role === 'ADMIN';
 
-    // Build where clause
-    const whereClause: Prisma.BarberWhereInput = {};
-    if (categoryFilter) {
-      // Category is not part of BarberWhereInput; skip this filter safely.
-    }
+    const db = getAdminFirestore();
+    const snapshot = await db.collection('barbers').get();
+
+    let barbers = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Array<Record<string, unknown>>;
+
     if (!includeInactive || !isAdmin) {
-      whereClause.isActive = true;
+      barbers = barbers.filter((barber) => barber.isActive !== false);
     }
 
     if (featuredOnly) {
-      whereClause.featured = true;
+      barbers = barbers.filter((barber) => barber.featured === true);
     }
-    
+
     if (gender === 'MALE') {
-      whereClause.gender = { in: ['MALE', 'BOTH'] };
+      barbers = barbers.filter((barber) => ['MALE', 'BOTH'].includes(barber.gender));
     } else if (gender === 'FEMALE') {
-      whereClause.gender = { in: ['FEMALE', 'BOTH'] };
+      barbers = barbers.filter((barber) => ['FEMALE', 'BOTH'].includes(barber.gender));
     } else if (gender === 'BOTH') {
-      whereClause.gender = 'BOTH';
+      barbers = barbers.filter((barber) => barber.gender === 'BOTH');
     }
-
-    const barbers = await prisma.barber.findMany({
-      where: whereClause,
-      select: {
-        id: true,
-        userId: true,
-        isActive: true,
-        featured: true,
-        bio: true,
-        specialties: true,
-        hourlyRate: true,
-        profileImage: true,
-        phone: true,
-        rating: true,
-        gender: true,
-        contactEmail: true,
-        facebookUrl: true,
-        instagramUrl: true,
-        twitterUrl: true,
-        tiktokUrl: true,
-        youtubeUrl: true,
-        whatsappUrl: true,
-        zelleEmail: true,
-        zellePhone: true,
-        cashappTag: true,
-        galleryImages: {
-          where: { isActive: true, isPublic: true },
-          orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
-          take: 1,
-          select: {
-            cloud_storage_path: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-            phone: true,
-            role: true,
-          },
-        },
-        services: {
-          where: { isActive: true },
-        },
-        reviews: {
-          select: {
-            rating: true,
-          },
-        },
-        _count: {
-          select: {
-            reviews: true,
-            appointments: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'asc',
-      },
-    });
-
-    // Calculate average rating for each barber
-    const barbersWithRatings = barbers.map((barber) => {
-      const totalRating = barber.reviews.reduce((sum, review) => sum + review.rating, 0);
-      const avgRating = barber.reviews.length > 0 ? totalRating / barber.reviews.length : 0;
-
-      return {
-        ...barber,
-        avgRating: Number(avgRating.toFixed(1)),
-        totalReviews: barber._count.reviews,
-        totalAppointments: barber._count.appointments,
-      };
-    });
 
     return NextResponse.json(
-      { barbers: barbersWithRatings },
+      { barbers },
       {
         headers: {
-          // Session-dependent (admin can see inactive); never cache
           'Cache-Control': 'private, no-store, max-age=0',
           Vary: 'Cookie',
         },
@@ -159,7 +82,7 @@ if (gender === "FEMALE") categoryFilter = "women"
     );
   } catch (error) {
     console.error('Error fetching barbers:', error);
-    return NextResponse.json({ error: 'Failed to fetch barbers' }, { status: 500 });
+    return NextResponse.json({ barbers: [] }, { status: 200 });
   }
 }
 
