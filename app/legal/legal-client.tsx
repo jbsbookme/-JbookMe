@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs, limit, query } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { getFirestoreDb } from '@/lib/firebaseClient';
 
 type Props = {
@@ -9,7 +9,7 @@ type Props = {
   field: 'privacy' | 'terms';
 };
 
-type Settings = {
+type ShopInfo = {
   privacy?: string | null;
   terms?: string | null;
 };
@@ -29,10 +29,9 @@ export function LegalClient({ title, field }: Props) {
           return;
         }
 
-        const settingsQuery = query(collection(db, 'settings'), limit(1));
-        const settingsSnap = await getDocs(settingsQuery);
-        const settingsDoc = settingsSnap.docs[0];
-        const data = (settingsDoc?.data() as Settings) ?? {};
+        const shopRef = doc(db, 'shop', 'primary');
+        const shopSnap = await getDoc(shopRef);
+        const data = (shopSnap.exists() ? shopSnap.data() : {}) as ShopInfo;
         const value = (data[field] ?? '').toString();
 
         if (!cancelled) {

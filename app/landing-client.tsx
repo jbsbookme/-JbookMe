@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import {
   collection,
+  doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -29,7 +31,7 @@ type GalleryItem = {
   title?: string | null;
 };
 
-type Settings = {
+type ShopInfo = {
   address?: string | null;
   hours?: string | null;
   instagram?: string | null;
@@ -43,7 +45,7 @@ export function LandingClient() {
   const [barbers, setBarbers] = useState<Staff[]>([]);
   const [stylists, setStylists] = useState<Staff[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
-  const [settings, setSettings] = useState<Settings>({});
+  const [shopInfo, setShopInfo] = useState<ShopInfo>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -75,13 +77,13 @@ export function LandingClient() {
           limit(12)
         );
 
-        const settingsQuery = query(collection(db, 'settings'), limit(1));
+        const shopRef = doc(db, 'shop', 'primary');
 
-        const [barbersSnap, stylistsSnap, gallerySnap, settingsSnap] = await Promise.all([
+        const [barbersSnap, stylistsSnap, gallerySnap, shopSnap] = await Promise.all([
           getDocs(barbersQuery),
           getDocs(stylistsQuery),
           getDocs(galleryQuery),
-          getDocs(settingsQuery),
+          getDoc(shopRef),
         ]);
 
         if (cancelled) return;
@@ -102,23 +104,22 @@ export function LandingClient() {
           }))
         );
 
-        const settingsDoc = settingsSnap.docs[0];
-        const settingsData = settingsDoc?.data() as Settings | undefined;
-        setSettings({
-          address: settingsData?.address ?? null,
-          hours: settingsData?.hours ?? null,
-          instagram: settingsData?.instagram ?? null,
-          facebook: settingsData?.facebook ?? null,
-          about: settingsData?.about ?? null,
-          privacy: settingsData?.privacy ?? null,
-          terms: settingsData?.terms ?? null,
+        const shopData = (shopSnap.exists() ? shopSnap.data() : {}) as ShopInfo;
+        setShopInfo({
+          address: shopData?.address ?? null,
+          hours: shopData?.hours ?? null,
+          instagram: shopData?.instagram ?? null,
+          facebook: shopData?.facebook ?? null,
+          about: shopData?.about ?? null,
+          privacy: shopData?.privacy ?? null,
+          terms: shopData?.terms ?? null,
         });
       } catch {
         if (!cancelled) {
           setBarbers([]);
           setStylists([]);
           setGallery([]);
-          setSettings({});
+          setShopInfo({});
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -285,13 +286,13 @@ export function LandingClient() {
                 <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
                 <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
                 <div className="mt-4 grid gap-2 text-white/70">
-                  {settings.about ? <div>{settings.about}</div> : null}
-                  <div>Address: {settings.address || 'Coming soon'}</div>
-                  <div>Hours: {settings.hours || 'Daily • 9am - 8pm'}</div>
+                  {shopInfo.about ? <div>{shopInfo.about}</div> : null}
+                  <div>Address: {shopInfo.address || 'Coming soon'}</div>
+                  <div>Hours: {shopInfo.hours || 'Daily • 9am - 8pm'}</div>
                   <div className="mt-2 flex flex-wrap gap-3">
-                    {settings.instagram ? (
+                    {shopInfo.instagram ? (
                       <a
-                        href={settings.instagram}
+                        href={shopInfo.instagram}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
@@ -302,9 +303,9 @@ export function LandingClient() {
                         Instagram
                       </a>
                     ) : null}
-                    {settings.facebook ? (
+                    {shopInfo.facebook ? (
                       <a
-                        href={settings.facebook}
+                        href={shopInfo.facebook}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
