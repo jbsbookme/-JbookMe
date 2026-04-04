@@ -387,7 +387,6 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div className="rounded-[32px] border border-[#3b82f6]/20 bg-gradient-to-b from-black via-black to-[#0a0f1f] p-6 sm:p-8 shadow-[0_0_24px_rgba(59,130,246,0.2)] md:p-12">
           <div className="text-center">
-            <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Info</p>
             <h2 className="mt-2 text-3xl font-semibold text-[#ffd700]">Visit us</h2>
             <div className="mt-5 grid gap-3 text-[#e5e5e5]/85">
               <div className="flex flex-col items-center gap-3 text-sm">
