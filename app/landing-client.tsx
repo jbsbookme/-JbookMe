@@ -165,17 +165,17 @@ export function LandingClient() {
       return (
         <div
           key={item.id}
-          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-6 shadow-[0_0_20px_rgba(255,45,45,0.15)] transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/60 hover:shadow-[0_0_32px_rgba(255,45,45,0.35)]"
+          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/10 bg-white/[0.03] p-7 transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/45 hover:shadow-[0_0_28px_rgba(255,45,45,0.35)]"
         >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={image}
               alt={item.name}
-              className="h-48 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.03]"
+              className="h-40 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="flex h-48 w-full items-center justify-center rounded-2xl bg-white/5 text-2xl font-semibold text-white/70">
+            <div className="flex h-40 w-full items-center justify-center rounded-2xl bg-white/5 text-2xl font-semibold text-white/70">
               {(item.name || 'JB')
                 .split(' ')
                 .filter(Boolean)
@@ -185,16 +185,26 @@ export function LandingClient() {
                 .toUpperCase()}
             </div>
           )}
-          <div className="mt-5 space-y-2">
+          <div className="mt-5 space-y-3">
             <strong className="block text-lg font-semibold text-[#3b82f6]">{item.name}</strong>
-            <div className="text-sm text-[#e5e5e5]/70">
+            <div className="text-sm text-[#e5e5e5]/75">
               {item.specialties || item.specialty || 'Specialty not listed'}
             </div>
             {shopInfo.review1 ? (
               <div className="text-sm text-[#e5e5e5]/60">{shopInfo.review1}</div>
             ) : null}
             {item.bio ? (
-              <div className="text-sm text-[#e5e5e5]/55">{item.bio}</div>
+              <div
+                className="text-sm text-[#e5e5e5]/60"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
+              >
+                {item.bio}
+              </div>
             ) : null}
             <div className="pt-2">
               <button
@@ -204,7 +214,7 @@ export function LandingClient() {
                     prev === `book-${item.id}` ? null : `book-${item.id}`
                   )
                 }
-                className="inline-flex w-full items-center justify-center rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
+                className="inline-flex w-full items-center justify-center rounded-full border border-[#ff2d2d]/70 bg-transparent px-6 py-3 text-base font-semibold text-[#e5e5e5] transition duration-300 hover:-translate-y-1 hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
               >
                 Book now
               </button>
