@@ -36,6 +36,9 @@ type ShopInfo = {
   hours?: string | null;
   instagram?: string | null;
   facebook?: string | null;
+  tiktok?: string | null;
+  whatsapp?: string | null;
+  website?: string | null;
   about?: string | null;
   privacy?: string | null;
   terms?: string | null;
@@ -118,6 +121,9 @@ export function LandingClient() {
           hours: shopData?.hours ?? null,
           instagram: shopData?.instagram ?? socials?.instagram ?? null,
           facebook: shopData?.facebook ?? socials?.facebook ?? null,
+          tiktok: shopData?.tiktok ?? socials?.tiktok ?? null,
+          whatsapp: shopData?.whatsapp ?? socials?.whatsapp ?? null,
+          website: shopData?.website ?? socials?.website ?? null,
           about: shopData?.about ?? null,
           privacy: shopData?.privacy ?? null,
           terms: shopData?.terms ?? null,
@@ -322,6 +328,45 @@ export function LandingClient() {
                           <path d="M13.2 20.4v-7.2h2.44l.36-2.8h-2.8V8.6c0-.8.22-1.34 1.36-1.34h1.46V4.8c-.7-.08-1.56-.12-2.42-.12-2.4 0-4.04 1.46-4.04 4.14v1.62H7.2v2.8h2.36v7.2h3.64Z" />
                         </svg>
                         Facebook
+                      </a>
+                    ) : null}
+                    {shopInfo.tiktok ? (
+                      <a
+                        href={shopInfo.tiktok}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                      >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
+                          T
+                        </span>
+                        TikTok
+                      </a>
+                    ) : null}
+                    {shopInfo.whatsapp ? (
+                      <a
+                        href={shopInfo.whatsapp}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                      >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
+                          W
+                        </span>
+                        WhatsApp
+                      </a>
+                    ) : null}
+                    {shopInfo.website ? (
+                      <a
+                        href={shopInfo.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                      >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
+                          WWW
+                        </span>
+                        Website
                       </a>
                     ) : null}
                   </div>
