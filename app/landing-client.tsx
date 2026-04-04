@@ -41,17 +41,6 @@ export function LandingClient() {
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [settings, setSettings] = useState<Settings>({});
   const [loading, setLoading] = useState(true);
-  const fallbackStaff: Staff[] = [
-    { id: 'fallback-1', name: 'JBookMe Crew', specialty: 'Modern cuts • Fades' },
-    { id: 'fallback-2', name: 'Studio Barber', specialty: 'Line up • Beard' },
-    { id: 'fallback-3', name: 'Premium Stylist', specialty: 'Color • Style' },
-  ];
-  const fallbackGallery: GalleryItem[] = [
-    { id: 'gallery-1', title: 'Clean fade' },
-    { id: 'gallery-2', title: 'Classic cut' },
-    { id: 'gallery-3', title: 'Beard trim' },
-    { id: 'gallery-4', title: 'Texture crop' },
-  ];
 
   useEffect(() => {
     let cancelled = false;
@@ -130,8 +119,9 @@ export function LandingClient() {
     };
   }, []);
 
-  const renderStaff = (items: Staff[], fallback: Staff[]) => {
-    const list = items.length > 0 ? items : fallback;
+  const renderStaff = (items: Staff[]) => {
+    const list = items;
+    if (list.length === 0) return <p className="text-white/50">No results yet.</p>;
 
     return list.map((item) => {
       const image = item.imageUrl || item.photoUrl || '';
@@ -153,7 +143,15 @@ export function LandingClient() {
               className="mt-4 h-40 w-full rounded-xl object-cover transition group-hover:scale-[1.02]"
             />
           ) : (
-            <div className="mt-4 h-40 w-full rounded-xl bg-white/5" />
+            <div className="mt-4 flex h-40 w-full items-center justify-center rounded-xl bg-white/5 text-2xl font-semibold text-white/70">
+              {(item.name || 'JB')
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join('')
+                .toUpperCase()}
+            </div>
           )}
         </div>
       );
@@ -212,7 +210,7 @@ export function LandingClient() {
           {loading ? <p className="text-white/50">Loading...</p> : null}
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {renderStaff(barbers, fallbackStaff)}
+          {renderStaff(barbers)}
         </div>
       </section>
 
@@ -222,7 +220,7 @@ export function LandingClient() {
           <h2 className="mt-2 text-3xl font-semibold">Style specialists</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {renderStaff(stylists, fallbackStaff)}
+          {renderStaff(stylists)}
         </div>
       </section>
 
@@ -232,7 +230,7 @@ export function LandingClient() {
           <h2 className="mt-2 text-3xl font-semibold">Recent work</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {(gallery.length > 0 ? gallery : fallbackGallery).map((item) => (
+          {gallery.map((item) => (
             <div
               key={item.id}
               className="group rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:-translate-y-1 hover:border-white/30"
