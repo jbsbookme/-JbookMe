@@ -166,7 +166,7 @@ export function LandingClient() {
       return (
         <div
           key={item.id}
-          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/12 bg-black p-7 transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/45 hover:shadow-[0_0_28px_rgba(255,45,45,0.35)]"
+          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/30 bg-black p-7 transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/65 hover:shadow-[0_0_28px_rgba(255,45,45,0.4)]"
         >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
