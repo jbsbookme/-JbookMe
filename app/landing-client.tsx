@@ -219,10 +219,10 @@ export function LandingClient() {
             <div className="max-w-3xl animate-hero">
               <p className="text-xs uppercase tracking-[0.45em] text-[#00f0ff]">JBookMe</p>
               <h1 className="mt-6 text-[clamp(40px,9vw,96px)] font-semibold leading-[0.9] tracking-[-0.02em]">
-                Elite grooming. Instant bookings in the app.
+                Experiencia premium. Reserva en segundos.
               </h1>
               <p className="mt-6 text-base text-white/70 md:text-lg">
-                Discover top barbers and stylists, explore real work, and book directly in the JBookMe app.
+                Descubre barberos y estilistas top, mira trabajos reales y reserva directo desde la app JBookMe.
               </p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <a
@@ -231,7 +231,7 @@ export function LandingClient() {
                   rel="noreferrer"
                   className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-8 py-4 text-center text-sm font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
                 >
-                  Download the app
+                  Descargar la app
                 </a>
                 <a
                   href="https://play.google.com/store"
@@ -242,7 +242,9 @@ export function LandingClient() {
                   Google Play
                 </a>
               </div>
-              <p className="mt-5 text-sm text-white/50">Download the app to book your appointment.</p>
+              <p className="mt-5 text-sm text-white/50">
+                Descarga la app para reservar tu cita.
+              </p>
             </div>
           </div>
         </section>
@@ -361,9 +363,9 @@ export function LandingClient() {
                         </span>
                       </a>
                     ) : null}
-                    {shopInfo.website ? (
-                      <a
-                        href={shopInfo.website}
+                    {shopInfo.review1 ? (
+                      <div className="text-sm text-white/60">{shopInfo.review1}</div>
+                    ) : null}
                         target="_blank"
                         rel="noreferrer"
                         aria-label="Website"
@@ -372,10 +374,10 @@ export function LandingClient() {
                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[8px] font-semibold">
                           WWW
                         </span>
-                      </a>
+                        Reservar ahora
                     ) : null}
                   </div>
-                </div>
+                        Descarga la app para completar la reserva.
             </div>
             <div className="flex flex-col gap-3">
               <a
@@ -400,16 +402,16 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Reviews</p>
-          <h2 className="mt-2 text-3xl font-semibold">Clients love us</h2>
+                >
+                  App Store
+                </a>
         </div>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
             (review, index) => (
               <div
                 key={`review-${index}`}
-                className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-white/70"
+                  Google Play
               >
                 {review || 'Review coming soon.'}
               </div>
