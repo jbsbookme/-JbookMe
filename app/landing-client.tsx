@@ -18,6 +18,7 @@ type Staff = {
   photoUrl?: string | null;
   imageUrl?: string | null;
   specialty?: string | null;
+  specialties?: string | null;
   instagram?: string | null;
   isActive?: boolean | null;
 };
@@ -33,6 +34,9 @@ type Settings = {
   hours?: string | null;
   instagram?: string | null;
   facebook?: string | null;
+  about?: string | null;
+  privacy?: string | null;
+  terms?: string | null;
 };
 
 export function LandingClient() {
@@ -56,12 +60,12 @@ export function LandingClient() {
         const staffRef = collection(db, 'barbers');
         const barbersQuery = query(
           staffRef,
-          where('role', '==', 'barber'),
+          where('role', '==', 'BARBER'),
           where('isActive', '==', true)
         );
         const stylistsQuery = query(
           staffRef,
-          where('role', '==', 'stylist'),
+          where('role', '==', 'STYLIST'),
           where('isActive', '==', true)
         );
 
@@ -99,7 +103,16 @@ export function LandingClient() {
         );
 
         const settingsDoc = settingsSnap.docs[0];
-        setSettings((settingsDoc?.data() as Settings) ?? {});
+        const settingsData = settingsDoc?.data() as Settings | undefined;
+        setSettings({
+          address: settingsData?.address ?? null,
+          hours: settingsData?.hours ?? null,
+          instagram: settingsData?.instagram ?? null,
+          facebook: settingsData?.facebook ?? null,
+          about: settingsData?.about ?? null,
+          privacy: settingsData?.privacy ?? null,
+          terms: settingsData?.terms ?? null,
+        });
       } catch {
         if (!cancelled) {
           setBarbers([]);
@@ -134,7 +147,9 @@ export function LandingClient() {
             <strong className="text-lg font-semibold">{item.name}</strong>
             {item.instagram ? <span className="text-xs text-white/50">@{item.instagram}</span> : null}
           </div>
-          <div className="mt-2 text-sm text-white/70">{item.specialty || 'Specialty not listed'}</div>
+          <div className="mt-2 text-sm text-white/70">
+            {item.specialties || item.specialty || 'Specialty not listed'}
+          </div>
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -252,16 +267,19 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-12">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
               <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
               <div className="mt-4 grid gap-2 text-white/70">
-                <div>Address: {settings.address || 'Coming soon'}</div>
-                <div>Hours: {settings.hours || 'Daily • 9am - 8pm'}</div>
-                {settings.instagram ? <div>Instagram: {settings.instagram}</div> : null}
-                {settings.facebook ? <div>Facebook: {settings.facebook}</div> : null}
+                  {settings.about ? <div>{settings.about}</div> : null}
+                  <div>Address: {settings.address || 'Coming soon'}</div>
+                  <div>Hours: {settings.hours || 'Daily • 9am - 8pm'}</div>
+                  {settings.instagram ? <div>Instagram: {settings.instagram}</div> : null}
+                  {settings.facebook ? <div>Facebook: {settings.facebook}</div> : null}
+                  {settings.privacy ? <div>Privacy: {settings.privacy}</div> : null}
+                  {settings.terms ? <div>Terms: {settings.terms}</div> : null}
               </div>
             </div>
             <div className="flex flex-col gap-3">
@@ -317,8 +335,16 @@ export function LandingClient() {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
           <div>JBookMe</div>
           <div className="flex gap-4">
-            <a href="/privacy" className="hover:text-white">Privacy</a>
-            <a href="/terms" className="hover:text-white">Terms</a>
+            {settings.privacy ? (
+              <span className="text-white/60">Privacy</span>
+            ) : (
+              <a href="/privacy" className="hover:text-white">Privacy</a>
+            )}
+            {settings.terms ? (
+              <span className="text-white/60">Terms</span>
+            ) : (
+              <a href="/terms" className="hover:text-white">Terms</a>
+            )}
           </div>
         </div>
       </footer>
