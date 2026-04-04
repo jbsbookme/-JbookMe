@@ -158,14 +158,14 @@ export function LandingClient() {
   }, []);
 
   const renderStaff = (items: Staff[]) => {
-    if (items.length === 0) return <p className="text-white/50">No results yet.</p>;
+    if (items.length === 0) return <p className="text-[#e5e5e5]/60">No results yet.</p>;
 
     return items.map((item) => {
       const image = item.imageUrl || item.photoUrl || '';
       return (
         <div
           key={item.id}
-          className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_22px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-2 hover:border-white/30 hover:shadow-[0_28px_80px_rgba(0,0,0,0.55)]"
+          className="group relative overflow-hidden rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-6 shadow-[0_0_20px_rgba(255,45,45,0.15)] transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/60 hover:shadow-[0_0_32px_rgba(255,45,45,0.35)]"
         >
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -186,15 +186,15 @@ export function LandingClient() {
             </div>
           )}
           <div className="mt-5 space-y-2">
-            <strong className="block text-lg font-semibold">{item.name}</strong>
-            <div className="text-sm text-white/70">
+            <strong className="block text-lg font-semibold text-[#3b82f6]">{item.name}</strong>
+            <div className="text-sm text-[#e5e5e5]/70">
               {item.specialties || item.specialty || 'Specialty not listed'}
             </div>
             {shopInfo.review1 ? (
-              <div className="text-sm text-white/60">{shopInfo.review1}</div>
+              <div className="text-sm text-[#e5e5e5]/60">{shopInfo.review1}</div>
             ) : null}
             {item.bio ? (
-              <div className="text-sm text-white/55">{item.bio}</div>
+              <div className="text-sm text-[#e5e5e5]/55">{item.bio}</div>
             ) : null}
             <div className="pt-2">
               <button
@@ -204,7 +204,7 @@ export function LandingClient() {
                     prev === `book-${item.id}` ? null : `book-${item.id}`
                   )
                 }
-                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                className="inline-flex w-full items-center justify-center rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
               >
                 Book now
               </button>
@@ -214,7 +214,7 @@ export function LandingClient() {
                     href="https://play.google.com/store"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                    className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                   >
                     Google Play
                   </a>
@@ -222,7 +222,7 @@ export function LandingClient() {
                     href="https://apps.apple.com"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                    className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                   >
                     App Store
                   </a>
@@ -237,26 +237,26 @@ export function LandingClient() {
 
   return (
     <main
-      className="bg-black text-white overflow-x-hidden"
+      className="bg-black text-[#e5e5e5] overflow-x-hidden"
       style={{
         fontFamily: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
       }}
     >
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10">
-          <div className="absolute -top-48 right-0 h-[28rem] w-[28rem] rounded-full bg-[#00f0ff]/15 blur-[160px]" />
-          <div className="absolute -bottom-48 left-0 h-[28rem] w-[28rem] rounded-full bg-[#ffd700]/15 blur-[160px]" />
+          <div className="absolute -top-48 right-0 h-[28rem] w-[28rem] rounded-full bg-[#3b82f6]/18 blur-[160px]" />
+          <div className="absolute -bottom-48 left-0 h-[28rem] w-[28rem] rounded-full bg-[#ff2d2d]/14 blur-[160px]" />
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_55%)]" />
         </div>
 
         <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-18 sm:pb-28">
           <div className="flex flex-col gap-10">
             <div className="max-w-3xl animate-hero">
-              <p className="text-xs uppercase tracking-[0.45em] text-[#00f0ff]">JBookMe</p>
-              <h1 className="mt-5 text-[clamp(34px,10vw,92px)] font-semibold leading-[0.95] tracking-[-0.02em]">
+              <p className="text-xs uppercase tracking-[0.45em] text-[#3b82f6]">JBookMe</p>
+              <h1 className="mt-5 text-[clamp(34px,10vw,92px)] font-semibold leading-[0.95] tracking-[-0.02em] text-[#3b82f6]">
                 Premium experience. Book in seconds.
               </h1>
-              <p className="mt-4 text-[15px] leading-7 text-white/70 sm:text-base md:text-lg">
+              <p className="mt-4 text-[15px] leading-7 text-[#e5e5e5]/80 sm:text-base md:text-lg">
                 Discover top barbers and stylists, see real work, and book directly in the JBookMe app.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
@@ -268,7 +268,7 @@ export function LandingClient() {
                         prev === 'hero' ? null : 'hero'
                       )
                     }
-                    className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
+                    className="rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-center text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
                   >
                     Download the app
                   </button>
@@ -278,7 +278,7 @@ export function LandingClient() {
                         href="https://play.google.com/store"
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                        className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                       >
                         Google Play
                       </a>
@@ -286,7 +286,7 @@ export function LandingClient() {
                         href="https://apps.apple.com"
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                        className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                       >
                         App Store
                       </a>
@@ -294,7 +294,7 @@ export function LandingClient() {
                   ) : null}
                 </div>
               </div>
-              <p className="mt-5 text-sm text-white/50">Download the app to book your appointment.</p>
+              <p className="mt-5 text-sm text-[#e5e5e5]/60">Download the app to book your appointment.</p>
             </div>
           </div>
         </section>
@@ -303,10 +303,10 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-white/40">Barbers</p>
-            <h2 className="mt-2 text-3xl font-semibold">Master barbers</h2>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Barbers</p>
+            <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Master barbers</h2>
           </div>
-          {loading ? <p className="text-white/50">Loading...</p> : null}
+          {loading ? <p className="text-[#e5e5e5]/60">Loading...</p> : null}
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {renderStaff(barbers)}
@@ -315,8 +315,8 @@ export function LandingClient() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Stylists</p>
-          <h2 className="mt-2 text-3xl font-semibold">Style specialists</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Stylists</p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Style specialists</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {renderStaff(stylists)}
@@ -325,16 +325,16 @@ export function LandingClient() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Gallery</p>
-          <h2 className="mt-2 text-3xl font-semibold">Recent work</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Gallery</p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Recent work</h2>
         </div>
         <div className="mt-8 grid gap-5 grid-cols-2 lg:grid-cols-4">
           {gallery.map((item) => (
             <div
               key={item.id}
-              className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-2 hover:border-white/30 hover:shadow-[0_26px_70px_rgba(0,0,0,0.55)]"
+              className="group overflow-hidden rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-3 shadow-[0_0_20px_rgba(255,45,45,0.15)] transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/60 hover:shadow-[0_0_32px_rgba(255,45,45,0.35)]"
             >
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-[#e5e5e5]/75">
                 {item.title || item.barberName || 'Untitled'}
               </div>
               {item.imageUrl ? (
@@ -353,12 +353,12 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
-        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 sm:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-12">
+        <div className="rounded-[32px] border border-[#ff2d2d]/20 bg-white/[0.03] p-6 sm:p-8 shadow-[0_0_24px_rgba(255,45,45,0.18)] md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
-              <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
-              <div className="mt-4 grid gap-2 text-white/70">
+              <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Info</p>
+              <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Visit us</h2>
+              <div className="mt-4 grid gap-2 text-[#e5e5e5]/80">
                 {shopInfo.about ? <div>{shopInfo.about}</div> : null}
                 <div>Address: {shopInfo.address || 'Coming soon'}</div>
                 <div>Hours: {shopInfo.hours || 'Daily - 9am - 8pm'}</div>
@@ -440,7 +440,7 @@ export function LandingClient() {
                       prev === 'info' ? null : 'info'
                     )
                   }
-                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                  className="rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-center text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
                 >
                   Download the app
                 </button>
@@ -450,7 +450,7 @@ export function LandingClient() {
                       href="https://play.google.com/store"
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                     >
                       Google Play
                     </a>
@@ -458,7 +458,7 @@ export function LandingClient() {
                       href="https://apps.apple.com"
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                     >
                       App Store
                     </a>
@@ -472,15 +472,15 @@ export function LandingClient() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Reviews</p>
-          <h2 className="mt-2 text-3xl font-semibold">Happy clients</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Reviews</p>
+          <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Happy clients</h2>
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
             (review, index) => (
               <div
                 key={`review-${index}`}
-                className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-white/70"
+                className="rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-6 text-[#e5e5e5]/80 shadow-[0_0_20px_rgba(255,45,45,0.15)]"
               >
                 {review || 'Review coming soon.'}
               </div>
@@ -490,10 +490,10 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 pb-18 sm:pb-24">
-        <div className="rounded-[32px] bg-gradient-to-r from-[#00f0ff]/20 via-transparent to-[#ffd700]/20 p-[1px]">
+        <div className="rounded-[32px] border border-[#ff2d2d]/25 bg-black p-[1px] shadow-[0_0_24px_rgba(255,45,45,0.25)]">
           <div className="rounded-[32px] bg-black px-6 sm:px-8 py-10 sm:py-12 text-center">
-            <h2 className="text-3xl font-semibold">Ready to book?</h2>
-            <p className="mt-3 text-white/70">Download the app and book your spot.</p>
+            <h2 className="text-3xl font-semibold text-[#3b82f6]">Ready to book?</h2>
+            <p className="mt-3 text-[#e5e5e5]/75">Download the app and book your spot.</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <div>
                 <button
@@ -503,7 +503,7 @@ export function LandingClient() {
                       prev === 'cta' ? null : 'cta'
                     )
                   }
-                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                  className="rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
                 >
                   Download the app
                 </button>
@@ -513,7 +513,7 @@ export function LandingClient() {
                       href="https://play.google.com/store"
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                     >
                       Google Play
                     </a>
@@ -521,7 +521,7 @@ export function LandingClient() {
                       href="https://apps.apple.com"
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
+                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                     >
                       App Store
                     </a>
@@ -534,16 +534,16 @@ export function LandingClient() {
       </section>
 
       <footer className="border-t border-white/10 px-5 sm:px-6 py-10">
-        <div className="mx-auto grid max-w-6xl gap-6 text-sm text-white/60 md:grid-cols-[1.2fr_1fr_1fr]">
+        <div className="mx-auto grid max-w-6xl gap-6 text-sm text-[#e5e5e5]/70 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
-            <div className="text-white">JBookMe</div>
+            <div className="text-[#3b82f6]">JBookMe</div>
             <div className="mt-3 space-y-1">
               <div>{shopInfo.address || 'Address coming soon'}</div>
               <div>{shopInfo.hours || 'Hours coming soon'}</div>
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-white/40">Connect</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-[#e5e5e5]/50">Connect</div>
             <div className="mt-3 flex flex-wrap gap-3">
               {shopInfo.instagram ? (
                 <a
@@ -613,7 +613,7 @@ export function LandingClient() {
             </div>
           </div>
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-white/40">Legal</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-[#e5e5e5]/50">Legal</div>
             <div className="mt-3 flex flex-col gap-2">
               <a href="/privacy" className="hover:text-white">
                 Privacy
