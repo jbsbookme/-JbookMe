@@ -156,36 +156,24 @@ export function LandingClient() {
   }, []);
 
   const renderStaff = (items: Staff[]) => {
-    const list = items;
-    if (list.length === 0) return <p className="text-white/50">No results yet.</p>;
+    if (items.length === 0) return <p className="text-white/50">No results yet.</p>;
 
-    return list.map((item) => {
+    return items.map((item) => {
       const image = item.imageUrl || item.photoUrl || '';
       return (
         <div
           key={item.id}
           className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-[0_22px_60px_rgba(0,0,0,0.45)] transition duration-300 hover:-translate-y-2 hover:border-white/30 hover:shadow-[0_28px_80px_rgba(0,0,0,0.55)]"
         >
-          <div className="flex items-center justify-between gap-3">
-            <strong className="text-lg font-semibold">{item.name}</strong>
-          </div>
-          <div className="mt-2 text-sm text-white/70">
-            {item.specialties || item.specialty || 'Specialty not listed'}
-          </div>
-          {item.experience ? (
-            <div className="mt-2 text-xs uppercase tracking-[0.2em] text-white/45">
-              {item.experience}
-            </div>
-          ) : null}
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={image}
               alt={item.name}
-              className="mt-4 h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.03]"
+              className="h-48 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <div className="mt-4 flex h-44 w-full items-center justify-center rounded-2xl bg-white/5 text-2xl font-semibold text-white/70">
+            <div className="flex h-48 w-full items-center justify-center rounded-2xl bg-white/5 text-2xl font-semibold text-white/70">
               {(item.name || 'JB')
                 .split(' ')
                 .filter(Boolean)
@@ -195,6 +183,47 @@ export function LandingClient() {
                 .toUpperCase()}
             </div>
           )}
+          <div className="mt-5 space-y-2">
+            <strong className="block text-lg font-semibold">{item.name}</strong>
+            <div className="text-sm text-white/70">
+              {item.specialties || item.specialty || 'Specialty not listed'}
+            </div>
+            {shopInfo.review1 ? (
+              <div className="text-sm text-white/60">{shopInfo.review1}</div>
+            ) : null}
+            {item.bio ? (
+              <div className="text-sm text-white/55">{item.bio}</div>
+            ) : null}
+            <div className="pt-2">
+              <a
+                href="/book"
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-2 text-xs font-semibold text-black transition duration-300 hover:-translate-y-0.5"
+              >
+                Reservar ahora
+              </a>
+              <div className="mt-2 text-xs text-white/50">
+                Descarga la app para reservar.
+              </div>
+              <div className="mt-2 flex gap-3 text-xs">
+                <a
+                  href="https://apps.apple.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white/70 hover:text-white"
+                >
+                  App Store
+                </a>
+                <a
+                  href="https://play.google.com/store"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-white/70 hover:text-white"
+                >
+                  Google Play
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       );
     });
@@ -242,9 +271,7 @@ export function LandingClient() {
                   Google Play
                 </a>
               </div>
-              <p className="mt-5 text-sm text-white/50">
-                Descarga la app para reservar tu cita.
-              </p>
+              <p className="mt-5 text-sm text-white/50">Descarga la app para reservar tu cita.</p>
             </div>
           </div>
         </section>
@@ -301,83 +328,83 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
-          <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-12">
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
-                <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
-                <div className="mt-4 grid gap-2 text-white/70">
-                  {shopInfo.about ? <div>{shopInfo.about}</div> : null}
-                  <div>Address: {shopInfo.address || 'Coming soon'}</div>
-                  <div>Hours: {shopInfo.hours || 'Daily • 9am - 8pm'}</div>
-                  <div className="mt-2 flex flex-wrap gap-3">
-                    {shopInfo.instagram ? (
-                      <a
-                        href={shopInfo.instagram}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Instagram"
-                        className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                      >
-                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                          <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7-.82-.93-1.4-.22-.55-.38-1.18-.42-2.1-.05-.9-.05-1.2-.05-3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22 1.18-.38 2.1-.42.9-.05 1.2-.05 3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-1.06-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
-                        </svg>
-                      </a>
-                    ) : null}
-                    {shopInfo.facebook ? (
-                      <a
-                        href={shopInfo.facebook}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Facebook"
-                        className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                      >
-                        <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                          <path d="M13.2 20.4v-7.2h2.44l.36-2.8h-2.8V8.6c0-.8.22-1.34 1.36-1.34h1.46V4.8c-.7-.08-1.56-.12-2.42-.12-2.4 0-4.04 1.46-4.04 4.14v1.62H7.2v2.8h2.36v7.2h3.64Z" />
-                        </svg>
-                      </a>
-                    ) : null}
-                    {shopInfo.tiktok ? (
-                      <a
-                        href={shopInfo.tiktok}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="TikTok"
-                        className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                      >
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
-                          T
-                        </span>
-                      </a>
-                    ) : null}
-                    {shopInfo.whatsapp ? (
-                      <a
-                        href={shopInfo.whatsapp}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="WhatsApp"
-                        className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                      >
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
-                          W
-                        </span>
-                      </a>
-                    ) : null}
-                    {shopInfo.review1 ? (
-                      <div className="text-sm text-white/60">{shopInfo.review1}</div>
-                    ) : null}
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Website"
-                        className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
-                      >
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[8px] font-semibold">
-                          WWW
-                        </span>
-                        Reservar ahora
-                    ) : null}
-                  </div>
-                        Descarga la app para completar la reserva.
+              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
+              <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
+              <div className="mt-4 grid gap-2 text-white/70">
+                {shopInfo.about ? <div>{shopInfo.about}</div> : null}
+                <div>Direccion: {shopInfo.address || 'Coming soon'}</div>
+                <div>Horario: {shopInfo.hours || 'Daily • 9am - 8pm'}</div>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {shopInfo.instagram ? (
+                    <a
+                      href={shopInfo.instagram}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Instagram"
+                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                    >
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                        <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
+                      </svg>
+                    </a>
+                  ) : null}
+                  {shopInfo.facebook ? (
+                    <a
+                      href={shopInfo.facebook}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Facebook"
+                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                    >
+                      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                        <path d="M13.2 20.4v-7.2h2.44l.36-2.8h-2.8V8.6c0-.8.22-1.34 1.36-1.34h1.46V4.8c-.7-.08-1.56-.12-2.42-.12-2.4 0-4.04 1.46-4.04 4.14v1.62H7.2v2.8h2.36v7.2h3.64Z" />
+                      </svg>
+                    </a>
+                  ) : null}
+                  {shopInfo.tiktok ? (
+                    <a
+                      href={shopInfo.tiktok}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="TikTok"
+                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
+                        T
+                      </span>
+                    </a>
+                  ) : null}
+                  {shopInfo.whatsapp ? (
+                    <a
+                      href={shopInfo.whatsapp}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="WhatsApp"
+                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[9px] font-semibold">
+                        W
+                      </span>
+                    </a>
+                  ) : null}
+                  {shopInfo.website ? (
+                    <a
+                      href={shopInfo.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Website"
+                      className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-white/40 text-[8px] font-semibold">
+                        WWW
+                      </span>
+                    </a>
+                  ) : null}
+                </div>
+              </div>
             </div>
             <div className="flex flex-col gap-3">
               <a
@@ -386,7 +413,7 @@ export function LandingClient() {
                 rel="noreferrer"
                 className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-sm font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
               >
-                Download the app
+                Descargar la app
               </a>
               <a
                 href="https://play.google.com/store"
@@ -402,16 +429,16 @@ export function LandingClient() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-16">
-                >
-                  App Store
-                </a>
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Resenas</p>
+          <h2 className="mt-2 text-3xl font-semibold">Clientes felices</h2>
         </div>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
             (review, index) => (
               <div
                 key={`review-${index}`}
-                  Google Play
+                className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-white/70"
               >
                 {review || 'Review coming soon.'}
               </div>
@@ -423,8 +450,8 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-6 pb-20">
         <div className="rounded-[32px] bg-gradient-to-r from-[#00f0ff]/20 via-transparent to-[#ffd700]/20 p-[1px]">
           <div className="rounded-[32px] bg-black px-8 py-12 text-center">
-            <h2 className="text-3xl font-semibold">Ready to book?</h2>
-            <p className="mt-3 text-white/70">Download the app and reserve your slot.</p>
+            <h2 className="text-3xl font-semibold">Listo para reservar?</h2>
+            <p className="mt-3 text-white/70">Descarga la app y reserva tu turno.</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <a
                 href="https://apps.apple.com"
@@ -432,7 +459,7 @@ export function LandingClient() {
                 rel="noreferrer"
                 className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-sm font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
               >
-                Download the app
+                Descargar la app
               </a>
               <a
                 href="https://play.google.com/store"
@@ -468,7 +495,7 @@ export function LandingClient() {
                   className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                    <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7-.82-.93-1.4-.22-.55-.38-1.18-.42-2.1-.05-.9-.05-1.2-.05-3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22 1.18-.38 2.1-.42.9-.05 1.2-.05 3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-1.06-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
+                    <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.20 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
                   </svg>
                 </a>
               ) : null}
