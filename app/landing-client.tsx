@@ -270,7 +270,7 @@ export function LandingClient() {
                         prev === 'hero' ? null : 'hero'
                       )
                     }
-                    className="rounded-full border border-[#ff1a1a] bg-[#ff1a1a] px-8 py-4 text-center text-base font-semibold text-[#ffd700] shadow-[0_0_18px_rgba(255,26,26,0.5)] drop-shadow-[0_0_10px_rgba(255,215,0,0.35)] transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:shadow-[0_0_28px_rgba(255,26,26,0.7)]"
+                    className="rounded-full border border-[#ff1a1a] bg-[#ff1a1a] px-8 py-4 text-center text-base font-semibold text-[#ffd700] transition duration-300 hover:-translate-y-1 hover:scale-[1.03]"
                   >
                     Download the app
                   </button>
