@@ -39,6 +39,13 @@ type ShopInfo = {
   about?: string | null;
   privacy?: string | null;
   terms?: string | null;
+  socials?: {
+    instagram?: string | null;
+    facebook?: string | null;
+    tiktok?: string | null;
+    whatsapp?: string | null;
+    website?: string | null;
+  } | null;
 };
 
 export function LandingClient() {
@@ -105,11 +112,12 @@ export function LandingClient() {
         );
 
         const shopData = (shopSnap.exists() ? shopSnap.data() : {}) as ShopInfo;
+        const socials = shopData?.socials ?? null;
         setShopInfo({
           address: shopData?.address ?? null,
           hours: shopData?.hours ?? null,
-          instagram: shopData?.instagram ?? null,
-          facebook: shopData?.facebook ?? null,
+          instagram: shopData?.instagram ?? socials?.instagram ?? null,
+          facebook: shopData?.facebook ?? socials?.facebook ?? null,
           about: shopData?.about ?? null,
           privacy: shopData?.privacy ?? null,
           terms: shopData?.terms ?? null,
