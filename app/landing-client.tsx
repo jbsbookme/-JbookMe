@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-3 text-xs font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+import {
   collection,
   doc,
   getDoc,
@@ -206,7 +206,7 @@ export function LandingClient() {
                     prev === item.id ? null : item.id
                   )
                 }
-                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-2 text-xs font-semibold text-black transition duration-300 hover:-translate-y-0.5"
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-3 text-xs font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
               >
                 Reservar ahora
               </button>
@@ -239,7 +239,7 @@ export function LandingClient() {
 
   return (
     <main
-      className="bg-black text-white"
+      className="bg-black text-white overflow-x-hidden"
       style={{
         fontFamily: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
       }}
@@ -251,22 +251,22 @@ export function LandingClient() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_55%)]" />
         </div>
 
-        <section className="mx-auto max-w-6xl px-6 pt-28 pb-24">
+        <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-24">
           <div className="flex flex-col gap-10">
             <div className="max-w-3xl animate-hero">
               <p className="text-xs uppercase tracking-[0.45em] text-[#00f0ff]">JBookMe</p>
-              <h1 className="mt-6 text-[clamp(40px,9vw,96px)] font-semibold leading-[0.9] tracking-[-0.02em]">
+              <h1 className="mt-5 text-[clamp(34px,10vw,92px)] font-semibold leading-[0.95] tracking-[-0.02em]">
                 Experiencia premium. Reserva en segundos.
               </h1>
-              <p className="mt-6 text-base text-white/70 md:text-lg">
+              <p className="mt-4 text-[15px] leading-7 text-white/70 sm:text-base md:text-lg">
                 Descubre barberos y estilistas top, mira trabajos reales y reserva directo desde la app JBookMe.
               </p>
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <a
                   href="https://apps.apple.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-8 py-4 text-center text-sm font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
+                  className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-8 py-4 text-center text-base font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
                 >
                   Descargar la app
                 </a>
@@ -274,7 +274,7 @@ export function LandingClient() {
                   href="https://play.google.com/store"
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-white/25 px-8 py-4 text-center text-sm font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
+                  className="rounded-full border border-white/25 px-8 py-4 text-center text-base font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
                 >
                   Google Play
                 </a>
@@ -285,35 +285,35 @@ export function LandingClient() {
         </section>
       </div>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="flex items-center justify-between gap-6 flex-wrap">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/40">Barbers</p>
             <h2 className="mt-2 text-3xl font-semibold">Master barbers</h2>
           </div>
           {loading ? <p className="text-white/50">Loading...</p> : null}
         </div>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {renderStaff(barbers)}
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/40">Stylists</p>
           <h2 className="mt-2 text-3xl font-semibold">Style specialists</h2>
         </div>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {renderStaff(stylists)}
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/40">Gallery</p>
           <h2 className="mt-2 text-3xl font-semibold">Recent work</h2>
         </div>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid gap-5 grid-cols-2 lg:grid-cols-4">
           {gallery.map((item) => (
             <div
               key={item.id}
@@ -326,19 +326,19 @@ export function LandingClient() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.imageUrl}
-                  alt={item.title || 'Gallery image'}
-                  className="mt-3 h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.04]"
+                  alt={item.title || item.barberName || 'Gallery image'}
+                  className="mt-3 h-40 sm:h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.04]"
                 />
               ) : (
-                <div className="mt-3 h-44 w-full rounded-2xl bg-white/5" />
+                <div className="mt-3 h-40 sm:h-44 w-full rounded-2xl bg-white/5" />
               )}
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
-        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-12">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 sm:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
@@ -346,7 +346,7 @@ export function LandingClient() {
               <div className="mt-4 grid gap-2 text-white/70">
                 {shopInfo.about ? <div>{shopInfo.about}</div> : null}
                 <div>Direccion: {shopInfo.address || 'Coming soon'}</div>
-                <div>Horario: {shopInfo.hours || 'Daily • 9am - 8pm'}</div>
+                <div>Horario: {shopInfo.hours || 'Daily - 9am - 8pm'}</div>
                 <div className="mt-2 flex flex-wrap gap-3">
                   {shopInfo.instagram ? (
                     <a
@@ -357,7 +357,7 @@ export function LandingClient() {
                       className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
                     >
                       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                        <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
+                        <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.2 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.20-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
                       </svg>
                     </a>
                   ) : null}
@@ -421,7 +421,7 @@ export function LandingClient() {
                 href="https://apps.apple.com"
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-sm font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
               >
                 Descargar la app
               </a>
@@ -429,7 +429,7 @@ export function LandingClient() {
                 href="https://play.google.com/store"
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-white/20 px-6 py-3 text-center text-sm font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
+                className="rounded-full border border-white/20 px-6 py-3 text-center text-base font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
               >
                 Google Play
               </a>
@@ -438,12 +438,12 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/40">Resenas</p>
           <h2 className="mt-2 text-3xl font-semibold">Clientes felices</h2>
         </div>
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
             (review, index) => (
               <div
@@ -457,9 +457,9 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-20">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 pb-16 sm:pb-20">
         <div className="rounded-[32px] bg-gradient-to-r from-[#00f0ff]/20 via-transparent to-[#ffd700]/20 p-[1px]">
-          <div className="rounded-[32px] bg-black px-8 py-12 text-center">
+          <div className="rounded-[32px] bg-black px-6 sm:px-8 py-10 sm:py-12 text-center">
             <h2 className="text-3xl font-semibold">Listo para reservar?</h2>
             <p className="mt-3 text-white/70">Descarga la app y reserva tu turno.</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -467,7 +467,7 @@ export function LandingClient() {
                 href="https://apps.apple.com"
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-sm font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
               >
                 Descargar la app
               </a>
@@ -475,7 +475,7 @@ export function LandingClient() {
                 href="https://play.google.com/store"
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
+                className="rounded-full border border-white/20 px-6 py-3 text-base font-semibold text-white/90 transition duration-300 hover:-translate-y-1 hover:border-white/60"
               >
                 Google Play
               </a>
@@ -484,7 +484,7 @@ export function LandingClient() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 px-6 py-10">
+      <footer className="border-t border-white/10 px-5 sm:px-6 py-10">
         <div className="mx-auto grid max-w-6xl gap-6 text-sm text-white/60 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
             <div className="text-white">JBookMe</div>
@@ -505,7 +505,7 @@ export function LandingClient() {
                   className="inline-flex items-center rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:border-white/50"
                 >
                   <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                    <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.20 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.2-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
+                    <path d="M12 8.7a3.3 3.3 0 1 0 0 6.6 3.3 3.3 0 0 0 0-6.6Zm0 5.4a2.1 2.1 0 1 1 0-4.2 2.1 2.1 0 0 1 0 4.2Zm4.2-9.3a.78.78 0 1 1-1.56 0 .78.78 0 0 1 1.56 0ZM12 3.6c2.4 0 2.7 0 3.6.05.92.04 1.55.2 2.1.42.58.23.97.5 1.4.93.43.43.7.82.93 1.4.22.55.38 1.18.42 2.1.05.9.05 1.2.05 3.6s0 2.7-.05 3.6c-.04.92-.20 1.55-.42 2.1-.23.58-.5.97-.93 1.4-.43.43-.82.7-1.4.93-.55.22-1.18.38-2.1.42-.9.05-1.2.05-3.6.05s-2.7 0-3.6-.05c-.92-.04-1.55-.20-2.1-.42-.58-.23-.97-.5-1.4-.93-.43-.43-.7.82-.93 1.4-.22.55-.38 1.18-.42 2.1-.05.9-.05 1.2-.05 3.6s0-2.7.05-3.6c.04-.92.2-1.55.42-2.1.23-.58.5-.97.93-1.4.43-.43.82-.7 1.4-.93.55-.22,1.18-.38,2.1-.42.9-.05,1.2-.05,3.6-.05Zm0-1.2c-2.43 0-2.73 0-3.68.05-1 .05-1.7.22-2.3.47-.62.24-1.15.56-1.68 1.09-.53.53-.85 1.06-1.1 1.68-.24.6-.41 1.3-.46 2.3C2.4 8.04 2.4 8.34 2.4 10.8s0 2.76.05 3.72c.05 1 .22 1.7.46 2.3.25.62.57 1.15 1.1 1.68.53.53 1.06.85 1.68 1.1.6.24 1.3.41 2.3.46.95.05 1.25.05 3.68.05s2.73 0 3.68-.05c1-.05 1.7-.22 2.3-.46.62-.25 1.15-.57 1.68-1.1.53-.53.85-1.06 1.1-1.68.24-.6.41-1.3.46-2.3.05-.95.05-1.25.05-3.68s0-2.73-.05-3.68c-.05-1-.22-1.7-.46-2.3-.25-.62-.57-1.15-1.1-1.68-.53-.53-.82-.85-1.68-1.1-.6-.24-1.3-.41-2.3-.46-.95-.05-1.25-.05-3.68-.05Z" />
                   </svg>
                 </a>
               ) : null}
