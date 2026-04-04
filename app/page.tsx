@@ -63,7 +63,10 @@ async function fetchFeaturedBarbers(): Promise<Barber[] | null> {
           name: String(barber.name ?? user?.name ?? 'Barber'),
           image:
             (barber.imageUrl as string | null | undefined) ||
-            (barber.image as string | null | undefined) ||
+            (barber.photoUrl as string | null | undefined) ||
+            ((typeof barber.image === 'string' && barber.image.trim() !== '' && barber.image !== '""'
+              ? barber.image
+              : null) as string | null) ||
             (barber.profileImage as string | null | undefined) ||
             user?.image ||
             null,
