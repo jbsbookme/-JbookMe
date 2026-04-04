@@ -63,12 +63,7 @@ export function LandingClient() {
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [shopInfo, setShopInfo] = useState<ShopInfo>({});
   const [loading, setLoading] = useState(true);
-  const [activeStoreCardId, setActiveStoreCardId] = useState<string | null>(
-    null
-  );
-  const [activeDownloadSection, setActiveDownloadSection] = useState<
-    'hero' | 'info' | 'cta' | null
-  >(null);
+  const [activeStoreLinks, setActiveStoreLinks] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,15 +200,15 @@ export function LandingClient() {
               <button
                 type="button"
                 onClick={() =>
-                  setActiveStoreCardId((prev) =>
-                    prev === item.id ? null : item.id
+                  setActiveStoreLinks((prev) =>
+                    prev === `book-${item.id}` ? null : `book-${item.id}`
                   )
                 }
-                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-4 py-3 text-xs font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
+                className="inline-flex w-full items-center justify-center rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
               >
-                Reservar ahora
+                Book now
               </button>
-              {activeStoreCardId === item.id ? (
+              {activeStoreLinks === `book-${item.id}` ? (
                 <div className="mt-3 flex gap-2">
                   <a
                     href="https://play.google.com/store"
@@ -221,7 +216,7 @@ export function LandingClient() {
                     rel="noreferrer"
                     className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                   >
-                    Play Store
+                    Google Play
                   </a>
                   <a
                     href="https://apps.apple.com"
@@ -229,7 +224,7 @@ export function LandingClient() {
                     rel="noreferrer"
                     className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                   >
-                    Apple Store
+                    App Store
                   </a>
                 </div>
               ) : null}
@@ -254,30 +249,30 @@ export function LandingClient() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_55%)]" />
         </div>
 
-        <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-16 sm:pb-24">
+        <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-18 sm:pb-28">
           <div className="flex flex-col gap-10">
             <div className="max-w-3xl animate-hero">
               <p className="text-xs uppercase tracking-[0.45em] text-[#00f0ff]">JBookMe</p>
               <h1 className="mt-5 text-[clamp(34px,10vw,92px)] font-semibold leading-[0.95] tracking-[-0.02em]">
-                Experiencia premium. Reserva en segundos.
+                Premium experience. Book in seconds.
               </h1>
               <p className="mt-4 text-[15px] leading-7 text-white/70 sm:text-base md:text-lg">
-                Descubre barberos y estilistas top, mira trabajos reales y reserva directo desde la app JBookMe.
+                Discover top barbers and stylists, see real work, and book directly in the JBookMe app.
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <div>
                   <button
                     type="button"
                     onClick={() =>
-                      setActiveDownloadSection((prev) =>
+                      setActiveStoreLinks((prev) =>
                         prev === 'hero' ? null : 'hero'
                       )
                     }
-                    className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-8 py-4 text-center text-base font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
+                    className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_16px_50px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_60px_rgba(255,215,0,0.25)]"
                   >
-                    Descargar la app
+                    Download the app
                   </button>
-                  {activeDownloadSection === 'hero' ? (
+                  {activeStoreLinks === 'hero' ? (
                     <div className="mt-3 flex gap-2">
                       <a
                         href="https://play.google.com/store"
@@ -285,7 +280,7 @@ export function LandingClient() {
                         rel="noreferrer"
                         className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                       >
-                        Play Store
+                        Google Play
                       </a>
                       <a
                         href="https://apps.apple.com"
@@ -293,19 +288,19 @@ export function LandingClient() {
                         rel="noreferrer"
                         className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                       >
-                        Apple Store
+                        App Store
                       </a>
                     </div>
                   ) : null}
                 </div>
               </div>
-              <p className="mt-5 text-sm text-white/50">Descarga la app para reservar tu cita.</p>
+              <p className="mt-5 text-sm text-white/50">Download the app to book your appointment.</p>
             </div>
           </div>
         </section>
       </div>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-white/40">Barbers</p>
@@ -318,7 +313,7 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/40">Stylists</p>
           <h2 className="mt-2 text-3xl font-semibold">Style specialists</h2>
@@ -328,7 +323,7 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-white/40">Gallery</p>
           <h2 className="mt-2 text-3xl font-semibold">Recent work</h2>
@@ -357,7 +352,7 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div className="rounded-[32px] border border-white/10 bg-white/[0.04] p-6 sm:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.45)] md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
@@ -365,8 +360,8 @@ export function LandingClient() {
               <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
               <div className="mt-4 grid gap-2 text-white/70">
                 {shopInfo.about ? <div>{shopInfo.about}</div> : null}
-                <div>Direccion: {shopInfo.address || 'Coming soon'}</div>
-                <div>Horario: {shopInfo.hours || 'Daily - 9am - 8pm'}</div>
+                <div>Address: {shopInfo.address || 'Coming soon'}</div>
+                <div>Hours: {shopInfo.hours || 'Daily - 9am - 8pm'}</div>
                 <div className="mt-2 flex flex-wrap gap-3">
                   {shopInfo.instagram ? (
                     <a
@@ -441,15 +436,15 @@ export function LandingClient() {
                 <button
                   type="button"
                   onClick={() =>
-                    setActiveDownloadSection((prev) =>
+                    setActiveStoreLinks((prev) =>
                       prev === 'info' ? null : 'info'
                     )
                   }
                   className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
                 >
-                  Descargar la app
+                  Download the app
                 </button>
-                {activeDownloadSection === 'info' ? (
+                {activeStoreLinks === 'info' ? (
                   <div className="mt-3 flex gap-2">
                     <a
                       href="https://play.google.com/store"
@@ -457,7 +452,7 @@ export function LandingClient() {
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                     >
-                      Play Store
+                      Google Play
                     </a>
                     <a
                       href="https://apps.apple.com"
@@ -465,7 +460,7 @@ export function LandingClient() {
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                     >
-                      Apple Store
+                      App Store
                     </a>
                   </div>
                 ) : null}
@@ -475,10 +470,10 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-14 sm:py-16">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Resenas</p>
-          <h2 className="mt-2 text-3xl font-semibold">Clientes felices</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Reviews</p>
+          <h2 className="mt-2 text-3xl font-semibold">Happy clients</h2>
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
@@ -494,25 +489,25 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 pb-16 sm:pb-20">
+      <section className="mx-auto max-w-6xl px-5 sm:px-6 pb-18 sm:pb-24">
         <div className="rounded-[32px] bg-gradient-to-r from-[#00f0ff]/20 via-transparent to-[#ffd700]/20 p-[1px]">
           <div className="rounded-[32px] bg-black px-6 sm:px-8 py-10 sm:py-12 text-center">
-            <h2 className="text-3xl font-semibold">Listo para reservar?</h2>
-            <p className="mt-3 text-white/70">Descarga la app y reserva tu turno.</p>
+            <h2 className="text-3xl font-semibold">Ready to book?</h2>
+            <p className="mt-3 text-white/70">Download the app and book your spot.</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <div>
                 <button
                   type="button"
                   onClick={() =>
-                    setActiveDownloadSection((prev) =>
+                    setActiveStoreLinks((prev) =>
                       prev === 'cta' ? null : 'cta'
                     )
                   }
                   className="rounded-full bg-gradient-to-r from-[#00f0ff] to-[#ffd700] px-6 py-3 text-base font-semibold text-black shadow-[0_12px_40px_rgba(0,240,255,0.25)] transition duration-300 hover:-translate-y-1"
                 >
-                  Descargar la app
+                  Download the app
                 </button>
-                {activeDownloadSection === 'cta' ? (
+                {activeStoreLinks === 'cta' ? (
                   <div className="mt-3 flex gap-2 justify-center">
                     <a
                       href="https://play.google.com/store"
@@ -520,7 +515,7 @@ export function LandingClient() {
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                     >
-                      Play Store
+                      Google Play
                     </a>
                     <a
                       href="https://apps.apple.com"
@@ -528,7 +523,7 @@ export function LandingClient() {
                       rel="noreferrer"
                       className="inline-flex items-center justify-center rounded-full border border-white/20 px-3 py-1 text-xs text-white/80 transition hover:border-white/60"
                     >
-                      Apple Store
+                      App Store
                     </a>
                   </div>
                 ) : null}
