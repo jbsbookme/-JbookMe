@@ -120,92 +120,202 @@ export function LandingClient() {
   }, []);
 
   const renderStaff = (items: Staff[]) => {
-    if (items.length === 0) return <p>No results yet.</p>;
+    if (items.length === 0) return <p className="text-white/50">No results yet.</p>;
 
-    return (
-      <div style={{ display: 'grid', gap: 16 }}>
-        {items.map((item) => {
-          const image = item.imageUrl || item.photoUrl || '';
-          return (
-            <div key={item.id} style={{ border: '1px solid #333', padding: 16, borderRadius: 8 }}>
-              <strong>{item.name}</strong>
-              <div>{item.specialty || 'Specialty not listed'}</div>
-              {item.instagram ? <div>@{item.instagram}</div> : null}
-              {image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={image}
-                  alt={item.name}
-                  style={{ marginTop: 8, width: 120, height: 120, objectFit: 'cover', borderRadius: 8 }}
-                />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    );
+    return items.map((item) => {
+      const image = item.imageUrl || item.photoUrl || '';
+      return (
+        <div
+          key={item.id}
+          className="group rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:-translate-y-1 hover:border-white/30"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <strong className="text-lg font-semibold">{item.name}</strong>
+            {item.instagram ? <span className="text-xs text-white/50">@{item.instagram}</span> : null}
+          </div>
+          <div className="mt-2 text-sm text-white/70">{item.specialty || 'Specialty not listed'}</div>
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={image}
+              alt={item.name}
+              className="mt-4 h-40 w-full rounded-xl object-cover transition group-hover:scale-[1.02]"
+            />
+          ) : (
+            <div className="mt-4 h-40 w-full rounded-xl bg-white/5" />
+          )}
+        </div>
+      );
+    });
   };
 
   return (
-    <main style={{ padding: 40 }}>
-      <h1>JBookMe</h1>
-      <p>Download the app to book your appointment.</p>
-      <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
-        <a href="https://apps.apple.com" target="_blank" rel="noreferrer">
-          App Store
-        </a>
-        <a href="https://play.google.com/store" target="_blank" rel="noreferrer">
-          Google Play
-        </a>
+    <main className="bg-black text-white">
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute -top-40 right-0 h-96 w-96 rounded-full bg-[#00f0ff]/15 blur-[140px]" />
+          <div className="absolute -bottom-40 left-0 h-96 w-96 rounded-full bg-[#ffd700]/15 blur-[140px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_55%)]" />
+        </div>
+
+        <section className="mx-auto max-w-6xl px-6 pt-24 pb-20">
+          <div className="flex flex-col gap-10">
+            <div className="max-w-3xl">
+              <p className="text-xs uppercase tracking-[0.4em] text-[#00f0ff]">JBookMe</p>
+              <h1 className="mt-4 text-[clamp(36px,8vw,84px)] font-semibold leading-[0.95]">
+                Elite grooming. Instant bookings in the app.
+              </h1>
+              <p className="mt-5 text-base text-white/70 md:text-lg">
+                Discover top barbers and stylists, explore real work, and book directly in the JBookMe app.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <a
+                  href="https://apps.apple.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full bg-white text-black px-6 py-3 font-semibold transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(255,255,255,0.2)]"
+                >
+                  Download the app
+                </a>
+                <a
+                  href="https://play.google.com/store"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-full border border-white/20 px-6 py-3 font-semibold text-white/90 transition hover:border-white/60 hover:-translate-y-0.5"
+                >
+                  Google Play
+                </a>
+              </div>
+              <p className="mt-4 text-sm text-white/50">Download the app to book your appointment.</p>
+            </div>
+          </div>
+        </section>
       </div>
 
-      {loading ? <p style={{ marginTop: 24 }}>Loading...</p> : null}
-
-      <section style={{ marginTop: 32 }}>
-        <h2>Barbers</h2>
-        {renderStaff(barbers)}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="flex items-center justify-between gap-6 flex-wrap">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/40">Barbers</p>
+            <h2 className="mt-2 text-3xl font-semibold">Master barbers</h2>
+          </div>
+          {loading ? <p className="text-white/50">Loading...</p> : null}
+        </div>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {renderStaff(barbers)}
+        </div>
       </section>
 
-      <section style={{ marginTop: 32 }}>
-        <h2>Stylists</h2>
-        {renderStaff(stylists)}
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Stylists</p>
+          <h2 className="mt-2 text-3xl font-semibold">Style specialists</h2>
+        </div>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {renderStaff(stylists)}
+        </div>
       </section>
 
-      <section style={{ marginTop: 32 }}>
-        <h2>Gallery</h2>
-        {gallery.length === 0 ? (
-          <p>No gallery items yet.</p>
-        ) : (
-          <div style={{ display: 'grid', gap: 16 }}>
-            {gallery.map((item) => (
-              <div key={item.id} style={{ border: '1px solid #333', padding: 16, borderRadius: 8 }}>
-                <div>{item.title || 'Untitled'}</div>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-white/40">Gallery</p>
+          <h2 className="mt-2 text-3xl font-semibold">Recent work</h2>
+        </div>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {gallery.length === 0 ? (
+            <p className="text-white/50">No gallery items yet.</p>
+          ) : (
+            gallery.map((item) => (
+              <div
+                key={item.id}
+                className="group rounded-2xl border border-white/10 bg-white/5 p-3 transition hover:-translate-y-1 hover:border-white/30"
+              >
+                <div className="text-sm text-white/70">{item.title || 'Untitled'}</div>
                 {item.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={item.imageUrl}
                     alt={item.title || 'Gallery image'}
-                    style={{ marginTop: 8, width: 160, height: 160, objectFit: 'cover', borderRadius: 8 }}
+                    className="mt-3 h-40 w-full rounded-xl object-cover"
                   />
-                ) : null}
+                ) : (
+                  <div className="mt-3 h-40 w-full rounded-xl bg-white/5" />
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section style={{ marginTop: 32 }}>
-        <h2>Info</h2>
-        <div style={{ display: 'grid', gap: 8 }}>
-          <div>Address: {settings.address || 'N/A'}</div>
-          <div>Hours: {settings.hours || 'N/A'}</div>
-          {settings.instagram ? <div>Instagram: {settings.instagram}</div> : null}
-          {settings.facebook ? <div>Facebook: {settings.facebook}</div> : null}
+            ))
+          )}
         </div>
       </section>
 
-      <footer style={{ marginTop: 40, borderTop: '1px solid #333', paddingTop: 16 }}>
-        <a href="/privacy">Privacy</a> | <a href="/terms">Terms</a>
+      <section className="mx-auto max-w-6xl px-6 py-16">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-8 md:p-12">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/40">Info</p>
+              <h2 className="mt-2 text-3xl font-semibold">Visit us</h2>
+              <div className="mt-4 grid gap-2 text-white/70">
+                <div>Address: {settings.address || 'N/A'}</div>
+                <div>Hours: {settings.hours || 'N/A'}</div>
+                {settings.instagram ? <div>Instagram: {settings.instagram}</div> : null}
+                {settings.facebook ? <div>Facebook: {settings.facebook}</div> : null}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <a
+                href="https://apps.apple.com"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-white text-black px-6 py-3 text-center font-semibold transition hover:-translate-y-0.5"
+              >
+                Download the app
+              </a>
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-white/20 px-6 py-3 text-center font-semibold text-white/90 transition hover:border-white/60"
+              >
+                Google Play
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="rounded-3xl bg-gradient-to-r from-[#00f0ff]/20 via-transparent to-[#ffd700]/20 p-[1px]">
+          <div className="rounded-3xl bg-black px-8 py-12 text-center">
+            <h2 className="text-3xl font-semibold">Ready to book?</h2>
+            <p className="mt-3 text-white/70">Download the app and reserve your slot.</p>
+            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <a
+                href="https://apps.apple.com"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full bg-white text-black px-6 py-3 font-semibold transition hover:-translate-y-0.5"
+              >
+                Download the app
+              </a>
+              <a
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-white/20 px-6 py-3 font-semibold text-white/90 transition hover:border-white/60"
+              >
+                Google Play
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-white/10 px-6 py-8">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
+          <div>JBookMe</div>
+          <div className="flex gap-4">
+            <a href="/privacy" className="hover:text-white">Privacy</a>
+            <a href="/terms" className="hover:text-white">Terms</a>
+          </div>
+        </div>
       </footer>
     </main>
   );
