@@ -315,7 +315,7 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Barbers</p>
+            <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Barbers</p>
             <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Master barbers</h2>
           </div>
           {loading ? <p className="text-[#e5e5e5]/60">Loading...</p> : null}
@@ -327,7 +327,7 @@ export function LandingClient() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Stylists</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Stylists</p>
           <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Style specialists</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -337,7 +337,7 @@ export function LandingClient() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Gallery</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Gallery</p>
           <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Recent work</h2>
         </div>
         <div className="mt-8 grid gap-6 md:gap-7 grid-cols-2 lg:grid-cols-4">
@@ -380,7 +380,7 @@ export function LandingClient() {
         <div className="rounded-[32px] border border-[#ff2d2d]/20 bg-white/[0.03] p-6 sm:p-8 shadow-[0_0_24px_rgba(255,45,45,0.18)] md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Info</p>
+              <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Info</p>
               <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Visit us</h2>
               <div className="mt-4 grid gap-2 text-[#e5e5e5]/80">
                 {shopInfo.about ? <div>{shopInfo.about}</div> : null}
@@ -496,7 +496,7 @@ export function LandingClient() {
 
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Reviews</p>
+          <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Reviews</p>
           <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Happy clients</h2>
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
