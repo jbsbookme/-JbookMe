@@ -44,9 +44,9 @@ type ShopInfo = {
   about?: string | null;
   privacy?: string | null;
   terms?: string | null;
-  review1?: string | null;
-  review2?: string | null;
-  review3?: string | null;
+  webReview1?: string | null;
+  webReview2?: string | null;
+  webReview3?: string | null;
   socials?: {
     instagram?: string | null;
     facebook?: string | null;
@@ -132,9 +132,9 @@ export function LandingClient() {
           about: shopData?.about ?? null,
           privacy: shopData?.privacy ?? null,
           terms: shopData?.terms ?? null,
-          review1: shopData?.review1 ?? null,
-          review2: shopData?.review2 ?? null,
-          review3: shopData?.review3 ?? null,
+          webReview1: shopData?.webReview1 ?? null,
+          webReview2: shopData?.webReview2 ?? null,
+          webReview3: shopData?.webReview3 ?? null,
         });
       } catch {
         if (!cancelled) {
@@ -408,7 +408,7 @@ export function LandingClient() {
           <h2 className="mt-2 text-3xl font-semibold">Clients love us</h2>
         </div>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
+          [shopInfo.webReview1, shopInfo.webReview2, shopInfo.webReview3].map(
             (review, index) => (
               <div
                 key={`review-${index}`}
