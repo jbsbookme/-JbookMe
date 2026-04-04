@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 
@@ -8,6 +9,16 @@ type Barber = {
   rating?: number | null;
   reviewsCount?: number | null;
   specialty?: string | null;
+};
+
+export const metadata: Metadata = {
+  title: 'JBookMe | Book your barber instantly',
+  description: 'Find top barbers, book instantly, skip the wait.',
+  openGraph: {
+    title: 'JBookMe | Book your barber instantly',
+    description: 'Find top barbers, book instantly, skip the wait.',
+    images: ['/og-preview.jpg'],
+  },
 };
 
 const fallbackBarbers: Barber[] = [
@@ -44,6 +55,7 @@ async function fetchFeaturedBarbers(): Promise<Barber[] | null> {
     const list = Array.isArray(data.barbers) ? data.barbers : [];
 
     const mapped = list
+      .filter((barber) => Boolean(barber?.id))
       .map((barber) => {
         const user = barber.user as { name?: string | null; image?: string | null } | undefined;
         return {
@@ -69,7 +81,6 @@ async function fetchFeaturedBarbers(): Promise<Barber[] | null> {
             null,
         } as Barber;
       })
-      .filter((barber) => barber.id)
       .slice(0, 3);
 
     return mapped.length > 0 ? mapped : [];
@@ -79,9 +90,15 @@ async function fetchFeaturedBarbers(): Promise<Barber[] | null> {
   }
 }
 
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return 'JB';
+  const initials = parts.slice(0, 2).map((part) => part[0]).join('');
+  return initials.toUpperCase();
+}
+
 export default async function LandingPage() {
   const barbers = await fetchFeaturedBarbers();
-  const isLoading = barbers === null;
   const featuredBarbers = barbers && barbers.length ? barbers : fallbackBarbers;
 
   return (
@@ -104,7 +121,7 @@ export default async function LandingPage() {
           <Button
             asChild
             size="lg"
-            className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold px-10 py-6"
+            className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold px-10 py-6 transition-transform hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(0,240,255,0.35)]"
           >
             <Link href="/app/book">Book Now</Link>
           </Button>
@@ -112,9 +129,9 @@ export default async function LandingPage() {
             asChild
             size="lg"
             variant="outline"
-            className="border-gray-500/50 text-white hover:bg-white/10 px-10 py-6"
+            className="border-gray-500/50 text-white hover:bg-white/10 px-10 py-6 transition-transform hover:scale-[1.02] hover:shadow-[0_0_18px_rgba(255,255,255,0.12)]"
           >
-            <Link href="/app">Find Your Barber</Link>
+            <Link href="#barbers">Find Your Barber</Link>
           </Button>
         </div>
         <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -134,7 +151,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-24">
+      <section id="barbers" className="mx-auto max-w-6xl px-6 pb-24">
         <div className="flex flex-col items-center justify-between gap-6 md:flex-row md:items-end">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-gray-500">Featured</p>
@@ -146,18 +163,13 @@ export default async function LandingPage() {
           <Button
             asChild
             variant="outline"
-            className="border-gray-700 text-white hover:bg-white/10"
+            className="border-gray-700 text-white hover:bg-white/10 transition-transform hover:scale-[1.02]"
           >
             <Link href="/app">See all barbers</Link>
           </Button>
         </div>
 
         <div className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-3">
-          {isLoading ? (
-            <div className="rounded-2xl border border-gray-800 bg-[#0f0f0f] p-6 text-center text-sm text-gray-400">
-              Loading...
-            </div>
-          ) : null}
           {featuredBarbers.map((barber) => (
             <div
               key={barber.id}
@@ -171,7 +183,13 @@ export default async function LandingPage() {
                     alt={barber.name}
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                ) : null}
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_top,rgba(0,240,255,0.18),transparent_60%)]">
+                    <span className="text-2xl font-semibold text-white/70">
+                      {getInitials(barber.name)}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="mt-5">
                 <h3 className="text-xl font-semibold text-white">{barber.name}</h3>
@@ -179,10 +197,17 @@ export default async function LandingPage() {
                   {barber.specialty ?? 'Modern cuts, fades, detail work'}
                 </p>
                 <div className="mt-5 flex gap-3">
-                  <Button asChild variant="outline" className="w-full border-gray-700 text-white hover:bg-white/10">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full border-gray-700 text-white hover:bg-white/10 transition-transform hover:scale-[1.03] hover:shadow-[0_0_14px_rgba(255,255,255,0.16)]"
+                  >
                     <Link href={`/app/barber/${barber.id}`}>View</Link>
                   </Button>
-                  <Button asChild className="w-full bg-[#00f0ff] text-black hover:bg-[#00d0dd]">
+                  <Button
+                    asChild
+                    className="w-full bg-[#00f0ff] text-black hover:bg-[#00d0dd] transition-transform hover:scale-[1.03] hover:shadow-[0_0_18px_rgba(0,240,255,0.35)]"
+                  >
                     <Link href={`/app/book?barberId=${barber.id}`}>Book</Link>
                   </Button>
                 </div>
@@ -202,8 +227,12 @@ export default async function LandingPage() {
             <Button asChild className="bg-[#00f0ff] text-black hover:bg-[#00d0dd] px-10">
               <Link href="/app/book">Book Now</Link>
             </Button>
-            <Button asChild variant="outline" className="border-gray-700 text-white hover:bg-white/10 px-10">
-              <Link href="/app">Find Your Barber</Link>
+            <Button
+              asChild
+              variant="outline"
+              className="border-gray-700 text-white hover:bg-white/10 px-10 transition-transform hover:scale-[1.02]"
+            >
+              <Link href="#barbers">Find Your Barber</Link>
             </Button>
           </div>
         </div>

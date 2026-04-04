@@ -115,6 +115,7 @@ html, body {
 
 html {
   color-scheme: dark;
+  scroll-behavior: smooth;
   overscroll-behavior-x: none;
   overscroll-behavior-y: none;
   font-size: 16px;
