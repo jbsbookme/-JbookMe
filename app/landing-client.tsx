@@ -523,50 +523,6 @@ export function LandingClient() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-6 pb-18 sm:pb-24">
-        <div className="rounded-[32px] border border-[#ff2d2d]/25 bg-black p-[1px] shadow-[0_0_24px_rgba(255,45,45,0.25)]">
-          <div className="rounded-[32px] bg-black px-6 sm:px-8 py-10 sm:py-12 text-center">
-            <h2 className="text-3xl font-semibold text-[#3b82f6]">Ready to book?</h2>
-            <p className="mt-3 text-[#e5e5e5]/75">Download the app and book your spot.</p>
-            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveStoreLinks((prev) =>
-                      prev === 'cta' ? null : 'cta'
-                    )
-                  }
-                  className="rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
-                >
-                  Download the app
-                </button>
-                {activeStoreLinks === 'cta' ? (
-                  <div className="mt-3 flex gap-2 justify-center">
-                    <a
-                      href="https://play.google.com/store"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
-                    >
-                      Google Play
-                    </a>
-                    <a
-                      href="https://apps.apple.com"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
-                    >
-                      App Store
-                    </a>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <footer className="border-t border-white/10 px-5 sm:px-6 py-10">
         <div className="mx-auto grid max-w-6xl gap-6 text-sm text-[#e5e5e5]/70 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
