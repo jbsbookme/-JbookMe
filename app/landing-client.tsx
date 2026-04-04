@@ -408,7 +408,7 @@ export function LandingClient() {
           <h2 className="mt-2 text-3xl font-semibold">Clients love us</h2>
         </div>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
-          [shopInfo.webReview1, shopInfo.webReview2, shopInfo.webReview3].map(
+          {[shopInfo.webReview1, shopInfo.webReview2, shopInfo.webReview3].map(
             (review, index) => (
               <div
                 key={`review-${index}`}
