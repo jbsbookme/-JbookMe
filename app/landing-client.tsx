@@ -196,7 +196,7 @@ export function LandingClient() {
             </div>
           )}
           <div className="mt-5 space-y-3">
-            <strong className="block text-lg font-semibold text-[#3b82f6]">{item.name}</strong>
+            <strong className="block text-lg font-semibold text-[#ffd700]">{item.name}</strong>
             <div className="text-sm text-[#e5e5e5]">
               {item.specialties || item.specialty || 'Specialty not listed'}
             </div>
