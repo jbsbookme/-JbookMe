@@ -540,7 +540,6 @@ export function LandingClient() {
       <footer className="border-t border-white/[0.08] px-5 sm:px-6 py-10">
         <div className="mx-auto flex max-w-6xl items-center justify-center text-sm text-[#e5e5e5]/70">
           <div>
-            <div className="text-xs uppercase tracking-[0.2em] text-[#e5e5e5]/50">Legal</div>
             <div className="mt-3 flex items-center gap-6 text-[#ffd700]">
               <a href="/privacy" className="transition hover:text-[#3b82f6]">
                 Privacy
