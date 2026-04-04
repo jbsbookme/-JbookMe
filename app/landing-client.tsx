@@ -82,8 +82,9 @@ export function LandingClient() {
   const normalizeWebsiteUrl = (value?: string | null) => {
     const trimmed = (value ?? '').trim();
     if (!trimmed) return '';
-    if (/^https?:\/\//i.test(trimmed)) return trimmed;
-    return `https://${trimmed}`;
+    const withoutProtocol = trimmed.replace(/^https?:\/\//i, '');
+    const withoutWww = withoutProtocol.replace(/^www\./i, '');
+    return `https://${withoutWww}`;
   };
 
   const normalizeWhatsAppUrl = (value?: string | null) => {
