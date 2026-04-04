@@ -79,6 +79,26 @@ export function LandingClient() {
   const [activeStoreLinks, setActiveStoreLinks] = useState<string | null>(null);
   const reviewAuthors = ['Marcus Lee', 'Sofia Rivera', 'Daniel Cruz'];
 
+  const normalizeWebsiteUrl = (value?: string | null) => {
+    const trimmed = (value ?? '').trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
+  const normalizeWhatsAppUrl = (value?: string | null) => {
+    const trimmed = (value ?? '').trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    if (/^wa\.me\//i.test(trimmed) || /^api\.whatsapp\.com\//i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (!digits) return '';
+    return `https://wa.me/${digits}`;
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -262,6 +282,9 @@ export function LandingClient() {
     });
   };
 
+  const whatsappUrl = normalizeWhatsAppUrl(shopInfo.whatsapp);
+  const websiteUrl = normalizeWebsiteUrl(shopInfo.website);
+
   return (
     <main
       className="bg-black text-[#e5e5e5] overflow-x-hidden"
@@ -444,9 +467,9 @@ export function LandingClient() {
                     <Music2 className="h-4 w-4" />
                   </a>
                 ) : null}
-                {shopInfo.whatsapp ? (
+                {whatsappUrl ? (
                   <a
-                    href={shopInfo.whatsapp}
+                    href={whatsappUrl}
                     target="_blank"
                     rel="noreferrer"
                     aria-label="WhatsApp"
@@ -455,9 +478,9 @@ export function LandingClient() {
                     <MessageCircle className="h-4 w-4" />
                   </a>
                 ) : null}
-                {shopInfo.website ? (
+                {websiteUrl ? (
                   <a
-                    href={shopInfo.website}
+                    href={websiteUrl}
                     target="_blank"
                     rel="noreferrer"
                     aria-label="Website"

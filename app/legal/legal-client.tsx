@@ -61,7 +61,7 @@ export function LegalClient({ title, field }: Props) {
   return (
     <main className="bg-black text-white">
       <section className="mx-auto max-w-4xl px-6 py-16">
-        <h1 className="text-3xl font-semibold">{title}</h1>
+        <h1 className="text-3xl font-semibold text-[#D4AF37]">{title}</h1>
         {loading ? <p className="mt-6 text-white/60">Loading...</p> : null}
         {!loading && paragraphs.length === 0 ? (
           <p className="mt-6 text-white/60">Content coming soon.</p>
