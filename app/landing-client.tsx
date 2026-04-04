@@ -246,13 +246,13 @@ export function LandingClient() {
         <div className="absolute inset-0 -z-10">
           <div className="absolute -top-48 right-0 h-[28rem] w-[28rem] rounded-full bg-[#3b82f6]/18 blur-[160px]" />
           <div className="absolute -bottom-48 left-0 h-[28rem] w-[28rem] rounded-full bg-[#ff2d2d]/14 blur-[160px]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_55%)]" />
+          <div className="absolute inset-0 bg-black" />
         </div>
 
         <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-18 sm:pb-28">
           <div className="flex flex-col gap-10">
             <div className="max-w-3xl animate-hero">
-              <p className="text-sm uppercase tracking-[0.55em] text-[#ffd700] drop-shadow-[0_0_10px_rgba(255,215,0,0.35)]">
+              <p className="text-base uppercase tracking-[0.55em] text-[#ffd700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">
                 JBOOKME
               </p>
               <h1 className="mt-4 text-[clamp(30px,9vw,84px)] font-semibold leading-[0.98] tracking-[-0.02em] text-[#3b82f6]">
@@ -270,7 +270,7 @@ export function LandingClient() {
                         prev === 'hero' ? null : 'hero'
                       )
                     }
-                    className="rounded-full border border-[#ff2d2d] bg-[#ff2d2d] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_0_24px_rgba(255,45,45,0.65)] transition duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_0_32px_rgba(255,45,45,0.75)]"
+                    className="rounded-full border border-[#ff1a1a] bg-[#ff1a1a] px-8 py-4 text-center text-base font-semibold text-[#ffd700] shadow-[0_0_18px_rgba(255,26,26,0.5)] drop-shadow-[0_0_10px_rgba(255,215,0,0.35)] transition duration-300 hover:-translate-y-1 hover:scale-[1.03] hover:shadow-[0_0_28px_rgba(255,26,26,0.7)]"
                   >
                     Download the app
                   </button>
