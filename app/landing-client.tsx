@@ -252,8 +252,10 @@ export function LandingClient() {
         <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-18 sm:pb-28">
           <div className="flex flex-col gap-10">
             <div className="max-w-3xl animate-hero">
-              <p className="text-xs uppercase tracking-[0.45em] text-[#3b82f6]">JBookMe</p>
-              <h1 className="mt-5 text-[clamp(34px,10vw,92px)] font-semibold leading-[0.95] tracking-[-0.02em] text-[#3b82f6]">
+              <p className="text-sm uppercase tracking-[0.55em] text-[#ffd700] drop-shadow-[0_0_10px_rgba(255,215,0,0.35)]">
+                JBOOKME
+              </p>
+              <h1 className="mt-4 text-[clamp(30px,9vw,84px)] font-semibold leading-[0.98] tracking-[-0.02em] text-[#3b82f6]">
                 Premium experience. Book in seconds.
               </h1>
               <p className="mt-4 text-[15px] leading-7 text-[#e5e5e5]/80 sm:text-base md:text-lg">
@@ -268,7 +270,7 @@ export function LandingClient() {
                         prev === 'hero' ? null : 'hero'
                       )
                     }
-                    className="rounded-full border border-[#ff2d2d] bg-transparent px-6 py-3 text-center text-base font-semibold text-[#e5e5e5] shadow-[0_0_0_rgba(255,45,45,0)] transition duration-300 hover:-translate-y-1 hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
+                    className="rounded-full border border-[#ff2d2d] bg-[#ff2d2d] px-6 py-3 text-center text-base font-semibold text-black shadow-[0_0_24px_rgba(255,45,45,0.65)] transition duration-300 hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_0_32px_rgba(255,45,45,0.75)]"
                   >
                     Download the app
                   </button>
@@ -294,7 +296,6 @@ export function LandingClient() {
                   ) : null}
                 </div>
               </div>
-              <p className="mt-5 text-sm text-[#e5e5e5]/60">Download the app to book your appointment.</p>
             </div>
           </div>
         </section>
