@@ -32,6 +32,7 @@ type GalleryItem = {
   imageUrl?: string | null;
   title?: string | null;
   barberName?: string | null;
+  showTitle?: boolean | null;
 };
 
 type ShopInfo = {
@@ -345,18 +346,30 @@ export function LandingClient() {
               key={item.id}
               className="group overflow-hidden rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-3 shadow-[0_0_20px_rgba(255,45,45,0.15)] transition duration-300 hover:-translate-y-2 hover:border-[#ff2d2d]/60 hover:shadow-[0_0_32px_rgba(255,45,45,0.35)]"
             >
-              <div className="text-sm text-[#e5e5e5]/75">
-                {item.title || item.barberName || 'Untitled'}
-              </div>
+              {item.showTitle ? (
+                <div className="text-sm text-[#e5e5e5]/75">
+                  {item.title || item.barberName || 'Untitled'}
+                </div>
+              ) : null}
               {item.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.imageUrl}
                   alt={item.title || item.barberName || 'Gallery image'}
-                  className="mt-3 h-40 sm:h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.04]"
+                  className={
+                    item.showTitle
+                      ? "mt-3 h-40 sm:h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.04]"
+                      : "h-40 sm:h-44 w-full rounded-2xl object-cover transition duration-300 group-hover:scale-[1.04]"
+                  }
                 />
               ) : (
-                <div className="mt-3 h-40 sm:h-44 w-full rounded-2xl bg-white/5" />
+                <div
+                  className={
+                    item.showTitle
+                      ? "mt-3 h-40 sm:h-44 w-full rounded-2xl bg-white/5"
+                      : "h-40 sm:h-44 w-full rounded-2xl bg-white/5"
+                  }
+                />
               )}
             </div>
           ))}
