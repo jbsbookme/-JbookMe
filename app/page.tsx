@@ -126,7 +126,7 @@ export default async function LandingPage() {
             size="lg"
             className="bg-gradient-to-r from-[#00f0ff] to-[#ffd700] text-black font-bold px-10 py-6 transition-transform hover:scale-[1.02] hover:shadow-[0_0_24px_rgba(0,240,255,0.35)]"
           >
-            <Link href="/app/book">Book Now</Link>
+            <Link href="/reservar">Book Now</Link>
           </Button>
           <Button
             asChild
@@ -205,13 +205,13 @@ export default async function LandingPage() {
                     variant="outline"
                     className="w-full border-gray-700 text-white hover:bg-white/10 transition-transform hover:scale-[1.03] hover:shadow-[0_0_14px_rgba(255,255,255,0.16)]"
                   >
-                    <Link href={`/app/barber/${barber.id}`}>View</Link>
+                    <Link href={`/barberos/${barber.id}`}>View</Link>
                   </Button>
                   <Button
                     asChild
                     className="w-full bg-[#00f0ff] text-black hover:bg-[#00d0dd] transition-transform hover:scale-[1.03] hover:shadow-[0_0_18px_rgba(0,240,255,0.35)]"
                   >
-                    <Link href={`/app/book?barberId=${barber.id}`}>Book</Link>
+                    <Link href={`/reservar?barberId=${barber.id}`}>Book</Link>
                   </Button>
                 </div>
               </div>
@@ -228,7 +228,7 @@ export default async function LandingPage() {
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button asChild className="bg-[#00f0ff] text-black hover:bg-[#00d0dd] px-10">
-              <Link href="/app/book">Book Now</Link>
+              <Link href="/reservar">Book Now</Link>
             </Button>
             <Button
               asChild
