@@ -195,31 +195,34 @@ export function LandingClient() {
                 .toUpperCase()}
             </div>
           )}
-            <div className="mt-5 grid gap-3 text-[#e5e5e5]/85">
-              <div className="flex flex-col items-center gap-3 text-sm">
-                <div className="inline-flex items-center gap-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#3b82f6]/30">
-                    <MapPin className="h-4 w-4" />
-                  </span>
-                  <span>{shopInfo.address || 'Coming soon'}</span>
-                </div>
-                <div className="inline-flex items-center gap-3">
-                  <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#3b82f6]/30">
-                    <Clock className="h-4 w-4" />
-                  </span>
-                  <span>{shopInfo.hours || 'Daily - 9am - 8pm'}</span>
-                </div>
-              </div>
-              <div className="mt-2 flex flex-wrap justify-center gap-3">
+          <div className="mt-5 space-y-3">
+            <strong className="block text-lg font-semibold text-[#3b82f6]">{item.name}</strong>
+            <div className="text-sm text-[#e5e5e5]">
+              {item.specialties || item.specialty || 'Specialty not listed'}
+            </div>
+            {shopInfo.review1 ? (
+              <div className="text-sm text-[#e5e5e5]">{shopInfo.review1}</div>
+            ) : null}
+            {item.bio ? (
+              <div
+                className="text-sm text-[#e5e5e5]"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
               >
                 {item.bio}
               </div>
             ) : null}
             <div className="pt-2">
               <button
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                type="button"
                 onClick={() =>
-                    <Instagram className="h-4 w-4" />
+                  setActiveStoreLinks((prev) =>
+                    prev === `book-${item.id}` ? null : `book-${item.id}`
+                  )
                 }
                 className="inline-flex w-full items-center justify-center rounded-full border border-[#ff2d2d]/70 bg-transparent px-6 py-3 text-base font-semibold text-[#e5e5e5] transition duration-300 hover:-translate-y-1 hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_24px_rgba(255,45,45,0.6)]"
               >
@@ -228,9 +231,11 @@ export function LandingClient() {
               {activeStoreLinks === `book-${item.id}` ? (
                 <div className="mt-3 flex gap-2">
                   <a
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                    href="https://play.google.com/store"
                     target="_blank"
-                    <Facebook className="h-4 w-4" />
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
+                  >
                     Google Play
                   </a>
                   <a
@@ -239,9 +244,9 @@ export function LandingClient() {
                     rel="noreferrer"
                     className="inline-flex items-center justify-center rounded-full border border-[#ff2d2d]/70 px-3 py-1 text-xs text-[#e5e5e5] transition hover:bg-[#ff2d2d] hover:text-white hover:shadow-[0_0_16px_rgba(255,45,45,0.55)]"
                   >
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+                    App Store
                   </a>
-                    <Music2 className="h-4 w-4" />
+                </div>
               ) : null}
             </div>
           </div>
@@ -250,9 +255,9 @@ export function LandingClient() {
     });
   };
 
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+  return (
     <main
-                    <MessageCircle className="h-4 w-4" />
+      className="bg-black text-[#e5e5e5] overflow-x-hidden"
       style={{
         fontFamily: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
       }}
@@ -261,9 +266,8 @@ export function LandingClient() {
         <div className="absolute inset-0 -z-10">
           <div className="absolute -top-48 right-0 h-[28rem] w-[28rem] rounded-full bg-[#3b82f6]/18 blur-[160px]" />
           <div className="absolute -bottom-48 left-0 h-[28rem] w-[28rem] rounded-full bg-[#ff2d2d]/14 blur-[160px]" />
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#3b82f6]/35 text-[#e5e5e5] transition hover:border-[#ff2d2d] hover:bg-[#ff2d2d] hover:text-[#ffd700] hover:shadow-[0_0_18px_rgba(255,45,45,0.6)]"
+          <div className="absolute inset-0 bg-black" />
         </div>
-                    <Globe className="h-4 w-4" />
         <section className="mx-auto max-w-6xl px-5 sm:px-6 pt-20 sm:pt-28 pb-18 sm:pb-28">
           <div className="flex flex-col gap-10">
             <div className="max-w-3xl animate-hero">
