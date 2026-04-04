@@ -266,7 +266,7 @@ export function LandingClient() {
               <p className="text-base uppercase tracking-[0.55em] text-[#ffd700] drop-shadow-[0_0_12px_rgba(255,215,0,0.4)]">
                 JBOOKME
               </p>
-              <h1 className="mt-4 text-[clamp(30px,9vw,84px)] font-semibold leading-[0.98] tracking-[-0.02em] text-[#ffd700]">
+              <h1 className="mt-4 text-[clamp(30px,9vw,84px)] font-semibold leading-[0.98] tracking-[-0.02em] text-[#3b82f6]">
                 Premium experience. Book in seconds.
               </h1>
               <p className="mt-4 text-[15px] leading-7 text-[#e5e5e5]/80 sm:text-base md:text-lg">
@@ -316,7 +316,7 @@ export function LandingClient() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Barbers</p>
-            <h2 className="mt-2 text-4xl font-semibold text-[#ffd700]">Master barbers</h2>
+            <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Master barbers</h2>
           </div>
           {loading ? <p className="text-[#e5e5e5]/60">Loading...</p> : null}
         </div>
@@ -328,7 +328,7 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Stylists</p>
-          <h2 className="mt-2 text-4xl font-semibold text-[#ffd700]">Style specialists</h2>
+          <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Style specialists</h2>
         </div>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {renderStaff(stylists)}
@@ -338,7 +338,7 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Gallery</p>
-          <h2 className="mt-2 text-4xl font-semibold text-[#ffd700]">Recent work</h2>
+          <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Recent work</h2>
         </div>
         <div className="mt-8 grid gap-6 md:gap-7 grid-cols-2 lg:grid-cols-4">
           {gallery.map((item) => (
@@ -381,7 +381,7 @@ export function LandingClient() {
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Info</p>
-              <h2 className="mt-2 text-4xl font-semibold text-[#ffd700]">Visit us</h2>
+              <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Visit us</h2>
               <div className="mt-4 grid gap-2 text-[#e5e5e5]/80">
                 {shopInfo.about ? <div>{shopInfo.about}</div> : null}
                 <div>Address: {shopInfo.address || 'Coming soon'}</div>
@@ -497,7 +497,7 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 py-16 sm:py-20">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/50">Reviews</p>
-          <h2 className="mt-2 text-4xl font-semibold text-[#ffd700]">Happy clients</h2>
+          <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Happy clients</h2>
         </div>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
@@ -516,7 +516,7 @@ export function LandingClient() {
       <section className="mx-auto max-w-6xl px-5 sm:px-6 pb-18 sm:pb-24">
         <div className="rounded-[32px] border border-[#ff2d2d]/25 bg-black p-[1px] shadow-[0_0_24px_rgba(255,45,45,0.25)]">
           <div className="rounded-[32px] bg-black px-6 sm:px-8 py-10 sm:py-12 text-center">
-            <h2 className="text-4xl font-semibold text-[#ffd700]">Ready to book?</h2>
+            <h2 className="text-3xl font-semibold text-[#3b82f6]">Ready to book?</h2>
             <p className="mt-3 text-[#e5e5e5]/75">Download the app and book your spot.</p>
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <div>
@@ -560,7 +560,7 @@ export function LandingClient() {
       <footer className="border-t border-white/10 px-5 sm:px-6 py-10">
         <div className="mx-auto grid max-w-6xl gap-6 text-sm text-[#e5e5e5]/70 md:grid-cols-[1.2fr_1fr_1fr]">
           <div>
-            <div className="text-[#ffd700]">JBookMe</div>
+            <div className="text-[#3b82f6]">JBookMe</div>
             <div className="mt-3 space-y-1">
               <div>{shopInfo.address || 'Address coming soon'}</div>
               <div>{shopInfo.hours || 'Hours coming soon'}</div>
