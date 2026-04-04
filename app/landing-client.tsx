@@ -503,14 +503,20 @@ export function LandingClient() {
           <p className="text-sm uppercase tracking-[0.35em] text-[#ffd700]">Reviews</p>
           <h2 className="mt-2 text-3xl font-semibold text-[#3b82f6]">Happy clients</h2>
         </div>
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 md:grid-cols-3">
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
           {[shopInfo.review1, shopInfo.review2, shopInfo.review3].map(
             (review, index) => (
               <div
                 key={`review-${index}`}
-                className="rounded-3xl border border-[#ff2d2d]/20 bg-white/[0.03] p-6 text-[#e5e5e5]/80 shadow-[0_0_20px_rgba(255,45,45,0.15)]"
+                className="rounded-3xl border border-[#3b82f6]/20 bg-black p-6 text-[#e5e5e5] transition duration-300 hover:-translate-y-2 hover:border-[#3b82f6]/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.35)]"
               >
-                {review || 'Review coming soon.'}
+                <div className="text-[#ffd700]">★★★★★</div>
+                <div className="mt-3 text-sm text-[#e5e5e5]/85">
+                  {review || 'Review coming soon.'}
+                </div>
+                <div className="mt-4 text-xs uppercase tracking-[0.3em] text-[#e5e5e5]/60">
+                  Client
+                </div>
               </div>
             )
           )}
