@@ -64,11 +64,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (gender === 'MALE') {
-      barbers = barbers.filter((barber) => ['MALE', 'BOTH'].includes(barber.gender));
+      barbers = barbers.filter((barber) => ['MALE', 'BOTH'].includes(String(barber.gender ?? '')));
     } else if (gender === 'FEMALE') {
-      barbers = barbers.filter((barber) => ['FEMALE', 'BOTH'].includes(barber.gender));
+      barbers = barbers.filter((barber) => ['FEMALE', 'BOTH'].includes(String(barber.gender ?? '')));
     } else if (gender === 'BOTH') {
-      barbers = barbers.filter((barber) => barber.gender === 'BOTH');
+      barbers = barbers.filter((barber) => String(barber.gender ?? '') === 'BOTH');
     }
 
     return NextResponse.json(
