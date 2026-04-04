@@ -21,7 +21,7 @@ export function TopMenuHeader() {
 
   useEffect(() => {
     try {
-      router.prefetch('/inicio');
+      router.prefetch('/');
     } catch {
       // ignore
     }
@@ -75,20 +75,20 @@ export function TopMenuHeader() {
     >
       <div className="container mx-auto flex h-12 sm:h-16 items-center justify-between px-4 max-w-7xl">
         <Link
-          href="/inicio"
+          href="/"
           prefetch
           className="flex items-center space-x-2 sm:space-x-3"
           aria-label="Home"
           onPointerEnter={() => {
             try {
-              router.prefetch('/inicio');
+              router.prefetch('/');
             } catch {
               // ignore
             }
           }}
           onTouchStart={() => {
             try {
-              router.prefetch('/inicio');
+              router.prefetch('/');
             } catch {
               // ignore
             }

@@ -49,9 +49,9 @@ export function GlobalHeader() {
   };
 
   useEffect(() => {
-    // Prefetch Home route to make header tap feel instant on mobile/PWA.
+    // Prefetch landing route to make header tap feel instant on mobile/PWA.
     try {
-      router.prefetch('/inicio');
+      router.prefetch('/');
     } catch {
       // ignore
     }
@@ -149,20 +149,20 @@ export function GlobalHeader() {
     >
       <div className="container mx-auto flex h-11 sm:h-14 items-center justify-between px-4 max-w-7xl">
         <Link
-          href="/inicio"
+          href="/"
           prefetch
           className="flex items-center gap-2 min-w-0"
           aria-label="Home"
           onPointerEnter={() => {
             try {
-              router.prefetch('/inicio');
+              router.prefetch('/');
             } catch {
               // ignore
             }
           }}
           onTouchStart={() => {
             try {
-              router.prefetch('/inicio');
+              router.prefetch('/');
             } catch {
               // ignore
             }
